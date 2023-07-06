@@ -1,0 +1,20 @@
+name: "Review Bot"
+description: "Have custom review rules for PRs with auto assignment"
+author: paritytech
+branding:
+  icon: zoom-in
+  color: red
+inputs:
+  GITHUB_TOKEN:
+    required: true
+    description: The token to access the repo
+outputs:
+  repo:
+    description: 'The name of the repo in owner/repo pattern'
+  approved:
+    description: 'yes or no if the PR is approved'
+  
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
