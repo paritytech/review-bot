@@ -1,0 +1,19 @@
+name: Publish package to GitHub Packages
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  IMAGE_NAME: action
+
+jobs:
+  test-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.3.0
+      - name: Check that the image builds
+        run: docker build . --file Dockerfile
+
+# Todo: Add the rest of the action https://github.com/paritytech/stale-pr-finder/blob/main/.github/workflows/publish.yml
