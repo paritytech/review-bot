@@ -11,13 +11,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+      - uses: c-hive/gha-yarn-cache@v2
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: deps
-          path: node_modules
 
   lint:
     needs: install
@@ -28,13 +24,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Get dependencies
-        uses: actions/download-artifact@v2
-        with:
-          name: deps
-          path: node_modules
+      - uses: c-hive/gha-yarn-cache@v2
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
       - run: yarn run lint
-      
+
   build:
     needs: install
     runs-on: ubuntu-latest
@@ -44,11 +38,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Get dependencies
-        uses: actions/download-artifact@v2
-        with:
-          name: deps
-          path: node_modules
+      - uses: c-hive/gha-yarn-cache@v2
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
       - run: yarn run build
 
   test:
@@ -60,9 +52,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Get dependencies
-        uses: actions/download-artifact@v2
-        with:
-          name: deps
-          path: node_modules
+      - uses: c-hive/gha-yarn-cache@v2
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
       - run: yarn run test
