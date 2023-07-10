@@ -7,7 +7,8 @@
     "start": "node dist",
     "build": "ncc build --license LICENSE",
     "test": "echo \"No tests yet\"",
-    "lint": "echo \"No linting yet\""
+    "fix": "eslint --fix 'src/**/*'",
+    "lint": "eslint 'src/**/*'"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   },
   "homepage": "https://github.com/paritytech/review-bot#readme",
   "devDependencies": {
+    "@eng-automation/js-style": "^2.1.0",
     "@vercel/ncc": "^0.36.1",
     "typescript": "^5.1.6"
   },
