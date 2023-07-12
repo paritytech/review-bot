@@ -8,11 +8,13 @@ inputs:
   GITHUB_TOKEN:
     required: true
     description: The token to access the repo
+  config-file:
+    description: 'Location of the configuration file'
+    required: false
+    default: '.github/review.yml'
 outputs:
   repo:
     description: 'The name of the repo in owner/repo pattern'
-  approved:
-    description: 'yes or no if the PR is approved'
   
 
 runs:
