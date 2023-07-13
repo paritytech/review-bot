@@ -5,9 +5,9 @@ branding:
   icon: zoom-in
   color: red
 inputs:
-  GITHUB_TOKEN:
+  repo-token:
     required: true
-    description: The token to access the repo
+    description: The token to access the repo and the pull request data
   config-file:
     description: 'Location of the configuration file'
     required: false

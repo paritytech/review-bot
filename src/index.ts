@@ -28,7 +28,7 @@ const getRepo = (ctx: Context) => {
 
 const getInputs = (): Inputs => {
   const configLocation = getInput("config-file");
-  const repoToken = getInput("GITHUB_TOKEN", { required: true });
+  const repoToken = getInput("repo-token", { required: true });
 
   return { configLocation, repoToken };
 };
