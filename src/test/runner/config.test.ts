@@ -5,7 +5,7 @@ import { ActionLogger } from "../../github/types";
 import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
-describe.only("Config Parsing", () => {
+describe("Config Parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
   let logger: ActionLogger;
