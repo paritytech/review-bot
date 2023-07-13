@@ -1,9 +1,10 @@
-import { debug, getInput, setOutput } from "@actions/core";
+import { debug, getInput, info, setFailed, setOutput } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 import { Context } from "@actions/github/lib/context";
 import { PullRequest } from "@octokit/webhooks-types";
 
 import { PullRequestApi } from "./github/pullRequest";
+import { ActionRunner } from "./runner";
 import { generateCoreLogger } from "./util";
 
 export interface Inputs {
@@ -50,3 +51,16 @@ const api = new PullRequestApi(
   context.payload.pull_request as PullRequest,
   generateCoreLogger(),
 );
+
+const runner = new ActionRunner(api, generateCoreLogger());
+
+runner
+  .runAction(inputs)
+  .then((result) => {
+    if (result) {
+      info("Action completed succesfully");
+    } else {
+      setFailed("Action failed");
+    }
+  })
+  .catch(setFailed);
