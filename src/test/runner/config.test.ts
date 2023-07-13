@@ -5,7 +5,7 @@ import { ActionLogger } from "../../github/types";
 import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
-describe.only("Runner", () => {
+describe.only("Config Parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
   let logger: ActionLogger;
@@ -14,9 +14,6 @@ describe.only("Runner", () => {
     api = mock<PullRequestApi>();
     runner = new ActionRunner(api, logger);
   });
-
-  describe("Config parsing", () => {
-
     test("should get minimal config", async () => {
         api.getConfigFile.mockResolvedValue(`
         rules:
@@ -30,6 +27,11 @@ describe.only("Runner", () => {
       const config = await runner.getConfigFile("");
       expect(config.preventReviewRequests).toBeNull;
     });
+
+    test("should call GitHub api with path", async () => {
+      await expect(runner.getConfigFile("example-location")).rejects.toThrowError();
+      expect(api.getConfigFile).toHaveBeenCalledWith("example-location");
+    })
 
     describe("preventReviewRequests field", () => {
     test("should get team", async () => {
@@ -85,5 +87,56 @@ describe.only("Runner", () => {
       expect(config.preventReviewRequests).toBeNull;
     });
   });
-});
+
+  describe("conditions field", () => {
+    const exampleConfig = `
+    rules:
+      - name: Default review
+        condition:
+          include: 
+              - 'example-include-rule-1'
+              - 'example-include-rule-2'
+          exclude: 
+              - 'example-exclude-rule'
+      `;
+    it("should parse include conditions", async () => {
+      api.getConfigFile.mockResolvedValue(exampleConfig);
+      const config = await runner.getConfigFile("");
+      const includeRule = config.rules[0].condition.include;
+      expect(includeRule.length).toBeGreaterThan(0);
+      expect(includeRule).toContainEqual("example-include-rule-1");
+    });
+
+    it("should fail if there are no include values", async () => {
+      api.getConfigFile.mockResolvedValue(`
+      rules:
+        - name: Default review
+          condition:
+            exclude: 
+                - 'example'
+        `);
+      await expect(runner.getConfigFile("")).rejects.toThrowError('"rules[0].condition.include" is required');
+    });
+
+
+    it("should parse exclude conditions", async () => {
+      api.getConfigFile.mockResolvedValue(exampleConfig);
+      const config = await runner.getConfigFile("");
+      const excludes = config.rules[0].condition.exclude;
+      expect(excludes?.length).toBeGreaterThan(0);
+      expect(excludes).toContainEqual("example-exclude-rule");
+    });
+
+    it("should pass if there are no exclude conditions", async () => {
+      api.getConfigFile.mockResolvedValue(`
+      rules:
+        - name: Default review
+          condition:
+            include: 
+                - '.*'
+        `);
+      const config = await runner.getConfigFile("");
+      expect(config.rules[0].condition.exclude).toBeNull;
+    });
+  });
 });
