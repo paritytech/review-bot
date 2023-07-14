@@ -3,9 +3,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { mock, MockProxy } from "jest-mock-extended";
 
-import { PullRequestApi } from "../../src/github/pullRequest";
-import { ActionLogger } from "../../src/github/types";
-import { ActionRunner } from "../../src/runner";
+import { PullRequestApi } from "../../github/pullRequest";
+import { ActionLogger } from "../../github/types";
+import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
 describe("Config Parsing", () => {

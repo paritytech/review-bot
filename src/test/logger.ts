@@ -1,4 +1,4 @@
-import { ActionLogger } from "../src/github/types";
+import { ActionLogger } from "../github/types";
 
 export class TestLogger implements ActionLogger {
   logHistory: string[] = [];
