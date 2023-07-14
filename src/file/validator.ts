@@ -20,12 +20,3 @@ export const schema = Joi.object<ConfigurationFile>().keys({
     .optional()
     .allow(null),
 });
-
-export const validateConfig = (config: ConfigurationFile): [boolean, Error | null] => {
-  const validatedConfig = schema.validate(config);
-  if (validatedConfig.error) {
-    return [false, validatedConfig.error];
-  }
-
-  return [true, null];
-};
