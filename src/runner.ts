@@ -1,3 +1,4 @@
+import { validate } from "@eng-automation/js";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
@@ -10,23 +11,18 @@ import { ActionLogger } from "./github/types";
 export class ActionRunner {
   constructor(private readonly prApi: PullRequestApi, private readonly logger: ActionLogger) {}
 
-  /** Fetches the configuration file, parses it and validates it.
+  /**
+   * Fetches the configuration file, parses it and validates it.
    * If the config is invalid or not found, an error will be thrown.
    */
   async getConfigFile(configLocation: string): Promise<ConfigurationFile> {
     const content = await this.prApi.getConfigFile(configLocation);
     this.logger.debug(content);
-    const config = parse(content) as ConfigurationFile;
+    const config: unknown = parse(content);
 
     this.logger.info(`Obtained config at ${configLocation}`);
 
-    const validation = schema.validate(config);
-    if (validation.error) {
-      this.logger.error("Configuration file is invalid");
-      throw validation.error;
-    }
-
-    return config;
+    return validate<ConfigurationFile>(config, schema, { message: "Configuration file is invalid" });
   }
 
   async runAction(inputs: Omit<Inputs, "repoToken">): Promise<boolean> {
