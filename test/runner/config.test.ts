@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { mock, MockProxy } from "jest-mock-extended";
 
-import { PullRequestApi } from "../../github/pullRequest";
-import { ActionLogger } from "../../github/types";
-import { ActionRunner } from "../../runner";
+import { PullRequestApi } from "../../src/github/pullRequest";
+import { ActionLogger } from "../../src/github/types";
+import { ActionRunner } from "../../src/runner";
 import { TestLogger } from "../logger";
 
 describe("Config Parsing", () => {
@@ -14,8 +17,8 @@ describe("Config Parsing", () => {
     api = mock<PullRequestApi>();
     runner = new ActionRunner(api, logger);
   });
-    test("should get minimal config", async () => {
-        api.getConfigFile.mockResolvedValue(`
+  test("should get minimal config", async () => {
+    api.getConfigFile.mockResolvedValue(`
         rules:
           - name: Default review
             condition:
@@ -24,16 +27,16 @@ describe("Config Parsing", () => {
               exclude: 
                 - 'example'
         `);
-      const config = await runner.getConfigFile("");
-      expect(config.preventReviewRequests).toBeNull;
-    });
+    const config = await runner.getConfigFile("");
+    expect(config.preventReviewRequests).toBeNull;
+  });
 
-    test("should call GitHub api with path", async () => {
-      await expect(runner.getConfigFile("example-location")).rejects.toThrowError();
-      expect(api.getConfigFile).toHaveBeenCalledWith("example-location");
-    })
+  test("should call GitHub api with path", async () => {
+    await expect(runner.getConfigFile("example-location")).rejects.toThrowError();
+    expect(api.getConfigFile).toHaveBeenCalledWith("example-location");
+  });
 
-    describe("preventReviewRequests field", () => {
+  describe("preventReviewRequests field", () => {
     test("should get team", async () => {
       api.getConfigFile.mockResolvedValue(`
       rules:
@@ -52,7 +55,6 @@ describe("Config Parsing", () => {
       const config = await runner.getConfigFile("");
       expect(config.preventReviewRequests.teams).toEqual(["team-a", "team-b"]);
     });
-
 
     test("should get users", async () => {
       api.getConfigFile.mockResolvedValue(`
@@ -117,7 +119,6 @@ describe("Config Parsing", () => {
         `);
       await expect(runner.getConfigFile("")).rejects.toThrowError('"rules[0].condition.include" is required');
     });
-
 
     it("should parse exclude conditions", async () => {
       api.getConfigFile.mockResolvedValue(exampleConfig);
