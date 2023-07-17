@@ -11,7 +11,7 @@ import { TestLogger } from "../logger";
 describe("Config Parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
-  let logger: ActionLogger;
+  let logger: TestLogger;
   beforeEach(() => {
     logger = new TestLogger();
     api = mock<PullRequestApi>();
@@ -28,7 +28,7 @@ describe("Config Parsing", () => {
                 - 'example'
         `);
     const config = await runner.getConfigFile("");
-    expect(config.preventReviewRequests).toBeNull;
+    expect(config.preventReviewRequests).toBeUndefined();
   });
 
   test("should call GitHub api with path", async () => {
@@ -86,7 +86,7 @@ describe("Config Parsing", () => {
                 - 'example'
         `);
       const config = await runner.getConfigFile("");
-      expect(config.preventReviewRequests).toBeNull;
+      expect(config.preventReviewRequests).toBeUndefined();
     });
   });
 
@@ -137,7 +137,7 @@ describe("Config Parsing", () => {
                 - '.*'
         `);
       const config = await runner.getConfigFile("");
-      expect(config.rules[0].condition.exclude).toBeNull;
+      expect(config.rules[0].condition.exclude).toBeUndefined();
     });
   });
 });
