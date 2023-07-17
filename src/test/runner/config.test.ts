@@ -36,6 +36,21 @@ describe("Config Parsing", () => {
     expect(api.getConfigFile).toHaveBeenCalledWith("example-location");
   });
 
+  describe("regular expressions validator", () => {
+    test("should fail with invalid regular expression", async () => {
+      const invalidRegex = "(?(";
+      api.getConfigFile.mockResolvedValue(`
+      rules:
+        - name: Default review
+          condition:
+            include: 
+                - '${invalidRegex}'
+        `);
+      await expect(runner.getConfigFile("")).rejects.toThrowError("Regular expression is invalid. Check the logs");
+      expect(logger.logHistory).toContainEqual(`Include condition '${invalidRegex}' is not a valid regex`);
+    });
+  });
+
   describe("preventReviewRequests field", () => {
     test("should get team", async () => {
       api.getConfigFile.mockResolvedValue(`
