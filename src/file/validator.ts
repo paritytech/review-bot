@@ -1,5 +1,6 @@
 import Joi from "joi";
 
+import { ActionLogger } from "../github/types";
 import { ConfigurationFile, Rule } from "./types";
 
 const ruleSchema = Joi.object<Rule>().keys({
@@ -21,16 +22,6 @@ export const schema = Joi.object<ConfigurationFile>().keys({
     .allow(null),
 });
 
-export const isRegexValid = (regex: string): boolean => {
-  try {
-    new RegExp(regex);
-    return true;
-  } catch (e) {
-    console.error(e);
-    return false;
-  }
-};
-
 /** Evaluate if the regex expression inside a configuration are valid.
  * @returns a tuple of type [boolean, string]. If the boolean is false, the string will contain an error message
  * @example
@@ -41,21 +32,35 @@ export const isRegexValid = (regex: string): boolean => {
  *   runExpression(myConfig);
  * }
  */
-export const validateRegularExpressions = (config: ConfigurationFile): [true] | [false, string] => {
-  config.rules.forEach((rule) => {
-    rule.condition.include.forEach((condition) => {
+export const validateRegularExpressions = (
+  config: ConfigurationFile,
+  logger: ActionLogger,
+): [true] | [false, string] => {
+  /** Regex evaluator */
+  const isRegexValid = (regex: string): boolean => {
+    try {
+      new RegExp(regex);
+      return true;
+    } catch (e) {
+      logger.error(e as Error);
+      return false;
+    }
+  };
+
+  for (const rule of config.rules) {
+    for (const condition of rule.condition.include) {
       if (!isRegexValid(condition)) {
         return [false, `Include condition '${condition}' is not a valid regex`];
       }
-    });
+    }
     if (rule.condition.exclude) {
-      rule.condition.exclude.forEach((condition) => {
+      for (const condition of rule.condition.exclude) {
         if (!isRegexValid(condition)) {
           return [false, `Exclude condition '${condition}' is not a valid regex`];
         }
-      });
+      }
     }
-  });
+  }
 
   return [true];
 };

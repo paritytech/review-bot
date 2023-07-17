@@ -24,7 +24,7 @@ export class ActionRunner {
 
     const configFile = validate<ConfigurationFile>(config, schema, { message: "Configuration file is invalid" });
 
-    const [result, error] = validateRegularExpressions(configFile);
+    const [result, error] = validateRegularExpressions(configFile, this.logger);
     if (!result) {
       this.logger.error(error);
       throw new Error("Regular expression is invalid. Check the logs");
