@@ -45,8 +45,10 @@ describe("Config Parsing", () => {
             include: 
                 - '${invalidRegex}'
         `);
-      await expect(runner.getConfigFile("")).rejects.toThrowError("Regular expression is invalid. Check the logs");
-      expect(logger.logHistory).toContainEqual(`Include condition '${invalidRegex}' is not a valid regex`);
+      await expect(runner.getConfigFile("")).rejects.toThrowError(
+        `Regular expression is invalid: Include condition '${invalidRegex}' is not a valid regex`,
+      );
+      expect(logger.logHistory).toContainEqual(`Invalid regular expression: /${invalidRegex}/: Invalid group`);
     });
   });
 
