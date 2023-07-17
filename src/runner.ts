@@ -3,7 +3,7 @@ import { parse } from "yaml";
 
 import { Inputs } from ".";
 import { ConfigurationFile } from "./file/types";
-import { schema } from "./file/validator";
+import { schema, validateRegularExpressions } from "./file/validator";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger } from "./github/types";
 
@@ -22,7 +22,15 @@ export class ActionRunner {
 
     this.logger.info(`Obtained config at ${configLocation}`);
 
-    return validate<ConfigurationFile>(config, schema, { message: "Configuration file is invalid" });
+    const configFile = validate<ConfigurationFile>(config, schema, { message: "Configuration file is invalid" });
+
+    const [result, error] = validateRegularExpressions(configFile);
+    if (!result) {
+      this.logger.error(error);
+      throw new Error("Regular expression is invalid. Check the logs");
+    }
+
+    return configFile;
   }
 
   async runAction(inputs: Omit<Inputs, "repoToken">): Promise<boolean> {
