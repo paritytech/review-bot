@@ -4,14 +4,13 @@
 import { mock, MockProxy } from "jest-mock-extended";
 
 import { PullRequestApi } from "../../github/pullRequest";
-import { ActionLogger } from "../../github/types";
 import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
 describe("Config Parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
-  let logger: ActionLogger;
+  let logger: TestLogger;
   beforeEach(() => {
     logger = new TestLogger();
     api = mock<PullRequestApi>();
@@ -28,12 +27,29 @@ describe("Config Parsing", () => {
                 - 'example'
         `);
     const config = await runner.getConfigFile("");
-    expect(config.preventReviewRequests).toBeNull;
+    expect(config.preventReviewRequests).toBeUndefined();
   });
 
   test("should call GitHub api with path", async () => {
     await expect(runner.getConfigFile("example-location")).rejects.toThrowError();
     expect(api.getConfigFile).toHaveBeenCalledWith("example-location");
+  });
+
+  describe("regular expressions validator", () => {
+    test("should fail with invalid regular expression", async () => {
+      const invalidRegex = "(?(";
+      api.getConfigFile.mockResolvedValue(`
+      rules:
+        - name: Default review
+          condition:
+            include: 
+                - '${invalidRegex}'
+        `);
+      await expect(runner.getConfigFile("")).rejects.toThrowError(
+        `Regular expression is invalid: Include condition '${invalidRegex}' is not a valid regex`,
+      );
+      expect(logger.logHistory).toContainEqual(`Invalid regular expression: /${invalidRegex}/: Invalid group`);
+    });
   });
 
   describe("preventReviewRequests field", () => {
@@ -86,7 +102,7 @@ describe("Config Parsing", () => {
                 - 'example'
         `);
       const config = await runner.getConfigFile("");
-      expect(config.preventReviewRequests).toBeNull;
+      expect(config.preventReviewRequests).toBeUndefined();
     });
   });
 
@@ -137,7 +153,7 @@ describe("Config Parsing", () => {
                 - '.*'
         `);
       const config = await runner.getConfigFile("");
-      expect(config.rules[0].condition.exclude).toBeNull;
+      expect(config.rules[0].condition.exclude).toBeUndefined();
     });
   });
 });
