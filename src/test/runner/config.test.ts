@@ -4,7 +4,6 @@
 import { mock, MockProxy } from "jest-mock-extended";
 
 import { PullRequestApi } from "../../github/pullRequest";
-import { ActionLogger } from "../../github/types";
 import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
