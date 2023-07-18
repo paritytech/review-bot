@@ -11,7 +11,7 @@ export interface TeamApi {
   getTeamMembers(teamName: string): Promise<string[]>;
 }
 
-/** 
+/**
  * Implementation of the TeamApi interface using GitHub teams
  * @see-also {@link TeamApi}
  */
