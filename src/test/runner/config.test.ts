@@ -124,8 +124,9 @@ describe("Config Parsing", () => {
               - team-a
               - team-b
         `);
-      const config = await runner.getConfigFile("");
-      expect(config.preventReviewRequests.users).rejects.toThrowError('"preventReviewRequests" contains a conflict between exclusive peers [users, teams]');
+      await expect(runner.getConfigFile("")).rejects.toThrowError(
+        '"preventReviewRequests" contains a conflict between exclusive peers [users, teams]',
+      );
     });
 
     test("should pass if preventReviewRequests is not assigned", async () => {

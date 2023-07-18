@@ -83,6 +83,6 @@ describe("Basic rule parsing", () => {
                 - 'example'
             type: basic
         `);
-    expect(runner.getConfigFile("")).rejects.toThrowError('"value" must contain at least one of [users, teams]');
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"value" must contain at least one of [users, teams]');
   });
 });

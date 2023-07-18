@@ -39,7 +39,7 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
   .keys({ min_approvals: Joi.number().empty(1), ...reviewersObj })
-  .x("users", "teams");
+  .xor("users", "teams");
 
 /**
  * Evaluates a config thoroughly. If there is a problem with it, it will throw.
