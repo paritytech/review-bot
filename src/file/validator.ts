@@ -1,26 +1,74 @@
+import { validate } from "@eng-automation/js";
 import Joi from "joi";
 
 import { ActionLogger } from "../github/types";
-import { ConfigurationFile, Rule } from "./types";
+import { BasicRule, ConfigurationFile, Rule } from "./types";
 
-const ruleSchema = Joi.object<Rule>().keys({
+/** For the users or team schema. Will be recycled A LOT
+ * Remember to add `.xor("users", "teams")` to force one of the two to be picked up
+ */
+const reviewersObj = {
+  users: Joi.array().items(Joi.string()).optional().empty(null),
+  teams: Joi.array().items(Joi.string()).optional().empty(null),
+};
+
+/** Base rule condition.
+ * This are the minimum requirements that all the rules must have.
+ * After we evaluated this, we can run a custom evaluation per rule
+ */
+const ruleSchema = Joi.object<Rule & { type: string }>().keys({
   name: Joi.string().required(),
   condition: Joi.object<Rule["condition"]>().keys({
     include: Joi.array().items(Joi.string()).required(),
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
+  type: Joi.string().required(),
 });
 
-export const schema = Joi.object<ConfigurationFile>().keys({
+/** General Configuration schema.
+ * Evaluates all the upper level field plus the generic rules fields.
+ * Remember to evaluate the rules with their custom rules
+ */
+export const generalSchema = Joi.object<ConfigurationFile>().keys({
   rules: Joi.array<ConfigurationFile["rules"]>().items(ruleSchema).required(),
-  preventReviewRequests: Joi.object<ConfigurationFile["preventReviewRequests"]>()
-    .keys({
-      users: Joi.array().items(Joi.string()).optional().allow(null),
-      teams: Joi.array().items(Joi.string()).optional().allow(null),
-    })
-    .optional()
-    .allow(null),
+  preventReviewRequests: Joi.object().keys(reviewersObj).optional().xor("users", "teams"),
 });
+
+/** Basic rule schema
+ * This rule is quite simple as it only has the min_approvals field and the required reviewers
+ */
+export const basicRuleSchema = Joi.object<BasicRule>()
+  .keys({ min_approvals: Joi.number().empty(1), ...reviewersObj })
+  .xor("users", "teams");
+
+/**
+ * Evaluates a config thoroughly. If there is a problem with it, it will throw.
+ *
+ * It first evaluates the configuration on a higher level and then runs individually per rule
+ * @see-also {@link generalSchema}
+ * @param config The configuration object to be validated. Usually parsed directly from a yaml or json
+ * @returns The configuration file post validation, or it throws an error.
+ */
+export const validateConfig = (config: ConfigurationFile): ConfigurationFile | never => {
+  const validatedConfig = validate<ConfigurationFile>(config, generalSchema, {
+    message: "Configuration file is invalid",
+  });
+
+  for (const rule of validatedConfig.rules) {
+    const { name, type } = rule;
+    const message = `Configuration for rule '${rule.name}' is invalid`;
+    if (type === "basic") {
+      validate<BasicRule>(rule, basicRuleSchema, { message });
+    } else if (type === "debug") {
+      validate<Rule>(rule, ruleSchema, { message });
+    } else {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      throw new Error(`Rule ${name} has an invalid type: ${type}`);
+    }
+  }
+
+  return validatedConfig;
+};
 
 /** Evaluate if the regex expression inside a configuration are valid.
  * @returns a tuple of type [boolean, string]. If the boolean is false, the string will contain an error message

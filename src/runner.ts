@@ -1,9 +1,8 @@
-import { validate } from "@eng-automation/js";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
 import { ConfigurationFile } from "./file/types";
-import { schema, validateRegularExpressions } from "./file/validator";
+import { validateConfig, validateRegularExpressions } from "./file/validator";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger } from "./github/types";
 
@@ -18,11 +17,11 @@ export class ActionRunner {
   async getConfigFile(configLocation: string): Promise<ConfigurationFile> {
     const content = await this.prApi.getConfigFile(configLocation);
     this.logger.debug(content);
-    const config: unknown = parse(content);
+    const config = parse(content) as ConfigurationFile;
 
     this.logger.info(`Obtained config at ${configLocation}`);
 
-    const configFile = validate<ConfigurationFile>(config, schema, { message: "Configuration file is invalid" });
+    const configFile = validateConfig(config);
 
     const [result, error] = validateRegularExpressions(configFile, this.logger);
     if (!result) {
