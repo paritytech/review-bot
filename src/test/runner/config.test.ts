@@ -25,6 +25,9 @@ describe("Config Parsing", () => {
                 - '.*'
               exclude: 
                 - 'example'
+            type: basic
+            teams:
+              - team-example
         `);
     const config = await runner.getConfigFile("");
     expect(config.preventReviewRequests).toBeUndefined();
@@ -44,6 +47,9 @@ describe("Config Parsing", () => {
           condition:
             include: 
                 - '${invalidRegex}'
+          type: basic
+          teams:
+            - team-example
         `);
       await expect(runner.getConfigFile("")).rejects.toThrowError(
         `Regular expression is invalid: Include condition '${invalidRegex}' is not a valid regex`,
@@ -62,6 +68,9 @@ describe("Config Parsing", () => {
                 - '.*'
             exclude: 
                 - 'example'
+          type: basic
+          teams:
+            - team-example
 
       preventReviewRequests:
         teams:
@@ -81,6 +90,9 @@ describe("Config Parsing", () => {
                 - '.*'
             exclude: 
                 - 'example'
+          type: basic
+          teams:
+            - team-example
 
       preventReviewRequests:
         users:
@@ -125,6 +137,9 @@ describe("Config Parsing", () => {
                 - '.*'
             exclude: 
                 - 'example'
+          type: basic
+          teams:
+            - team-example
         `);
       const config = await runner.getConfigFile("");
       expect(config.preventReviewRequests).toBeUndefined();
@@ -141,6 +156,9 @@ describe("Config Parsing", () => {
               - 'example-include-rule-2'
           exclude: 
               - 'example-exclude-rule'
+        type: basic
+        teams:
+          - team-example
       `;
     it("should parse include conditions", async () => {
       api.getConfigFile.mockResolvedValue(exampleConfig);
@@ -157,6 +175,9 @@ describe("Config Parsing", () => {
           condition:
             exclude: 
                 - 'example'
+          type: basic
+          teams:
+            - team-example
         `);
       await expect(runner.getConfigFile("")).rejects.toThrowError('"rules[0].condition.include" is required');
     });
@@ -176,6 +197,9 @@ describe("Config Parsing", () => {
           condition:
             include: 
                 - '.*'
+          type: basic
+          teams:
+            - team-1
         `);
       const config = await runner.getConfigFile("");
       expect(config.rules[0].condition.exclude).toBeUndefined();
