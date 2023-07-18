@@ -3,6 +3,8 @@ enum Rules {
   Debug = "debug",
 }
 
+type Reviewers = { users?: string[]; teams?: string[] };
+
 export interface Rule {
   name: string;
   condition: { include: string[]; exclude?: string[] };
@@ -14,11 +16,9 @@ export interface DebugRule extends Rule {
   size: number;
 }
 
-export interface BasicRule extends Rule {
+export interface BasicRule extends Rule, Reviewers {
   type: Rules.Basic;
   min_approvals: number;
-  users?: string[];
-  teams?: string[];
 }
 
 export interface ConfigurationFile {
