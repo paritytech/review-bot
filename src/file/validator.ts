@@ -1,45 +1,39 @@
-import { validate } from "@eng-automation/js";
-import Joi from "joi";
+import * as $ from "subshape";
 
 import { ActionLogger } from "../github/types";
-import { BasicRule, ConfigurationFile, Rule } from "./types";
+import { ConfigurationFile } from "./types";
 
 /** For the users or team schema. Will be recycled A LOT
- * Remember to add `.xor("users", "teams")` to force one of the two to be picked up
+ * TODO: Find a way to use an XOR operator
  */
-const reviewersObj = {
-  users: Joi.array().items(Joi.string()).optional().empty(null),
-  teams: Joi.array().items(Joi.string()).optional().empty(null),
-};
+const $reviewersObj = $.object($.optionalField("users", $.array($.str)), $.optionalField("teams", $.array($.str)));
 
 /** Base rule condition.
  * This are the minimum requirements that all the rules must have.
  * After we evaluated this, we can run a custom evaluation per rule
  */
-const ruleSchema = Joi.object<Rule & { type: string }>().keys({
-  name: Joi.string().required(),
-  condition: Joi.object<Rule["condition"]>().keys({
-    include: Joi.array().items(Joi.string()).required(),
-    exclude: Joi.array().items(Joi.string()).optional().allow(null),
-  }),
-  type: Joi.string().required(),
-});
+const $ruleSchema = $.object(
+  $.field("name", $.str),
+  $.field("condition", $.object($.field("include", $.array($.str)), $.optionalField("exclude", $.array($.str)))),
+  // TODO: Convert this into one of the literal types ("basic" | "and" | "andOr" | "xor")
+  $.field("type", $.str),
+);
 
 /** General Configuration schema.
  * Evaluates all the upper level field plus the generic rules fields.
  * Remember to evaluate the rules with their custom rules
  */
-export const generalSchema = Joi.object<ConfigurationFile>().keys({
-  rules: Joi.array<ConfigurationFile["rules"]>().items(ruleSchema).required(),
-  preventReviewRequests: Joi.object().keys(reviewersObj).optional().xor("users", "teams"),
-});
+const $generalSchema = $.object(
+  $.field("rules", $.array($ruleSchema)),
+  $.field("preventReviewRequests", $.object($reviewersObj)),
+);
+
+type ConfigFile = $.Output<typeof $generalSchema>;
 
 /** Basic rule schema
  * This rule is quite simple as it only has the min_approvals field and the required reviewers
  */
-export const basicRuleSchema = Joi.object<BasicRule>()
-  .keys({ min_approvals: Joi.number().empty(1), ...reviewersObj })
-  .xor("users", "teams");
+const $basicRuleSchema = $.object($.field("min_approvals", $.i8), $reviewersObj, $ruleSchema);
 
 /**
  * Evaluates a config thoroughly. If there is a problem with it, it will throw.
@@ -49,25 +43,24 @@ export const basicRuleSchema = Joi.object<BasicRule>()
  * @param config The configuration object to be validated. Usually parsed directly from a yaml or json
  * @returns The configuration file post validation, or it throws an error.
  */
-export const validateConfig = (config: ConfigurationFile): ConfigurationFile | never => {
-  const validatedConfig = validate<ConfigurationFile>(config, generalSchema, {
-    message: "Configuration file is invalid",
-  });
+export const validateConfig = (config: ConfigFile): ConfigurationFile | never => {
+  // In theory this will throw when it fails the assertion
+  $.assert($generalSchema, config);
 
-  for (const rule of validatedConfig.rules) {
+  for (const rule of config.rules) {
     const { name, type } = rule;
     const message = `Configuration for rule '${rule.name}' is invalid`;
     if (type === "basic") {
-      validate<BasicRule>(rule, basicRuleSchema, { message });
+      $.assert($basicRuleSchema, rule);
     } else if (type === "debug") {
-      validate<Rule>(rule, ruleSchema, { message });
+      $.assert($ruleSchema, rule);
     } else {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`Rule ${name} has an invalid type: ${type}`);
     }
   }
 
-  return validatedConfig;
+  return config;
 };
 
 /** Evaluate if the regex expression inside a configuration are valid.
