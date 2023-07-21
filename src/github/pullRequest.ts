@@ -4,11 +4,15 @@ import { ActionLogger, GitHubClient } from "./types";
 
 /** API class that uses the default token to access the data from the pull request and the repository */
 export class PullRequestApi {
+  private readonly number: number;
   constructor(
     private readonly api: GitHubClient,
     private readonly pr: PullRequest,
     private readonly logger: ActionLogger,
-  ) {}
+    private readonly repoInfo: { repo: string; owner: string },
+  ) {
+    this.number = pr.number;
+  }
 
   async getConfigFile(configFilePath: string): Promise<string> {
     const { data } = await this.api.rest.repos.getContent({

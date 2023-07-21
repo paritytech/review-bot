@@ -50,6 +50,7 @@ const api = new PullRequestApi(
   getOctokit(inputs.repoToken),
   context.payload.pull_request as PullRequest,
   generateCoreLogger(),
+  repo,
 );
 
 const runner = new ActionRunner(api, generateCoreLogger());
