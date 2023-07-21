@@ -4,7 +4,10 @@ import { Inputs } from ".";
 import { BasicRule, ConfigurationFile, Rule } from "./file/types";
 import { validateConfig, validateRegularExpressions } from "./file/validator";
 import { PullRequestApi } from "./github/pullRequest";
+import { TeamApi } from "./github/teams";
 import { ActionLogger } from "./github/types";
+
+type ReviewError = [true] | [false, { missingUsers: string[]; teamsToRequest?: string[]; usersToRequest?: string[] }];
 
 /** Action in charge of running the GitHub action */
 export class ActionRunner {
@@ -35,6 +38,57 @@ export class ActionRunner {
     return configFile;
   }
 
+  async validatePullRequest({ rules, preventReviewRequests }: ConfigurationFile) {
+    for (const rule of rules) {
+      if (rule.type === "basic") {
+      }
+    }
+  }
+
+  async evaluateBasicRule(rule: BasicRule): Promise<ReviewError> {
+    const files = await this.listFilesThatMatchRuleCondition(rule);
+    if (files.length === 0) {
+      return [true];
+    }
+
+    const approvals = await this.prApi.listApprovedReviewsAuthors();
+
+    const requiredUsers: string[] = [];
+    if (rule.teams) {
+      for (const team of rule.teams) {
+        const members = await this.teamApi.getTeamMembers(team);
+        for (const member of members) {
+          if (requiredUsers.indexOf(member) < 0) {
+            requiredUsers.push(member);
+          }
+        }
+      }
+    } else if (rule.users) {
+      requiredUsers.push(...rule.users);
+    }
+
+    let missingReviews = rule.min_approvals;
+    for (const requiredUser of requiredUsers) {
+      if (approvals.indexOf(requiredUser) > -1) {
+        missingReviews--;
+      }
+    }
+
+    if (missingReviews > 0) {
+      return [
+        false,
+        {
+          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0),
+          teamsToRequest: rule.teams ? rule.teams : undefined,
+          usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
+        },
+      ];
+    } else {
+      return [true];
+    }
+  }
+
+  async evaluateCondition(rule: Rule) {}
 
   /** Using the include and exclude condition, it returns a list of all the files in a PR that matches the criteria */
   async listFilesThatMatchRuleCondition({ condition }: Rule): Promise<string[]> {
