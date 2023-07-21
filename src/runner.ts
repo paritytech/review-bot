@@ -1,14 +1,18 @@
 import { parse } from "yaml";
 
 import { Inputs } from ".";
-import { ConfigurationFile } from "./file/types";
+import { BasicRule, ConfigurationFile, Rule } from "./file/types";
 import { validateConfig, validateRegularExpressions } from "./file/validator";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger } from "./github/types";
 
 /** Action in charge of running the GitHub action */
 export class ActionRunner {
-  constructor(private readonly prApi: PullRequestApi, private readonly logger: ActionLogger) {}
+  constructor(
+    private readonly prApi: PullRequestApi,
+    private readonly teamApi: TeamApi,
+    private readonly logger: ActionLogger,
+  ) {}
 
   /**
    * Fetches the configuration file, parses it and validates it.
@@ -29,6 +33,29 @@ export class ActionRunner {
     }
 
     return configFile;
+  }
+
+
+  /** Using the include and exclude condition, it returns a list of all the files in a PR that matches the criteria */
+  async listFilesThatMatchRuleCondition({ condition }: Rule): Promise<string[]> {
+    const files = await this.prApi.listModifiedFiles();
+    let matches: string[] = [];
+    for (const regex of condition.include) {
+      for (const fileName of files) {
+        // If the file name matches the regex, and it has not been added to the list, we add it
+        if (fileName.match(regex) && matches.indexOf(fileName) < 0) {
+          matches.push(fileName);
+        }
+      }
+    }
+
+    if (condition.exclude && matches.length > 0) {
+      for (const regex of condition.exclude) {
+        matches = matches.filter((match) => !match.match(regex));
+      }
+    }
+
+    return matches;
   }
 
   async runAction(inputs: Omit<Inputs, "repoToken">): Promise<boolean> {

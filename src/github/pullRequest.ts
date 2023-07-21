@@ -14,6 +14,8 @@ export class PullRequestApi {
     this.number = pr.number;
   }
 
+  /** Cache of the list of files that have been modified by a PR */
+  private filesChanged: string[] = [];
   async getConfigFile(configFilePath: string): Promise<string> {
     const { data } = await this.api.rest.repos.getContent({
       owner: this.pr.base.repo.owner.login,
@@ -32,5 +34,14 @@ export class PullRequestApi {
     this.logger.debug(`File content is ${decryptedFile}`);
 
     return decryptedFile;
+  }
+
+  /** Returns an array with all the files that had been modified */
+  async listModifiedFiles(): Promise<string[]> {
+    if (this.filesChanged.length === 0) {
+      const { data } = await this.api.rest.pulls.listFiles({ ...this.repoInfo, pull_number: this.number });
+      this.filesChanged = data.map((f) => f.filename);
+    }
+    return this.filesChanged;
   }
 }
