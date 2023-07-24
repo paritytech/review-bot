@@ -80,7 +80,7 @@ describe("Config Parsing", () => {
             - team-b
         `);
       const config = await runner.getConfigFile("");
-      expect(config.preventReviewRequests.teams).toEqual(["team-a", "team-b"]);
+      expect(config.preventReviewRequests?.teams).toEqual(["team-a", "team-b"]);
     });
 
     test("should get users", async () => {
@@ -102,7 +102,7 @@ describe("Config Parsing", () => {
             - user-b
         `);
       const config = await runner.getConfigFile("");
-      expect(config.preventReviewRequests.users).toEqual(["user-a", "user-b"]);
+      expect(config.preventReviewRequests?.users).toEqual(["user-a", "user-b"]);
     });
 
     test("should fail with both users and teams", async () => {

@@ -1,4 +1,4 @@
-enum Rules {
+export enum RuleTypes {
   Basic = "basic",
   Debug = "debug",
 }
@@ -12,12 +12,12 @@ export interface Rule {
 
 // TODO: Delete this once we add a second type of rule
 export interface DebugRule extends Rule {
-  type: Rules.Debug;
+  type: RuleTypes.Debug;
   size: number;
 }
 
 export interface BasicRule extends Rule, Reviewers {
-  type: Rules.Basic;
+  type: RuleTypes.Basic;
   min_approvals: number;
 }
 
@@ -26,8 +26,8 @@ export interface ConfigurationFile {
    * @see {@link Rules}
    */
   rules: (BasicRule | DebugRule)[];
-  preventReviewRequests: {
+  preventReviewRequests?: {
     teams?: string[];
-    users: string[];
+    users?: string[];
   };
 }

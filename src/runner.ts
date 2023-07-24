@@ -48,6 +48,7 @@ export class ActionRunner {
       const files = await this.listFilesThatMatchRuleCondition(rule);
       // We check if there are any matches
       if (files.length === 0) {
+        this.logger.debug(`Skipping rule ${rule.name} as no condition matched`);
         // If there are no matches, we simply skip the check
         continue;
       }
