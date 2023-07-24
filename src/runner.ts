@@ -7,7 +7,17 @@ import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger } from "./github/types";
 
-type ReviewError = [true] | [false, { missingUsers: string[]; teamsToRequest?: string[]; usersToRequest?: string[] }];
+type ReviewErrorData = {
+  /** The amount of missing reviews to fulfill the requirements */
+  missingReviews: number;
+  /** The users who would qualify to complete those reviews */
+  missingUsers: string[];
+  /** If applicable, the teams that should be requested to review */
+  teamsToRequest?: string[];
+  /** If applicable, the users that should be requested to review */
+  usersToRequest?: string[];
+};
+type ReviewError = [true] | [false, ReviewErrorData];
 
 /** Action in charge of running the GitHub action */
 export class ActionRunner {
@@ -71,9 +81,6 @@ export class ActionRunner {
    * @see-also ReviewError
    */
   async evaluateCondition(rule: { min_approvals: number } & Reviewers): Promise<ReviewError> {
-    // We get the list of users that approved the PR
-    const approvals = await this.prApi.listApprovedReviewsAuthors();
-
     // This is a list of all the users that need to approve a PR
     const requiredUsers: string[] = [];
     // If team is set, we fetch the members of such team
@@ -92,8 +99,11 @@ export class ActionRunner {
       requiredUsers.push(...rule.users);
     } else {
       // This should be captured before by the validation
-      throw new Error(`Teams and Users field are not set for rule.`);
+      throw new Error("Teams and Users field are not set for rule.");
     }
+
+    // We get the list of users that approved the PR
+    const approvals = await this.prApi.listApprovedReviewsAuthors();
 
     // This is the amount of reviews required. To succeed this should be 0 or lower
     let missingReviews = rule.min_approvals;
@@ -111,6 +121,7 @@ export class ActionRunner {
       return [
         false,
         {
+          missingReviews,
           missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0),
           teamsToRequest: rule.teams ? rule.teams : undefined,
           usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
