@@ -5,17 +5,19 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 import { BasicRule } from "../../file/types";
 import { PullRequestApi } from "../../github/pullRequest";
+import { TeamApi } from "../../github/teams";
 import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
 describe("Basic rule parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
+  let teamsApi: MockProxy<TeamApi>;
   let logger: TestLogger;
   beforeEach(() => {
     logger = new TestLogger();
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, logger);
+    runner = new ActionRunner(api, teamsApi, logger);
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`
