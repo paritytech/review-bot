@@ -8,6 +8,9 @@ inputs:
   repo-token:
     required: true
     description: The token to access the repo and the pull request data
+  team-token:
+    required: true
+    description: A GitHub Token with read:org access
   config-file:
     description: 'Location of the configuration file'
     required: false
