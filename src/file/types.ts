@@ -3,7 +3,7 @@ enum Rules {
   Debug = "debug",
 }
 
-type Reviewers = { users?: string[]; teams?: string[] };
+export type Reviewers = { users?: string[]; teams?: string[] };
 
 export interface Rule {
   name: string;

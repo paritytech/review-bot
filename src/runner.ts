@@ -1,7 +1,7 @@
 import { parse } from "yaml";
 
 import { Inputs } from ".";
-import { BasicRule, ConfigurationFile, Rule } from "./file/types";
+import { ConfigurationFile, Reviewers, Rule } from "./file/types";
 import { validateConfig, validateRegularExpressions } from "./file/validator";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
@@ -38,43 +38,75 @@ export class ActionRunner {
     return configFile;
   }
 
-  async validatePullRequest({ rules, preventReviewRequests }: ConfigurationFile) {
+  /**
+   * The action evaluates if the rules requirements are meet for a PR
+   * @returns a true/false statement if the rule failed. This WILL BE CHANGED for an object with information (see issue #26)
+   */
+  async validatePullRequest({ rules }: ConfigurationFile): Promise<boolean> {
     for (const rule of rules) {
+      // We get all the files that were modified and match the rules condition
+      const files = await this.listFilesThatMatchRuleCondition(rule);
+      // We check if there are any matches
+      if (files.length === 0) {
+        // If there are no matches, we simply skip the check
+        continue;
+      }
       if (rule.type === "basic") {
+        const [result, missingData] = await this.evaluateCondition(rule);
+        if (!result) {
+          this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+          return false;
+        }
       }
     }
+
+    // TODO: Convert this into a list of users/teams missing and convert the output into a nice summary object -> Issue #26
+    return true;
   }
 
-  async evaluateBasicRule(rule: BasicRule): Promise<ReviewError> {
-    const files = await this.listFilesThatMatchRuleCondition(rule);
-    if (files.length === 0) {
-      return [true];
-    }
-
+  /** Evaluates if the required reviews for a condition have been meet
+   * @param rule Every rule check has this values which consist on the min required approvals and the reviewers.
+   * @returns a [bool, error data] tuple which evaluates if the condition (not the rule itself) has fulfilled the requirements
+   * @see-also ReviewError
+   */
+  async evaluateCondition(rule: { min_approvals: number } & Reviewers): Promise<ReviewError> {
+    // We get the list of users that approved the PR
     const approvals = await this.prApi.listApprovedReviewsAuthors();
 
+    // This is a list of all the users that need to approve a PR
     const requiredUsers: string[] = [];
+    // If team is set, we fetch the members of such team
     if (rule.teams) {
       for (const team of rule.teams) {
         const members = await this.teamApi.getTeamMembers(team);
         for (const member of members) {
+          // simple check to stop us from having duplicates
           if (requiredUsers.indexOf(member) < 0) {
             requiredUsers.push(member);
           }
         }
       }
+      // If, instead, users are set, we simply push them to the array as we don't need to scan a team
     } else if (rule.users) {
       requiredUsers.push(...rule.users);
+    } else {
+      // This should be captured before by the validation
+      throw new Error(`Teams and Users field are not set for rule.`);
     }
 
+    // This is the amount of reviews required. To succeed this should be 0 or lower
     let missingReviews = rule.min_approvals;
     for (const requiredUser of requiredUsers) {
+      // We check for the approvals, if it is a required reviewer we lower the amount of missing reviews
       if (approvals.indexOf(requiredUser) > -1) {
         missingReviews--;
       }
     }
 
+    // Now we verify if we have any remaining missing review.
     if (missingReviews > 0) {
+      // If we have at least one missing review, we return an object with the list of missing reviewers, and
+      // which users/teams we should request to review
       return [
         false,
         {
@@ -84,11 +116,10 @@ export class ActionRunner {
         },
       ];
     } else {
+      // If we don't have any missing reviews, we return the succesful case
       return [true];
     }
   }
-
-  async evaluateCondition(rule: Rule) {}
 
   /** Using the include and exclude condition, it returns a list of all the files in a PR that matches the criteria */
   async listFilesThatMatchRuleCondition({ condition }: Rule): Promise<string[]> {
@@ -105,6 +136,7 @@ export class ActionRunner {
 
     if (condition.exclude && matches.length > 0) {
       for (const regex of condition.exclude) {
+        // We remove every case were it matches the exclude regex
         matches = matches.filter((match) => !match.match(regex));
       }
     }
@@ -115,6 +147,10 @@ export class ActionRunner {
   async runAction(inputs: Omit<Inputs, "repoToken">): Promise<boolean> {
     const config = await this.getConfigFile(inputs.configLocation);
 
-    return config !== null;
+    const success = await this.validatePullRequest(config);
+
+    this.logger.info(success ? "The PR has been successful" : "There was an error with the PR reviews.");
+
+    return success;
   }
 }
