@@ -23,6 +23,27 @@ describe("evaluateCondition tests", () => {
     );
   });
 
+  test("should throw if not enough users are available", async () => {
+    await expect(runner.evaluateCondition({ min_approvals: 5, users: ["one-user"] })).rejects.toThrow(
+      "The amount of required approvals is smaller than the amount of available users.",
+    );
+  });
+
+  test("should throw if not enough users in teams are available", async () => {
+    teamsApi.getTeamMembers.mockResolvedValue(["1", "2", "3"]);
+    await expect(runner.evaluateCondition({ min_approvals: 4, teams: ["etcetera"] })).rejects.toThrow(
+      "The amount of required approvals is smaller than the amount of available users.",
+    );
+  });
+
+  test("should throw if not enough users in teams are available and find duplicates", async () => {
+    teamsApi.getTeamMembers.calledWith("a").mockResolvedValue(["1", "2", "3"]);
+    teamsApi.getTeamMembers.calledWith("b").mockResolvedValue(["2", "3", "4"]);
+    await expect(runner.evaluateCondition({ min_approvals: 5, teams: ["a", "b"] })).rejects.toThrow(
+      "The amount of required approvals is smaller than the amount of available users.",
+    );
+  });
+
   describe("users tests", () => {
     const users = ["user-1", "user-2", "user-3"];
     beforeEach(() => {
@@ -104,7 +125,7 @@ describe("evaluateCondition tests", () => {
         teamsApi.getTeamMembers.calledWith(team1.name).mockResolvedValue(team1.users);
         teamsApi.getTeamMembers.calledWith(team2.name).mockResolvedValue(team2.users);
         api.listApprovedReviewsAuthors.mockResolvedValue([]);
-        const [result, report] = await runner.evaluateCondition({ min_approvals: 4, teams: [team1.name, team2.name] });
+        const [result, report] = await runner.evaluateCondition({ min_approvals: 3, teams: [team1.name, team2.name] });
         expect(result).toBeFalsy();
         // Should not send required users more than once
         expect(report?.missingUsers).toEqual([...team1.users, team2.users[0]]);
