@@ -27,8 +27,6 @@ const $generalSchema = $.object(
   $.optionalField("preventReviewRequests", $.object($reviewersObj)),
 );
 
-type ConfigFile = $.Output<typeof $generalSchema>;
-
 /** Basic rule schema
  * This rule is quite simple as it only has the min_approvals field and the required reviewers
  */
@@ -48,9 +46,16 @@ export const validateConfig = (config: ConfigurationFile): ConfigurationFile | n
 
   for (const rule of config.rules) {
     const { name, type } = rule;
-    const message = `Configuration for rule '${rule.name}' is invalid`;
     if (type === "basic") {
       $.assert($basicRuleSchema, rule);
+      if (!rule.min_approvals) {
+        // TODO: Wait for https://github.com/paritytech/subshape/issues/173 and then implement it
+        rule.min_approvals = 1;
+      }
+      // TODO: Request an OR implementation
+      if (!rule.teams && !rule.users) {
+        throw new Error(`Users and/or teams must be set up! Problem found in rule ${rule.name}`);
+      }
     } else if (type === "debug") {
       $.assert($ruleSchema, rule);
     } else {
