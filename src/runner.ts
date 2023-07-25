@@ -54,20 +54,26 @@ export class ActionRunner {
    */
   async validatePullRequest({ rules }: ConfigurationFile): Promise<boolean> {
     for (const rule of rules) {
-      // We get all the files that were modified and match the rules condition
-      const files = await this.listFilesThatMatchRuleCondition(rule);
-      // We check if there are any matches
-      if (files.length === 0) {
-        this.logger.debug(`Skipping rule ${rule.name} as no condition matched`);
-        // If there are no matches, we simply skip the check
-        continue;
-      }
-      if (rule.type === "basic") {
-        const [result, missingData] = await this.evaluateCondition(rule);
-        if (!result) {
-          this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-          return false;
+      try {
+        // We get all the files that were modified and match the rules condition
+        const files = await this.listFilesThatMatchRuleCondition(rule);
+        // We check if there are any matches
+        if (files.length === 0) {
+          this.logger.debug(`Skipping rule ${rule.name} as no condition matched`);
+          // If there are no matches, we simply skip the check
+          continue;
         }
+        if (rule.type === "basic") {
+          const [result, missingData] = await this.evaluateCondition(rule);
+          if (!result) {
+            this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+            return false;
+          }
+        }
+      } catch (error: unknown) {
+        // We only throw if there was an unexpected error, not if the check fails
+        this.logger.error(`Rule ${rule.name} failed with error`);
+        throw error;
       }
     }
 
@@ -100,6 +106,19 @@ export class ActionRunner {
     } else {
       // This should be captured before by the validation
       throw new Error("Teams and Users field are not set for rule.");
+    }
+
+    if (requiredUsers.length < rule.min_approvals) {
+      this.logger.error(
+        `${rule.min_approvals} approvals are required but only ${requiredUsers.length} user's approval count.`,
+      );
+      if (rule.teams) {
+        this.logger.error(`Allowed teams: ${JSON.stringify(rule.teams)}`);
+      }
+      if (rule.users) {
+        this.logger.error(`Allowed users: ${JSON.stringify(rule.users)}`);
+      }
+      throw new Error("The amount of required approvals is smaller than the amount of available users.");
     }
 
     // We get the list of users that approved the PR
