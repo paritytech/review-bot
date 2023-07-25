@@ -72,7 +72,8 @@ export class ActionRunner {
         }
       } catch (error: unknown) {
         // We only throw if there was an unexpected error, not if the check fails
-        this.logger.error(`Rule ${rule.name} failed with error: ${error}`);
+        this.logger.error(`Rule ${rule.name} failed with error`);
+        throw error;
       }
     }
 
