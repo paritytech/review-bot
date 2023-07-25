@@ -15,8 +15,7 @@ const $reviewersObj = $.object($.optionalField("users", $.array($.str)), $.optio
 const $ruleSchema = $.object(
   $.field("name", $.str),
   $.field("condition", $.object($.field("include", $.array($.str)), $.optionalField("exclude", $.array($.str)))),
-  // TODO: Convert this into one of the literal types ("basic" | "and" | "andOr" | "xor")
-  $.field("type", $.str),
+  $.field("type", $.literalUnion(["basic", "debug"])),
 );
 
 /** General Configuration schema.
