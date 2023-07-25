@@ -81,5 +81,35 @@ describe("evaluateCondition tests", () => {
       expect(missingData?.teamsToRequest).toContainEqual(team);
       expect(missingData?.missingReviews).toBe(1);
     });
+
+    describe("multiple teams", () => {
+      test("should work with more than one team", async () => {
+        const team1 = { name: "team-1", users: ["team-1-user-1", "team-1-user-2", "team-1-user-3"] };
+        const team2 = { name: "team-2", users: ["team-2-user-1", "team-2-user-2", "team-2-user-3"] };
+        api.listApprovedReviewsAuthors.mockResolvedValue([
+          team1.users[0],
+          team1.users[1],
+          team2.users[0],
+          team2.users[1],
+        ]);
+        teamsApi.getTeamMembers.calledWith(team1.name).mockResolvedValue(team1.users);
+        teamsApi.getTeamMembers.calledWith(team2.name).mockResolvedValue(team2.users);
+        const [result] = await runner.evaluateCondition({ min_approvals: 4, teams: [team1.name, team2.name] });
+        expect(result).toBeTruthy();
+      });
+
+      test("should not duplicate user if they belong to more than one team", async () => {
+        const team1 = { name: "team-1", users: ["team-1-user-1", "team-1-user-2"] };
+        const team2 = { name: "team-2", users: ["team-2-user-1", team1.users[0], team1.users[1]] };
+        teamsApi.getTeamMembers.calledWith(team1.name).mockResolvedValue(team1.users);
+        teamsApi.getTeamMembers.calledWith(team2.name).mockResolvedValue(team2.users);
+        api.listApprovedReviewsAuthors.mockResolvedValue([]);
+        const [result, report] = await runner.evaluateCondition({ min_approvals: 4, teams: [team1.name, team2.name] });
+        expect(result).toBeFalsy();
+        // Should not send required users more than once
+        expect(report?.missingUsers).toEqual([...team1.users, team2.users[0]]);
+        expect(report?.teamsToRequest).toEqual([team1.name, team2.name]);
+      });
+    });
   });
 });
