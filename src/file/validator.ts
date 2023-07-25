@@ -5,7 +5,7 @@ import { ActionLogger } from "../github/types";
 import { BasicRule, ConfigurationFile, Rule } from "./types";
 
 /** For the users or team schema. Will be recycled A LOT
- * Remember to add `.xor("users", "teams")` to force one of the two to be picked up
+ * Remember to add `.oor("users", "teams")` to force at least one of the two to be defined
  */
 const reviewersObj = {
   users: Joi.array().items(Joi.string()).optional().empty(null),
@@ -39,7 +39,7 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
   .keys({ min_approvals: Joi.number().empty(1), ...reviewersObj })
-  .xor("users", "teams");
+  .or("users", "teams");
 
 /**
  * Evaluates a config thoroughly. If there is a problem with it, it will throw.

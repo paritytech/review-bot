@@ -101,11 +101,12 @@ export class ActionRunner {
         }
       }
       // If, instead, users are set, we simply push them to the array as we don't need to scan a team
-    } else if (rule.users) {
+    }
+    if (rule.users) {
       requiredUsers.push(...rule.users);
-    } else {
-      // This should be captured before by the validation
-      throw new Error("Teams and Users field are not set for rule.");
+    }
+    if (requiredUsers.length === 0) {
+      throw new Error("No users have been found in the required reviewers");
     }
 
     if (requiredUsers.length < rule.min_approvals) {
