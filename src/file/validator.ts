@@ -24,7 +24,7 @@ const $ruleSchema = $.object(
  */
 const $generalSchema = $.object(
   $.field("rules", $.array($ruleSchema)),
-  $.field("preventReviewRequests", $.object($reviewersObj)),
+  $.optionalField("preventReviewRequests", $.object($reviewersObj)),
 );
 
 type ConfigFile = $.Output<typeof $generalSchema>;
@@ -32,7 +32,7 @@ type ConfigFile = $.Output<typeof $generalSchema>;
 /** Basic rule schema
  * This rule is quite simple as it only has the min_approvals field and the required reviewers
  */
-const $basicRuleSchema = $.object($.field("min_approvals", $.i8), $reviewersObj, $ruleSchema);
+const $basicRuleSchema = $.object($.optionalField("min_approvals", $.i8), $reviewersObj, $ruleSchema);
 
 /**
  * Evaluates a config thoroughly. If there is a problem with it, it will throw.
@@ -42,7 +42,7 @@ const $basicRuleSchema = $.object($.field("min_approvals", $.i8), $reviewersObj,
  * @param config The configuration object to be validated. Usually parsed directly from a yaml or json
  * @returns The configuration file post validation, or it throws an error.
  */
-export const validateConfig = (config: ConfigFile): ConfigurationFile | never => {
+export const validateConfig = (config: ConfigurationFile): ConfigurationFile | never => {
   // In theory this will throw when it fails the assertion
   $.assert($generalSchema, config);
 
