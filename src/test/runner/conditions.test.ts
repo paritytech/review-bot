@@ -19,7 +19,7 @@ describe("evaluateCondition tests", () => {
 
   test("should throw if no teams or users were set", async () => {
     await expect(runner.evaluateCondition({ min_approvals: 99 })).rejects.toThrowError(
-      "Teams and Users field are not set for rule.",
+      "No users have been found in the required reviewers",
     );
   });
 
