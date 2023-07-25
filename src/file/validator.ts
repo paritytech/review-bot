@@ -5,7 +5,7 @@ import { ActionLogger } from "../github/types";
 import { BasicRule, ConfigurationFile, Rule } from "./types";
 
 /** For the users or team schema. Will be recycled A LOT
- * Remember to add `.oor("users", "teams")` to force at least one of the two to be defined
+ * Remember to add `.or("users", "teams")` to force at least one of the two to be defined
  */
 const reviewersObj = {
   users: Joi.array().items(Joi.string()).optional().empty(null),
