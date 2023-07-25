@@ -7,7 +7,7 @@ import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger } from "./github/types";
 
-type ReviewErrorData = {
+type ReviewReport = {
   /** The amount of missing reviews to fulfill the requirements */
   missingReviews: number;
   /** The users who would qualify to complete those reviews */
@@ -17,7 +17,7 @@ type ReviewErrorData = {
   /** If applicable, the users that should be requested to review */
   usersToRequest?: string[];
 };
-type ReviewError = [true] | [false, ReviewErrorData];
+type ReviewState = [true] | [false, ReviewReport];
 
 /** Action in charge of running the GitHub action */
 export class ActionRunner {
@@ -80,7 +80,7 @@ export class ActionRunner {
    * @returns a [bool, error data] tuple which evaluates if the condition (not the rule itself) has fulfilled the requirements
    * @see-also ReviewError
    */
-  async evaluateCondition(rule: { min_approvals: number } & Reviewers): Promise<ReviewError> {
+  async evaluateCondition(rule: { min_approvals: number } & Reviewers): Promise<ReviewState> {
     // This is a list of all the users that need to approve a PR
     const requiredUsers: string[] = [];
     // If team is set, we fetch the members of such team
