@@ -4,6 +4,7 @@ import { Context } from "@actions/github/lib/context";
 import { PullRequest } from "@octokit/webhooks-types";
 
 import { PullRequestApi } from "./github/pullRequest";
+import { GitHubTeamsApi } from "./github/teams";
 import { ActionRunner } from "./runner";
 import { generateCoreLogger } from "./util";
 
@@ -11,6 +12,8 @@ export interface Inputs {
   configLocation: string;
   /** GitHub's action default secret */
   repoToken: string;
+  /** A custom access token with the read:org access */
+  teamApiToken: string;
 }
 
 const getRepo = (ctx: Context) => {
@@ -30,8 +33,9 @@ const getRepo = (ctx: Context) => {
 const getInputs = (): Inputs => {
   const configLocation = getInput("config-file");
   const repoToken = getInput("repo-token", { required: true });
+  const teamApiToken = getInput("team-token", { required: true });
 
-  return { configLocation, repoToken };
+  return { configLocation, repoToken, teamApiToken };
 };
 
 const repo = getRepo(context);
@@ -50,9 +54,14 @@ const api = new PullRequestApi(
   getOctokit(inputs.repoToken),
   context.payload.pull_request as PullRequest,
   generateCoreLogger(),
+  repo,
 );
 
-const runner = new ActionRunner(api, generateCoreLogger());
+const logger = generateCoreLogger();
+
+const teamApi = new GitHubTeamsApi(inputs.teamApiToken, repo.owner, logger);
+
+const runner = new ActionRunner(api, teamApi, logger);
 
 runner
   .runAction(inputs)
