@@ -33,7 +33,6 @@ export class GitHubTeamsApi implements TeamApi {
     // We first verify that this information hasn't been fetched yet
     if (!this.teamsCache.has(teamName)) {
       this.logger.debug(`Fetching team '${teamName}'`);
-      // TODO: cache the result
       const { data } = await this.api.rest.teams.listMembersInOrg({ org: this.org, team_slug: teamName });
       const members = data.map((d) => d.login);
       this.teamsCache.set(teamName, members);

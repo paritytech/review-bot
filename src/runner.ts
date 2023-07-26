@@ -56,11 +56,12 @@ export class ActionRunner {
   async validatePullRequest({ rules }: ConfigurationFile): Promise<boolean> {
     for (const rule of rules) {
       try {
+        this.logger.info(`Validating rule ${rule.name}`);
         // We get all the files that were modified and match the rules condition
         const files = await this.listFilesThatMatchRuleCondition(rule);
         // We check if there are any matches
         if (files.length === 0) {
-          this.logger.debug(`Skipping rule ${rule.name} as no condition matched`);
+          this.logger.info(`Skipping rule ${rule.name} as no condition matched`);
           // If there are no matches, we simply skip the check
           continue;
         }
