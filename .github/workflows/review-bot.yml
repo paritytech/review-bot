@@ -9,7 +9,8 @@ jobs:
   review-approvals:
     runs-on: ubuntu-latest
     steps:
-      - uses: paritytech/review-bot@main
+      # TODO: Set this to main
+      - uses: paritytech/review-bot@self-implementation
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           team-token: ${{ secrets.TEST_TEAM_TOKEN }}
