@@ -54,6 +54,7 @@ export class ActionRunner {
    * @returns a true/false statement if the rule failed. This WILL BE CHANGED for an object with information (see issue #26)
    */
   async validatePullRequest({ rules }: ConfigurationFile): Promise<boolean> {
+    const errorReports: ReviewReport[] = [];
     for (const rule of rules) {
       try {
         this.logger.info(`Validating rule ${rule.name}`);
@@ -69,7 +70,7 @@ export class ActionRunner {
           const [result, missingData] = await this.evaluateCondition(rule);
           if (!result) {
             this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-            return false;
+            errorReports.push(missingData);
           }
         }
       } catch (error: unknown) {
@@ -77,10 +78,30 @@ export class ActionRunner {
         this.logger.error(`Rule ${rule.name} failed with error`);
         throw error;
       }
+      this.logger.info(`Finish validating ${rule.name}`);
     }
-
+    if(errorReports.length > 0) {
+      const finalReport = this.aggregateReports(errorReports);
+      // Preview, this will be improved in a future commit
+      this.logger.warn(`Missing reviews: ${JSON.stringify(finalReport)}`);
+      return false;
+    } 
     // TODO: Convert this into a list of users/teams missing and convert the output into a nice summary object -> Issue #26
     return true;
+  }
+
+  /** Aggregates all the reports and generate a final combined one */
+  aggregateReports(reports: ReviewReport[]): ReviewReport {
+    const finalReport: ReviewReport = { missingReviews: 0, missingUsers: [], teamsToRequest: [], usersToRequest: [] };
+
+    for (const report of reports) {
+      finalReport.missingReviews += report.missingReviews;
+      finalReport.missingUsers = concatArraysUniquely(finalReport.missingUsers, report.missingUsers);
+      finalReport.teamsToRequest = concatArraysUniquely(finalReport.teamsToRequest, report.teamsToRequest);
+      finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, report.usersToRequest);
+    }
+
+    return finalReport;
   }
 
   /** Evaluates if the required reviews for a condition have been meet
