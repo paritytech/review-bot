@@ -2,7 +2,7 @@ import { validate } from "@eng-automation/js";
 import Joi from "joi";
 
 import { ActionLogger } from "../github/types";
-import { BasicRule, ConfigurationFile, Rule } from "./types";
+import { BasicRule, ConfigurationFile, DebugRule, Rule, RuleTypes } from "./types";
 
 /** For the users or team schema. Will be recycled A LOT
  * Remember to add `.or("users", "teams")` to force at least one of the two to be defined
@@ -22,7 +22,8 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     include: Joi.array().items(Joi.string()).required(),
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
-  type: Joi.string().required(),
+  // TODO: Add test with invalid type
+  type: Joi.string().valid(RuleTypes.Basic, RuleTypes.Debug).required(),
 });
 
 /** General Configuration schema.
@@ -38,7 +39,8 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
  * This rule is quite simple as it only has the min_approvals field and the required reviewers
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
-  .keys({ min_approvals: Joi.number().empty(1), ...reviewersObj })
+  // TODO: Add test with negative numbers
+  .keys({ min_approvals: Joi.number().min(1).default(1), ...reviewersObj })
   .or("users", "teams");
 
 /**
@@ -54,19 +56,19 @@ export const validateConfig = (config: ConfigurationFile): ConfigurationFile | n
     message: "Configuration file is invalid",
   });
 
-  for (const rule of validatedConfig.rules) {
+  for (let i = 0; i < validatedConfig.rules.length; i++) {
+    const rule = validatedConfig.rules[i];
     const { name, type } = rule;
     const message = `Configuration for rule '${rule.name}' is invalid`;
     if (type === "basic") {
-      validate<BasicRule>(rule, basicRuleSchema, { message });
+      validatedConfig.rules[i] = validate<BasicRule>(rule, basicRuleSchema, { message });
     } else if (type === "debug") {
-      validate<Rule>(rule, ruleSchema, { message });
+      validatedConfig.rules[i] = validate<DebugRule>(rule, ruleSchema, { message });
     } else {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`Rule ${name} has an invalid type: ${type}`);
     }
   }
-
   return validatedConfig;
 };
 
