@@ -26,7 +26,7 @@ export class PullRequestApi {
       repo: this.pr.base.repo.name,
       path: configFilePath,
       // TODO: Remove this
-      ref: "self-implementation"
+      ref: "self-implementation",
     });
 
     if (!("content" in data)) {
@@ -57,7 +57,9 @@ export class PullRequestApi {
       const request = await this.api.rest.pulls.listReviews({ ...this.repoInfo, pull_number: this.number });
       const reviews = request.data as PullRequestReview[];
       this.logger.debug(`List of reviews: ${JSON.stringify(reviews)}`);
-      const approvals = reviews.filter((review) => review.state === "approved");
+      const approvals = reviews.filter((review) =>
+        review.state.localeCompare("approved", undefined, { sensitivity: "accent" }),
+      );
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
     }
     this.logger.debug(`PR approvals are ${JSON.stringify(this.usersThatApprovedThePr)}`);
