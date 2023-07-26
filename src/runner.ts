@@ -89,6 +89,8 @@ export class ActionRunner {
    * @see-also ReviewError
    */
   async evaluateCondition(rule: { min_approvals: number } & Reviewers): Promise<ReviewState> {
+    this.logger.debug(JSON.stringify(rule));
+
     // This is a list of all the users that need to approve a PR
     let requiredUsers: string[] = [];
     // If team is set, we fetch the members of such team
@@ -126,6 +128,7 @@ export class ActionRunner {
 
     // We get the list of users that approved the PR
     const approvals = await this.prApi.listApprovedReviewsAuthors();
+    this.logger.info(`Found ${approvals.length} approvals`);
 
     // This is the amount of reviews required. To succeed this should be 0 or lower
     let missingReviews = rule.min_approvals;
@@ -138,6 +141,7 @@ export class ActionRunner {
 
     // Now we verify if we have any remaining missing review.
     if (missingReviews > 0) {
+      this.logger.warn(`${missingReviews} reviews are missing.`);
       // If we have at least one missing review, we return an object with the list of missing reviewers, and
       // which users/teams we should request to review
       return [
@@ -150,6 +154,7 @@ export class ActionRunner {
         },
       ];
     } else {
+      this.logger.info("Rule requirements fulfilled");
       // If we don't have any missing reviews, we return the succesful case
       return [true];
     }

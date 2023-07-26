@@ -59,6 +59,7 @@ export class PullRequestApi {
       const approvals = reviews.filter((review) => review.state === "approved");
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
     }
+    this.logger.debug(`PR approvals are ${JSON.stringify(this.usersThatApprovedThePr)}`);
     return this.usersThatApprovedThePr;
   }
 }
