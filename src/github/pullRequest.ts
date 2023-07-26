@@ -57,8 +57,8 @@ export class PullRequestApi {
       const request = await this.api.rest.pulls.listReviews({ ...this.repoInfo, pull_number: this.number });
       const reviews = request.data as PullRequestReview[];
       this.logger.debug(`List of reviews: ${JSON.stringify(reviews)}`);
-      const approvals = reviews.filter((review) =>
-        review.state.localeCompare("approved", undefined, { sensitivity: "accent" }),
+      const approvals = reviews.filter(
+        (review) => review.state.localeCompare("approved", undefined, { sensitivity: "accent" }) === 0,
       );
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
     }
