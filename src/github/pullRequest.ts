@@ -65,4 +65,9 @@ export class PullRequestApi {
     this.logger.debug(`PR approvals are ${JSON.stringify(this.usersThatApprovedThePr)}`);
     return this.usersThatApprovedThePr;
   }
+
+  /** Returns the login of the PR's author */
+  getAuthor(): string {
+    return this.pr.user.login;
+  }
 }

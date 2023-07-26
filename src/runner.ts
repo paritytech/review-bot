@@ -141,6 +141,7 @@ export class ActionRunner {
 
     // Now we verify if we have any remaining missing review.
     if (missingReviews > 0) {
+      const author = this.prApi.getAuthor();
       this.logger.warn(`${missingReviews} reviews are missing.`);
       // If we have at least one missing review, we return an object with the list of missing reviewers, and
       // which users/teams we should request to review
@@ -148,7 +149,8 @@ export class ActionRunner {
         false,
         {
           missingReviews,
-          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0),
+          // Remove all the users who approved the PR + the author (if he belongs to the group)
+          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
           teamsToRequest: rule.teams ? rule.teams : undefined,
           usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
         },
