@@ -31,13 +31,13 @@ export class GitHubTeamsApi implements TeamApi {
 
   async getTeamMembers(teamName: string): Promise<string[]> {
     // We first verify that this information hasn't been fetched yet
-    if (this.teamsCache.has(teamName)) {
-      return this.teamsCache.get(teamName) as string[];
+    if (!this.teamsCache.has(teamName)) {
+      this.logger.debug(`Fetching team '${teamName}'`);
+      // TODO: cache the result
+      const { data } = await this.api.rest.teams.listMembersInOrg({ org: this.org, team_slug: teamName });
+      const members = data.map((d) => d.login);
+      this.teamsCache.set(teamName, members);
     }
-    this.logger.debug(`Fetching team '${teamName}'`);
-    // TODO: cache the result
-    const { data } = await this.api.rest.teams.listMembersInOrg({ org: this.org, team_slug: teamName });
-    const members = data.map((d) => d.login);
-    
+    return this.teamsCache.get(teamName) as string[];
   }
 }
