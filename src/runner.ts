@@ -118,12 +118,7 @@ export class ActionRunner {
     if (rule.teams) {
       for (const team of rule.teams) {
         const members = await this.teamApi.getTeamMembers(team);
-        for (const member of members) {
-          // simple check to stop us from having duplicates
-          if (requiredUsers.indexOf(member) < 0) {
-            requiredUsers.push(member);
-          }
-        }
+        requiredUsers = concatArraysUniquely(requiredUsers, members);
       }
       // If, instead, users are set, we simply push them to the array as we don't need to scan a team
     }
