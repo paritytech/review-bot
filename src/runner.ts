@@ -80,12 +80,12 @@ export class ActionRunner {
       }
       this.logger.info(`Finish validating ${rule.name}`);
     }
-    if(errorReports.length > 0) {
+    if (errorReports.length > 0) {
       const finalReport = this.aggregateReports(errorReports);
       // Preview, this will be improved in a future commit
       this.logger.warn(`Missing reviews: ${JSON.stringify(finalReport)}`);
       return false;
-    } 
+    }
     // TODO: Convert this into a list of users/teams missing and convert the output into a nice summary object -> Issue #26
     return true;
   }
