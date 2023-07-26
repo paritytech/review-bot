@@ -20,6 +20,7 @@ export class PullRequestApi {
   private usersThatApprovedThePr: string[] | null = null;
 
   async getConfigFile(configFilePath: string): Promise<string> {
+    this.logger.info(`Fetching config file in ${configFilePath}`);
     const { data } = await this.api.rest.repos.getContent({
       owner: this.pr.base.repo.owner.login,
       repo: this.pr.base.repo.name,
