@@ -1,0 +1,12 @@
+name: Review PR
+on:
+  pull_request:
+
+jobs:
+  test-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: paritytech/review-bot@main
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          team-token: ${{ secrets.TEST_TEAM_TOKEN }}
