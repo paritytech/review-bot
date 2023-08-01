@@ -115,6 +115,8 @@ export class PullRequestApi {
       external_id: "review-bot",
       conclusion,
       details_url: this.detailsUrl,
+      head_sha: this.pr.head.sha,
+      name: "review-bot",
     });
   }
 }
