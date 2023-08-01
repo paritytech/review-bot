@@ -75,4 +75,7 @@ runner
       setFailed("Action failed");
     }
   })
-  .catch(setFailed);
+  .catch((error) => {
+    console.error(error);
+    setFailed(error as Error | string);
+  });
