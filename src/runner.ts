@@ -57,7 +57,7 @@ export class ActionRunner {
     const errorReports: ReviewReport[] = [];
     for (const rule of rules) {
       try {
-        this.logger.info(`Validating rule ${rule.name}`);
+        this.logger.info(`Validating rule '${rule.name}'`);
         // We get all the files that were modified and match the rules condition
         const files = await this.listFilesThatMatchRuleCondition(rule);
         // We check if there are any matches
@@ -75,10 +75,10 @@ export class ActionRunner {
         }
       } catch (error: unknown) {
         // We only throw if there was an unexpected error, not if the check fails
-        this.logger.error(`Rule ${rule.name} failed with error`);
+        this.logger.error(`Rule '${rule.name}' failed with error`);
         throw error;
       }
-      this.logger.info(`Finish validating ${rule.name}`);
+      this.logger.info(`Finish validating '${rule.name}'`);
     }
     if (errorReports.length > 0) {
       const finalReport = this.aggregateReports(errorReports);
