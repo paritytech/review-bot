@@ -144,7 +144,7 @@ export class ActionRunner {
 
     // We get the list of users that approved the PR
     const approvals = await this.prApi.listApprovedReviewsAuthors();
-    this.logger.info(`Found ${approvals.length} approvals: ${JSON.stringify(approvals)}`);
+    this.logger.info(`Found ${approvals.length} approvals.`);
 
     // This is the amount of reviews required. To succeed this should be 0 or lower
     let missingReviews = rule.min_approvals;
