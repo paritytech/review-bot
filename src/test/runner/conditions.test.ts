@@ -131,6 +131,23 @@ describe("evaluateCondition tests", () => {
         expect(report?.missingUsers).toEqual([...team1.users, team2.users[0]]);
         expect(report?.teamsToRequest).toEqual([team1.name, team2.name]);
       });
+
+      describe("teams and users combined", () => {
+        test("should not duplicate users if they belong to team and user list", async () => {
+          teamsApi.getTeamMembers.calledWith(team).mockResolvedValue(users);
+          api.listApprovedReviewsAuthors.mockResolvedValue([]);
+          const [result, report] = await runner.evaluateCondition({
+            min_approvals: 1,
+            teams: [team],
+            users: [users[0]],
+          });
+          expect(result).toBeFalsy();
+          // Should not send required users more than once
+          expect(report?.missingUsers).toEqual(users);
+          expect(report?.teamsToRequest).toEqual([team]);
+          expect(report?.usersToRequest).toEqual([users[0]]);
+        });
+      });
     });
   });
 });

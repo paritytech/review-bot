@@ -5,3 +5,11 @@ import { ActionLogger } from "./github/types";
 export function generateCoreLogger(): ActionLogger {
   return { info, debug, warn: warning, error };
 }
+
+/** Concats two arrays and remove the duplicates */
+export function concatArraysUniquely<T>(arr1?: T[], arr2?: T[]): T[] {
+  // We concat the two arrays
+  const concatedArray = (arr1 ?? []).concat(arr2 ?? []);
+  // We remove the duplicated values and return the array
+  return concatedArray.filter((item, pos) => concatedArray.indexOf(item) === pos);
+}
