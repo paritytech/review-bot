@@ -25,8 +25,6 @@ export class PullRequestApi {
       owner: this.pr.base.repo.owner.login,
       repo: this.pr.base.repo.name,
       path: configFilePath,
-      // TODO: Remove this
-      ref: "self-implementation",
     });
 
     if (!("content" in data)) {
