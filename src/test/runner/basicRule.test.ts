@@ -87,4 +87,60 @@ describe("Basic rule parsing", () => {
         `);
     await expect(runner.getConfigFile("")).rejects.toThrowError('"value" must contain at least one of [users, teams]');
   });
+
+  test("should default min_approvals to 1", async () => {
+    api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Test review
+            condition:
+              include: 
+                - '.*'
+              exclude: 
+                - 'example'
+            type: basic
+            users:
+              - user-example
+        `);
+    const config = await runner.getConfigFile("");
+    const [rule] = config.rules;
+    if (rule.type === "basic") {
+      expect(rule.min_approvals).toEqual(1);
+    } else {
+      throw new Error(`Rule type ${rule.type} is invalid`);
+    }
+  });
+
+  test("should fail with min_approvals in negative", async () => {
+    api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Test review
+            condition:
+              include: 
+                - '.*'
+              exclude: 
+                - 'example'
+            type: basic
+            min_approvals: -99
+            users:
+              - user-example
+        `);
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"min_approvals" must be greater than or equal to 1');
+  });
+
+  test("should fail with min_approvals in 0", async () => {
+    api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Test review
+            condition:
+              include: 
+                - '.*'
+              exclude: 
+                - 'example'
+            type: basic
+            min_approvals: 0
+            users:
+              - user-example
+        `);
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"min_approvals" must be greater than or equal to 1');
+  });
 });

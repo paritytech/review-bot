@@ -54,13 +54,15 @@ export class ActionRunner {
    * @returns a true/false statement if the rule failed. This WILL BE CHANGED for an object with information (see issue #26)
    */
   async validatePullRequest({ rules }: ConfigurationFile): Promise<boolean> {
+    const errorReports: ReviewReport[] = [];
     for (const rule of rules) {
       try {
+        this.logger.info(`Validating rule '${rule.name}'`);
         // We get all the files that were modified and match the rules condition
         const files = await this.listFilesThatMatchRuleCondition(rule);
         // We check if there are any matches
         if (files.length === 0) {
-          this.logger.debug(`Skipping rule ${rule.name} as no condition matched`);
+          this.logger.info(`Skipping rule ${rule.name} as no condition matched`);
           // If there are no matches, we simply skip the check
           continue;
         }
@@ -68,18 +70,38 @@ export class ActionRunner {
           const [result, missingData] = await this.evaluateCondition(rule);
           if (!result) {
             this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-            return false;
+            errorReports.push(missingData);
           }
         }
       } catch (error: unknown) {
         // We only throw if there was an unexpected error, not if the check fails
-        this.logger.error(`Rule ${rule.name} failed with error`);
+        this.logger.error(`Rule '${rule.name}' failed with error`);
         throw error;
       }
+      this.logger.info(`Finish validating '${rule.name}'`);
     }
-
+    if (errorReports.length > 0) {
+      const finalReport = this.aggregateReports(errorReports);
+      // Preview, this will be improved in a future commit
+      this.logger.warn(`Missing reviews: ${JSON.stringify(finalReport)}`);
+      return false;
+    }
     // TODO: Convert this into a list of users/teams missing and convert the output into a nice summary object -> Issue #26
     return true;
+  }
+
+  /** Aggregates all the reports and generate a final combined one */
+  aggregateReports(reports: ReviewReport[]): ReviewReport {
+    const finalReport: ReviewReport = { missingReviews: 0, missingUsers: [], teamsToRequest: [], usersToRequest: [] };
+
+    for (const report of reports) {
+      finalReport.missingReviews += report.missingReviews;
+      finalReport.missingUsers = concatArraysUniquely(finalReport.missingUsers, report.missingUsers);
+      finalReport.teamsToRequest = concatArraysUniquely(finalReport.teamsToRequest, report.teamsToRequest);
+      finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, report.usersToRequest);
+    }
+
+    return finalReport;
   }
 
   /** Evaluates if the required reviews for a condition have been meet
@@ -88,18 +110,15 @@ export class ActionRunner {
    * @see-also ReviewError
    */
   async evaluateCondition(rule: { min_approvals: number } & Reviewers): Promise<ReviewState> {
+    this.logger.debug(JSON.stringify(rule));
+
     // This is a list of all the users that need to approve a PR
     let requiredUsers: string[] = [];
     // If team is set, we fetch the members of such team
     if (rule.teams) {
       for (const team of rule.teams) {
         const members = await this.teamApi.getTeamMembers(team);
-        for (const member of members) {
-          // simple check to stop us from having duplicates
-          if (requiredUsers.indexOf(member) < 0) {
-            requiredUsers.push(member);
-          }
-        }
+        requiredUsers = concatArraysUniquely(requiredUsers, members);
       }
       // If, instead, users are set, we simply push them to the array as we don't need to scan a team
     }
@@ -125,6 +144,7 @@ export class ActionRunner {
 
     // We get the list of users that approved the PR
     const approvals = await this.prApi.listApprovedReviewsAuthors();
+    this.logger.info(`Found ${approvals.length} approvals.`);
 
     // This is the amount of reviews required. To succeed this should be 0 or lower
     let missingReviews = rule.min_approvals;
@@ -137,18 +157,22 @@ export class ActionRunner {
 
     // Now we verify if we have any remaining missing review.
     if (missingReviews > 0) {
+      const author = this.prApi.getAuthor();
+      this.logger.warn(`${missingReviews} reviews are missing.`);
       // If we have at least one missing review, we return an object with the list of missing reviewers, and
       // which users/teams we should request to review
       return [
         false,
         {
           missingReviews,
-          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0),
+          // Remove all the users who approved the PR + the author (if he belongs to the group)
+          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
           teamsToRequest: rule.teams ? rule.teams : undefined,
           usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
         },
       ];
     } else {
+      this.logger.info("Rule requirements fulfilled");
       // If we don't have any missing reviews, we return the succesful case
       return [true];
     }

@@ -20,6 +20,7 @@ export class PullRequestApi {
   private usersThatApprovedThePr: string[] | null = null;
 
   async getConfigFile(configFilePath: string): Promise<string> {
+    this.logger.info(`Fetching config file in ${configFilePath}`);
     const { data } = await this.api.rest.repos.getContent({
       owner: this.pr.base.repo.owner.login,
       repo: this.pr.base.repo.name,
@@ -53,9 +54,18 @@ export class PullRequestApi {
     if (!this.usersThatApprovedThePr) {
       const request = await this.api.rest.pulls.listReviews({ ...this.repoInfo, pull_number: this.number });
       const reviews = request.data as PullRequestReview[];
-      const approvals = reviews.filter((review) => review.state === "approved");
+      this.logger.debug(`List of reviews: ${JSON.stringify(reviews)}`);
+      const approvals = reviews.filter(
+        (review) => review.state.localeCompare("approved", undefined, { sensitivity: "accent" }) === 0,
+      );
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
     }
+    this.logger.debug(`PR approvals are ${JSON.stringify(this.usersThatApprovedThePr)}`);
     return this.usersThatApprovedThePr;
+  }
+
+  /** Returns the login of the PR's author */
+  getAuthor(): string {
+    return this.pr.user.login;
   }
 }
