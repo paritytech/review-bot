@@ -6,6 +6,7 @@ import { validateConfig, validateRegularExpressions } from "./file/validator";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger } from "./github/types";
+import { concatArraysUniquely } from "./util";
 
 type ReviewReport = {
   /** The amount of missing reviews to fulfill the requirements */
@@ -88,7 +89,7 @@ export class ActionRunner {
    */
   async evaluateCondition(rule: { min_approvals: number } & Reviewers): Promise<ReviewState> {
     // This is a list of all the users that need to approve a PR
-    const requiredUsers: string[] = [];
+    let requiredUsers: string[] = [];
     // If team is set, we fetch the members of such team
     if (rule.teams) {
       for (const team of rule.teams) {
@@ -101,11 +102,12 @@ export class ActionRunner {
         }
       }
       // If, instead, users are set, we simply push them to the array as we don't need to scan a team
-    } else if (rule.users) {
-      requiredUsers.push(...rule.users);
-    } else {
-      // This should be captured before by the validation
-      throw new Error("Teams and Users field are not set for rule.");
+    }
+    if (rule.users) {
+      requiredUsers = concatArraysUniquely(requiredUsers, rule.users);
+    }
+    if (requiredUsers.length === 0) {
+      throw new Error("No users have been found in the required reviewers");
     }
 
     if (requiredUsers.length < rule.min_approvals) {
