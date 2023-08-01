@@ -3,6 +3,8 @@ import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 import { caseInsensitiveEqual } from "../util";
 import { ActionLogger, GitHubClient } from "./types";
 
+type ActionConclussion = "action_required" | "failure" | "success";
+
 /** API class that uses the default token to access the data from the pull request and the repository */
 export class PullRequestApi {
   private readonly number: number;
@@ -11,6 +13,7 @@ export class PullRequestApi {
     private readonly pr: PullRequest,
     private readonly logger: ActionLogger,
     private readonly repoInfo: { repo: string; owner: string },
+    private readonly detailsUrl: string,
   ) {
     this.number = pr.number;
   }
@@ -101,5 +104,17 @@ export class PullRequestApi {
   /** Returns the login of the PR's author */
   getAuthor(): string {
     return this.pr.user.login;
+  }
+
+  async generateCheckRun(conclusion: ActionConclussion): Promise<void> {
+    // await this.api.rest.checks.listSuitesForRef
+
+    await this.api.rest.checks.create({
+      owner: this.repoInfo.owner,
+      repo: this.repoInfo.repo,
+      external_id: "review-bot",
+      conclusion,
+      details_url: this.detailsUrl,
+    });
   }
 }

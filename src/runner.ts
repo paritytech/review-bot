@@ -208,6 +208,8 @@ export class ActionRunner {
 
     this.logger.info(success ? "The PR has been successful" : "There was an error with the PR reviews.");
 
+    await this.prApi.generateCheckRun(success ? "success" : "failure");
+
     return success;
   }
 }

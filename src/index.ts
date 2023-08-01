@@ -50,11 +50,14 @@ debug("Got payload:" + JSON.stringify(context.payload.pull_request));
 
 const inputs = getInputs();
 
+const actionId = `${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
+
 const api = new PullRequestApi(
   getOctokit(inputs.repoToken),
   context.payload.pull_request as PullRequest,
   generateCoreLogger(),
   repo,
+  actionId,
 );
 
 const logger = generateCoreLogger();
