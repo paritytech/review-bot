@@ -109,4 +109,38 @@ describe("Basic rule parsing", () => {
       throw new Error(`Rule type ${rule.type} is invalid`);
     }
   });
+
+  test("should fail with min_approvals in negative", async () => {
+    api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Test review
+            condition:
+              include: 
+                - '.*'
+              exclude: 
+                - 'example'
+            type: basic
+            min_approvals: -99
+            users:
+              - user-example
+        `);
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"min_approvals" must be greater than or equal to 1');
+  });
+
+  test("should fail with min_approvals in 0", async () => {
+    api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Test review
+            condition:
+              include: 
+                - '.*'
+              exclude: 
+                - 'example'
+            type: basic
+            min_approvals: 0
+            users:
+              - user-example
+        `);
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"min_approvals" must be greater than or equal to 1');
+  });
 });
