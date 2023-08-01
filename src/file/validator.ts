@@ -22,7 +22,6 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     include: Joi.array().items(Joi.string()).required(),
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
-  // TODO: Add test with invalid type
   type: Joi.string().valid(RuleTypes.Basic, RuleTypes.Debug).required(),
 });
 

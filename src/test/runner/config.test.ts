@@ -40,6 +40,43 @@ describe("Config Parsing", () => {
     expect(api.getConfigFile).toHaveBeenCalledWith("example-location");
   });
 
+  describe("rule type", () => {
+    test("should fail with no rule type", async () => {
+      api.getConfigFile.mockResolvedValue(`
+          rules:
+            - name: Default review
+              condition:
+                include: 
+                  - '.*'
+                exclude: 
+                  - 'example'
+              teams:
+                - team-example
+          `);
+      await expect(runner.getConfigFile("")).rejects.toThrowError(
+        'Configuration file is invalid: "rules[0].type" is required',
+      );
+    });
+
+    test("should fail with no valid rule type", async () => {
+      api.getConfigFile.mockResolvedValue(`
+          rules:
+            - name: Default review
+              condition:
+                include: 
+                  - '.*'
+                exclude: 
+                  - 'example'
+              type: example-for-invalid
+              teams:
+                - team-example
+          `);
+      await expect(runner.getConfigFile("")).rejects.toThrowError(
+        'Configuration file is invalid: "rules[0].type" must be one of [basic, debug]',
+      );
+    });
+  });
+
   describe("regular expressions validator", () => {
     test("should fail with invalid regular expression", async () => {
       const invalidRegex = "(?(";
