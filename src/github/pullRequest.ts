@@ -117,6 +117,13 @@ export class PullRequestApi {
       details_url: this.detailsUrl,
       head_sha: this.pr.head.sha,
       name: "review-bot",
+      output: {
+        title: "Review analysis results",
+        summary: `This summary was **generated** at ${new Date().getUTCDate()}\nFind details [here](${
+          this.detailsUrl
+        })`,
+        text: `This _text_ was **generated** at ${new Date().getUTCDate()}`,
+      },
     });
   }
 }
