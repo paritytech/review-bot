@@ -106,7 +106,7 @@ export class PullRequestApi {
     return this.pr.user.login;
   }
 
-  async generateCheckRun(conclusion: ActionConclussion): Promise<void> {
+  async generateCheckRun(conclusion: ActionConclussion, missingReviews?: number): Promise<void> {
     // await this.api.rest.checks.listSuitesForRef
 
     await this.api.rest.checks.create({
@@ -118,11 +118,11 @@ export class PullRequestApi {
       head_sha: this.pr.head.sha,
       name: "review-bot",
       output: {
-        title: "Review analysis results",
-        summary: `This summary was **generated** at ${new Date().getUTCDate()}\nFind details [here](${
+        title: missingReviews ? `Missing ${missingReviews} reviews` : "PR fulfilled required approvals",
+        summary: `This summary was **generated** at ${new Date().toUTCString()}\nFind details [here](${
           this.detailsUrl
         })`,
-        text: `This _text_ was **generated** at ${new Date().getUTCDate()}`,
+        text: `This _text_ was **generated** at ${new Date().toUTCString()}`,
       },
     });
   }
