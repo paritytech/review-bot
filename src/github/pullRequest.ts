@@ -56,7 +56,38 @@ export class PullRequestApi {
       const reviews = request.data as PullRequestReview[];
       this.logger.debug(`List of reviews: ${JSON.stringify(reviews)}`);
 
-      const approvals = reviews.filter(
+      const latestReviewsMap = new Map<number, PullRequestReview>();
+
+      for (const review of reviews) {
+        if (
+          review.state.localeCompare("commented", undefined, { sensitivity: "accent" }) === 0 ||
+          review.user === null ||
+          review.user === undefined
+        ) {
+          continue;
+        }
+
+        const prevReview = latestReviewsMap.get(review.user.id);
+        if (
+          prevReview === undefined ||
+          // Newer reviews have a higher id number
+          prevReview.id < review.id
+        ) {
+          latestReviewsMap.set(review.user.id, review);
+        }
+      }
+
+      const latestReviews = Array.from(latestReviewsMap.values());
+
+      this.logger.info(
+        `Latest reviews are ${JSON.stringify(
+          latestReviews.map((r) => {
+            return { user: r.user.login, state: r.state };
+          }),
+        )}`,
+      );
+
+      const approvals = latestReviews.filter(
         (review) => review.state.localeCompare("approved", undefined, { sensitivity: "accent" }) === 0,
       );
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
