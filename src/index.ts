@@ -72,7 +72,7 @@ runner
     if (result) {
       info("Action completed succesfully");
     } else {
-      setFailed("Action failed");
+      setFailed("Review requirements failed");
     }
   })
   .catch((error) => {

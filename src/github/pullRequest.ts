@@ -119,41 +119,31 @@ export class PullRequestApi {
         title: missingReviews ? `Missing ${missingReviews} reviews` : "PR fulfilled required approvals",
         summary: `This summary was **generated** at ${new Date().toUTCString()}\nFind details [here](${
           this.detailsUrl
-        })`,
-        text: `This _text_ was **generated** at ${new Date().toUTCString()}`,
+        }).`,
+        text: `Today's lucky number is: ${Math.floor(Math.random() * 100)}`,
       },
     };
 
-    //*
     const { data } = await this.api.rest.checks.listForRef({
       owner: this.repoInfo.owner,
       repo: this.repoInfo.repo,
       ref: this.pr.head.sha,
     });
 
+    this.logger.debug(`Searching for a match for id ${checkData.external_id}. Found ${data.total_count} checks`);
+
     for (const check of data.check_runs) {
       if (check.external_id === checkData.external_id) {
-        this.logger.info(`Found match: ${JSON.stringify(check)}`);
+        this.logger.debug(`Found match: ${JSON.stringify(check)}`);
+        await this.api.rest.checks.update({ ...checkData, check_run_id: check.id });
+        this.logger.debug("Updated check data");
+        return;
       }
     }
-    //* /
 
-    const check = await this.api.rest.checks.create({
-      owner: this.repoInfo.owner,
-      repo: this.repoInfo.repo,
-      external_id: "review-bot",
-      conclusion,
-      details_url: this.detailsUrl,
-      head_sha: this.pr.head.sha,
-      name: "review-bot",
-      output: {
-        title: missingReviews ? `Missing ${missingReviews} reviews` : "PR fulfilled required approvals",
-        summary: `This summary was **generated** at ${new Date().toUTCString()}\nFind details [here](${
-          this.detailsUrl
-        })`,
-        text: `This _text_ was **generated** at ${new Date().toUTCString()}`,
-      },
-    });
+    this.logger.debug("Did not find any matching status check. Creating a new one");
+
+    const check = await this.api.rest.checks.create(checkData);
 
     this.logger.debug(JSON.stringify(check.data));
   }
