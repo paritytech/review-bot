@@ -1,3 +1,4 @@
+import { summary } from "@actions/core";
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 
 import { caseInsensitiveEqual } from "../util";
@@ -135,6 +136,13 @@ export class PullRequestApi {
     this.logger.debug("Did not find any matching status check. Creating a new one");
 
     const check = await this.api.rest.checks.create(checkData);
+
+    // We publish it in the action summary
+    await summary
+      .addHeading(checkResult.output.title)
+      .addLink("Find the result here", check.data.html_url ?? "")
+      .addRaw(checkResult.output.text)
+      .write();
 
     this.logger.debug(JSON.stringify(check.data));
   }
