@@ -1,3 +1,4 @@
+import { summary } from "@actions/core";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
@@ -5,7 +6,7 @@ import { ConfigurationFile, Reviewers, Rule } from "./file/types";
 import { validateConfig, validateRegularExpressions } from "./file/validator";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
-import { ActionLogger } from "./github/types";
+import { ActionLogger, CheckData } from "./github/types";
 import { concatArraysUniquely } from "./util";
 
 type ReviewReport = {
@@ -18,6 +19,9 @@ type ReviewReport = {
   /** If applicable, the users that should be requested to review */
   usersToRequest?: string[];
 };
+
+type RuleReport = { name: string } & ReviewReport;
+
 type ReviewState = [true] | [false, ReviewReport];
 
 /** Action in charge of running the GitHub action */
@@ -54,7 +58,7 @@ export class ActionRunner {
    * @returns a true/false statement if the rule failed. This WILL BE CHANGED for an object with information (see issue #26)
    */
   async validatePullRequest({ rules }: ConfigurationFile): Promise<boolean> {
-    const errorReports: ReviewReport[] = [];
+    const errorReports: RuleReport[] = [];
     for (const rule of rules) {
       try {
         this.logger.info(`Validating rule '${rule.name}'`);
@@ -70,7 +74,7 @@ export class ActionRunner {
           const [result, missingData] = await this.evaluateCondition(rule);
           if (!result) {
             this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-            errorReports.push(missingData);
+            errorReports.push({ ...missingData, name: rule.name });
           }
         }
       } catch (error: unknown) {
@@ -80,6 +84,8 @@ export class ActionRunner {
       }
       this.logger.info(`Finish validating '${rule.name}'`);
     }
+    const checkData = this.generateCheckRunData(errorReports);
+    await this.prApi.generateCheckRun(checkData);
     if (errorReports.length > 0) {
       const finalReport = this.aggregateReports(errorReports);
       // Preview, this will be improved in a future commit
@@ -102,6 +108,40 @@ export class ActionRunner {
     }
 
     return finalReport;
+  }
+
+  /** Aggregates all the reports and generate a status report */
+  generateCheckRunData(reports: RuleReport[]): CheckData {
+    // Count how many reviews are missing
+    const missingReviews = reports.reduce((a, b) => a + b.missingReviews, 0);
+    const failed = missingReviews > 0;
+    const check: CheckData = {
+      conclussion: failed ? "failure" : "success",
+      output: {
+        title: failed ? `Missing ${missingReviews} reviews` : "All required reviews fulfilled",
+        summary: failed ? "# The following rules have failed:\n" : "All neccesary users have reviewed the PR",
+        text: failed ? "Details per rule:\n" : "",
+      },
+    };
+
+    if (!failed) {
+      return check;
+    }
+
+    for (const report of reports) {
+      check.output.summary += `- **${report.name}**\n`;
+      let text = summary.addHeading(report.name, 2).addHeading(`Missing ${report.missingReviews} reviews`, 4);
+      if (report.usersToRequest && report.usersToRequest.length > 0) {
+        text = text.addHeading("Missing users", 3).addList(report.usersToRequest);
+      }
+      if (report.teamsToRequest && report.teamsToRequest.length > 0) {
+        text = text.addHeading("Missing reviews from teams", 3).addList(report.teamsToRequest);
+      }
+
+      check.output.text += text.stringify() + "\n";
+    }
+
+    return check;
   }
 
   /** Evaluates if the required reviews for a condition have been meet
@@ -208,7 +248,7 @@ export class ActionRunner {
 
     this.logger.info(success ? "The PR has been successful" : "There was an error with the PR reviews.");
 
-    await this.prApi.generateCheckRun(success ? "success" : "failure", 10);
+    // await this.prApi.generateCheckRun(success ? "success" : "failure", 10);
 
     return success;
   }

@@ -1,9 +1,7 @@
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 
 import { caseInsensitiveEqual } from "../util";
-import { ActionLogger, GitHubClient } from "./types";
-
-type ActionConclussion = "action_required" | "failure" | "success";
+import { ActionLogger, CheckData, GitHubClient } from "./types";
 
 /** API class that uses the default token to access the data from the pull request and the repository */
 export class PullRequestApi {
@@ -106,22 +104,15 @@ export class PullRequestApi {
     return this.pr.user.login;
   }
 
-  async generateCheckRun(conclusion: ActionConclussion, missingReviews?: number): Promise<void> {
+  async generateCheckRun(checkResult: CheckData): Promise<void> {
     const checkData = {
+      ...checkResult,
       owner: this.repoInfo.owner,
       repo: this.repoInfo.repo,
       external_id: "review-bot",
-      conclusion,
       details_url: this.detailsUrl,
       head_sha: this.pr.head.sha,
       name: "review-bot",
-      output: {
-        title: missingReviews ? `Missing ${missingReviews} reviews` : "PR fulfilled required approvals",
-        summary: `This summary was **generated** at ${new Date().toUTCString()}\nFind details [here](${
-          this.detailsUrl
-        }).`,
-        text: `Today's lucky number is: ${Math.floor(Math.random() * 100)}`,
-      },
     };
 
     const { data } = await this.api.rest.checks.listForRef({
