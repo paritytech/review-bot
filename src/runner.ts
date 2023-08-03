@@ -116,7 +116,7 @@ export class ActionRunner {
     const missingReviews = reports.reduce((a, b) => a + b.missingReviews, 0);
     const failed = missingReviews > 0;
     const check: CheckData = {
-      conclussion: failed ? "failure" : "success",
+      conclusion: failed ? "failure" : "success",
       output: {
         title: failed ? `Missing ${missingReviews} reviews` : "All required reviews fulfilled",
         summary: failed ? "# The following rules have failed:\n" : "All neccesary users have reviewed the PR",
