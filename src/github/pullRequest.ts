@@ -107,9 +107,38 @@ export class PullRequestApi {
   }
 
   async generateCheckRun(conclusion: ActionConclussion, missingReviews?: number): Promise<void> {
-    // await this.api.rest.checks.listSuitesForRef
+    const checkData = {
+      owner: this.repoInfo.owner,
+      repo: this.repoInfo.repo,
+      external_id: "review-bot",
+      conclusion,
+      details_url: this.detailsUrl,
+      head_sha: this.pr.head.sha,
+      name: "review-bot",
+      output: {
+        title: missingReviews ? `Missing ${missingReviews} reviews` : "PR fulfilled required approvals",
+        summary: `This summary was **generated** at ${new Date().toUTCString()}\nFind details [here](${
+          this.detailsUrl
+        })`,
+        text: `This _text_ was **generated** at ${new Date().toUTCString()}`,
+      },
+    };
 
-    await this.api.rest.checks.create({
+    //*
+    const { data } = await this.api.rest.checks.listForRef({
+      owner: this.repoInfo.owner,
+      repo: this.repoInfo.repo,
+      ref: this.pr.head.sha,
+    });
+
+    for (const check of data.check_runs) {
+      if (check.external_id === checkData.external_id) {
+        this.logger.info(`Found match: ${JSON.stringify(check)}`);
+      }
+    }
+    //* /
+
+    const check = await this.api.rest.checks.create({
       owner: this.repoInfo.owner,
       repo: this.repoInfo.repo,
       external_id: "review-bot",
@@ -125,5 +154,7 @@ export class PullRequestApi {
         text: `This _text_ was **generated** at ${new Date().toUTCString()}`,
       },
     });
+
+    this.logger.debug(JSON.stringify(check.data));
   }
 }
