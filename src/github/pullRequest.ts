@@ -1,5 +1,6 @@
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 
+import { caseInsensitiveEqual } from "../util";
 import { ActionLogger, GitHubClient } from "./types";
 
 /** API class that uses the default token to access the data from the pull request and the repository */
@@ -60,7 +61,7 @@ export class PullRequestApi {
 
       for (const review of reviews) {
         if (
-          review.state.localeCompare("commented", undefined, { sensitivity: "accent" }) === 0 ||
+          caseInsensitiveEqual(review.state, "commented") ||
           // the user may have been deleted
           review.user === null ||
           review.user === undefined
@@ -90,9 +91,7 @@ export class PullRequestApi {
         )}`,
       );
 
-      const approvals = latestReviews.filter(
-        (review) => review.state.localeCompare("approved", undefined, { sensitivity: "accent" }) === 0,
-      );
+      const approvals = latestReviews.filter((review) => caseInsensitiveEqual(review.state, "approved"));
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
     }
     this.logger.debug(`PR approvals are ${JSON.stringify(this.usersThatApprovedThePr)}`);
