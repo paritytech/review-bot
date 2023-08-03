@@ -1,5 +1,6 @@
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 
+import { caseInsensitiveEqual } from "../util";
 import { ActionLogger, GitHubClient } from "./types";
 
 /** API class that uses the default token to access the data from the pull request and the repository */
@@ -55,9 +56,42 @@ export class PullRequestApi {
       const request = await this.api.rest.pulls.listReviews({ ...this.repoInfo, pull_number: this.number });
       const reviews = request.data as PullRequestReview[];
       this.logger.debug(`List of reviews: ${JSON.stringify(reviews)}`);
-      const approvals = reviews.filter(
-        (review) => review.state.localeCompare("approved", undefined, { sensitivity: "accent" }) === 0,
+
+      const latestReviewsMap = new Map<number, PullRequestReview>();
+
+      for (const review of reviews) {
+        if (
+          caseInsensitiveEqual(review.state, "commented") ||
+          // the user may have been deleted
+          review.user === null ||
+          review.user === undefined
+        ) {
+          continue;
+        }
+
+        // we check if there is already a review from this user
+        const prevReview = latestReviewsMap.get(review.user.id);
+        if (
+          prevReview === undefined ||
+          // Newer reviews have a higher id number
+          prevReview.id < review.id
+        ) {
+          // if the review is more modern (and not a comment) we replace the one in our map
+          latestReviewsMap.set(review.user.id, review);
+        }
+      }
+
+      const latestReviews = Array.from(latestReviewsMap.values());
+
+      this.logger.info(
+        `Latest reviews are ${JSON.stringify(
+          latestReviews.map((r) => {
+            return { user: r.user.login, state: r.state };
+          }),
+        )}`,
       );
+
+      const approvals = latestReviews.filter((review) => caseInsensitiveEqual(review.state, "approved"));
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
     }
     this.logger.debug(`PR approvals are ${JSON.stringify(this.usersThatApprovedThePr)}`);

@@ -13,3 +13,10 @@ export function concatArraysUniquely<T>(arr1?: T[], arr2?: T[]): T[] {
   // We remove the duplicated values and return the array
   return concatedArray.filter((item, pos) => concatedArray.indexOf(item) === pos);
 }
+
+/** Case insentive comparison of two strings
+ * @example caseInsensitiveEqual("hi", "HI") === true
+ */
+export function caseInsensitiveEqual<T extends string>(a: T, b: T): boolean {
+  return a.localeCompare(b, undefined, { sensitivity: "accent" }) === 0;
+}
