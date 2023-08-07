@@ -23,12 +23,13 @@ jobs:
         run: |
           BRANCH=$(yq '.jobs.review-approvals.steps[0].uses' $FILE_NAME | cut -d "@" -f2)
           # If the branch is not the main branch
-          if [ "$BRANCH" != "$MAIN_BRANCH" ]; then
-            echo "Action points to $BRANCH. It has to point to $MAIN_BRANCH instead!"
+          if [ "$BRANCH" != "$GITHUB_BASE_REF" ]; then
+            echo "Action points to $BRANCH. It has to point to $GITHUB_BASE_REF instead!"
             exit 1
+          else
+            echo "Action is correctly pointing to $GITHUB_BASE_REF"
           fi
         env:
           FILE_NAME: ".github/workflows/review-bot.yml"
-          MAIN_BRANCH: "main"
 
 # Todo: Add the rest of the action https://github.com/paritytech/stale-pr-finder/blob/main/.github/workflows/publish.yml
