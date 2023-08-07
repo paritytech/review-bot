@@ -105,6 +105,13 @@ export class PullRequestApi {
     return this.pr.user.login;
   }
 
+  /**
+   * Generates a Check Run or modifies the existing one.
+   * This way we can aggregate all the results from different causes into a single one
+   * {@link https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28}
+   * @param checkResult a CheckData object with the final conclussion of action and the output text
+   * {@link CheckData}
+   */
   async generateCheckRun(checkResult: CheckData): Promise<void> {
     const checkData = {
       ...checkResult,
