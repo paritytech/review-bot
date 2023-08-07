@@ -57,7 +57,7 @@ export class ActionRunner {
    * The action evaluates if the rules requirements are meet for a PR
    * @returns a true/false statement if the rule failed. This WILL BE CHANGED for an object with information (see issue #26)
    */
-  async validatePullRequest({ rules }: ConfigurationFile): Promise<boolean> {
+  async validatePullRequest({ rules }: ConfigurationFile): Promise<RuleReport[]> {
     const errorReports: RuleReport[] = [];
     for (const rule of rules) {
       try {
@@ -84,20 +84,16 @@ export class ActionRunner {
       }
       this.logger.info(`Finish validating '${rule.name}'`);
     }
-    const checkData = this.generateCheckRunData(errorReports);
-    await this.prApi.generateCheckRun(checkData);
     if (errorReports.length > 0) {
       const finalReport = this.aggregateReports(errorReports);
       // Preview, this will be improved in a future commit
       this.logger.warn(`Missing reviews: ${JSON.stringify(finalReport)}`);
-      return false;
     }
-    // TODO: Convert this into a list of users/teams missing and convert the output into a nice summary object -> Issue #26
-    return true;
+    return errorReports;
   }
 
-  /** Aggregates all the reports and generate a final combined one */
-  aggregateReports(reports: ReviewReport[]): ReviewReport {
+  /** WIP - Class that will assign the requests for review */
+  requestReviewers(reports: RuleReport[]): Promise<void> {
     const finalReport: ReviewReport = { missingReviews: 0, missingUsers: [], teamsToRequest: [], usersToRequest: [] };
 
     for (const report of reports) {
@@ -107,7 +103,11 @@ export class ActionRunner {
       finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, report.usersToRequest);
     }
 
-    return finalReport;
+    this.logger.info(
+      `Need to request reviews from ${(finalReport.teamsToRequest ?? []).concat(finalReport.usersToRequest ?? [])}`,
+    );
+
+    return Promise.resolve();
   }
 
   /** Aggregates all the reports and generate a status report */
@@ -241,15 +241,18 @@ export class ActionRunner {
     return matches;
   }
 
-  async runAction(inputs: Omit<Inputs, "repoToken">): Promise<boolean> {
+  async runAction(inputs: Omit<Inputs, "repoToken">): Promise<CheckData> {
     const config = await this.getConfigFile(inputs.configLocation);
 
-    const success = await this.validatePullRequest(config);
+    const reports = await this.validatePullRequest(config);
 
-    this.logger.info(success ? "The PR has been successful" : "There was an error with the PR reviews.");
+    this.logger.info(reports.length > 0 ? "There was an error with the PR reviews." : "The PR has been successful");
 
-    // await this.prApi.generateCheckRun(success ? "success" : "failure", 10);
+    const checkRunData = this.generateCheckRunData(reports);
+    await this.prApi.generateCheckRun(checkRunData);
 
-    return success;
+    await this.requestReviewers(reports);
+
+    return checkRunData;
   }
 }

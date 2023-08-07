@@ -69,11 +69,7 @@ const runner = new ActionRunner(api, teamApi, logger);
 runner
   .runAction(inputs)
   .then((result) => {
-    if (result) {
-      info("Action completed succesfully");
-    } else {
-      setFailed("Review requirements failed");
-    }
+    info(`Action run without problem. Evaluation result was '${result.conclusion}'`);
   })
   .catch((error) => {
     console.error(error);
