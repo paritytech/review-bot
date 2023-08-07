@@ -102,9 +102,10 @@ export class ActionRunner {
     }
 
     const { teamsToRequest, usersToRequest } = finalReport;
-    const reviewersLog = teamsToRequest
-      ? `Teams: ${JSON.stringify(teamsToRequest)} - `
-      : "" + (usersToRequest ? `Users: ${JSON.stringify(usersToRequest)}` : "");
+    const reviewersLog = [
+      teamsToRequest ? `Teams: ${JSON.stringify(teamsToRequest)} - ` : "",
+      usersToRequest ? `Users: ${JSON.stringify(usersToRequest)}` : "",
+    ].join(" - ");
 
     this.logger.info(`Need to request reviews from ${reviewersLog}`);
 
