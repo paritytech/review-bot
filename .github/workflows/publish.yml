@@ -24,7 +24,7 @@ jobs:
           BRANCH=$(yq '.jobs.review-approvals.steps[0].uses' $FILE_NAME)
           echo $BRANCH | cut -d "@" -f2
           # If the branch is not the main branch
-          if [ "$BRANCH" = "$MAIN_BRANCH" ]; then
+          if [ "$BRANCH" != "$MAIN_BRANCH" ]; then
             echo "Action points at $BRANCH. It has to point to $MAIN_BRANCH instead!"
             exit 1
           fi
