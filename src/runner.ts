@@ -84,16 +84,14 @@ export class ActionRunner {
       }
       this.logger.info(`Finish validating '${rule.name}'`);
     }
-    if (errorReports.length > 0) {
-      const finalReport = this.aggregateReports(errorReports);
-      // Preview, this will be improved in a future commit
-      this.logger.warn(`Missing reviews: ${JSON.stringify(finalReport)}`);
-    }
     return errorReports;
   }
 
   /** WIP - Class that will assign the requests for review */
-  requestReviewers(reports: RuleReport[]): Promise<void> {
+  async requestReviewers(reports: RuleReport[]): Promise<void> {
+    if (reports.length === 0) {
+      return;
+    }
     const finalReport: ReviewReport = { missingReviews: 0, missingUsers: [], teamsToRequest: [], usersToRequest: [] };
 
     for (const report of reports) {
@@ -103,11 +101,14 @@ export class ActionRunner {
       finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, report.usersToRequest);
     }
 
-    this.logger.info(
-      `Need to request reviews from ${(finalReport.teamsToRequest ?? []).concat(finalReport.usersToRequest ?? [])}`,
-    );
+    const { teamsToRequest, usersToRequest } = finalReport;
+    const reviewersLog = teamsToRequest
+      ? `Teams: ${JSON.stringify(teamsToRequest)} - `
+      : "" + (usersToRequest ? `Users: ${JSON.stringify(usersToRequest)}` : "");
 
-    return Promise.resolve();
+    this.logger.info(`Need to request reviews from ${reviewersLog}`);
+
+    return await Promise.resolve();
   }
 
   /** Aggregates all the reports and generate a status report */
@@ -241,6 +242,12 @@ export class ActionRunner {
     return matches;
   }
 
+  /** Core runner of the app.
+   * 1. It fetches the config
+   * 2. It validates all the pull request requirements based on the config file
+   * 3. It generates a status check in the Pull Request
+   * 4. WIP - It assigns the required reviewers to review the PR
+   */
   async runAction(inputs: Omit<Inputs, "repoToken">): Promise<CheckData> {
     const config = await this.getConfigFile(inputs.configLocation);
 
