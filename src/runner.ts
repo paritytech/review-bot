@@ -88,7 +88,7 @@ export class ActionRunner {
   }
 
   /** WIP - Class that will assign the requests for review */
-  async requestReviewers(reports: RuleReport[]): Promise<void> {
+  requestReviewers(reports: RuleReport[]): void {
     if (reports.length === 0) {
       return;
     }
@@ -108,8 +108,6 @@ export class ActionRunner {
     ].join(" - ");
 
     this.logger.info(`Need to request reviews from ${reviewersLog}`);
-
-    return await Promise.resolve();
   }
 
   /** Aggregates all the reports and generate a status report */
@@ -259,7 +257,7 @@ export class ActionRunner {
     const checkRunData = this.generateCheckRunData(reports);
     await this.prApi.generateCheckRun(checkRunData);
 
-    await this.requestReviewers(reports);
+    this.requestReviewers(reports);
 
     return checkRunData;
   }
