@@ -75,6 +75,27 @@ describe("Config Parsing", () => {
         'Configuration file is invalid: "rules[0].type" must be one of [basic, debug]',
       );
     });
+
+    test("should fail with duplicated rule name", async () => {
+      api.getConfigFile.mockResolvedValue(`
+          rules:
+            - name: Default review
+              condition:
+                include: 
+                  - '.*'
+              type: basic
+              teams:
+                - team-example
+            - name: Default review
+              condition:
+                include: 
+                  - 'src'
+              type: basic
+              teams:
+                - team-2
+          `);
+      await expect(runner.getConfigFile("")).rejects.toThrowError("contains a duplicate value");
+    });
   });
 
   describe("regular expressions validator", () => {
