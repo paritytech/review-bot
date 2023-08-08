@@ -55,7 +55,7 @@ export class ActionRunner {
 
   /**
    * The action evaluates if the rules requirements are meet for a PR
-   * @returns a true/false statement if the rule failed. This WILL BE CHANGED for an object with information (see issue #26)
+   * @returns an array of error reports for each failed rule. An empty array means no errors
    */
   async validatePullRequest({ rules }: ConfigurationFile): Promise<RuleReport[]> {
     const errorReports: RuleReport[] = [];
