@@ -50,11 +50,14 @@ debug("Got payload:" + JSON.stringify(context.payload.pull_request));
 
 const inputs = getInputs();
 
+const actionId = `${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
+
 const api = new PullRequestApi(
   getOctokit(inputs.repoToken),
   context.payload.pull_request as PullRequest,
   generateCoreLogger(),
   repo,
+  actionId,
 );
 
 const logger = generateCoreLogger();
@@ -66,10 +69,9 @@ const runner = new ActionRunner(api, teamApi, logger);
 runner
   .runAction(inputs)
   .then((result) => {
-    if (result) {
-      info("Action completed succesfully");
-    } else {
-      setFailed("Action failed");
-    }
+    info(`Action run without problem. Evaluation result was '${result.conclusion}'`);
   })
-  .catch(setFailed);
+  .catch((error) => {
+    console.error(error);
+    setFailed(error as Error | string);
+  });

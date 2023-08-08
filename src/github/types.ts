@@ -8,3 +8,12 @@ export interface ActionLogger {
 }
 
 export type GitHubClient = InstanceType<typeof GitHub>;
+
+export interface CheckData {
+  conclusion: "action_required" | "failure" | "success";
+  output: {
+    title: string;
+    summary: string;
+    text: string;
+  };
+}
