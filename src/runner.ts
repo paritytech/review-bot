@@ -102,9 +102,10 @@ export class ActionRunner {
     }
 
     const { teamsToRequest, usersToRequest } = finalReport;
+    const validArray = (array: string[] | undefined): boolean => !!array && array.length > 0;
     const reviewersLog = [
-      teamsToRequest ? `Teams: ${JSON.stringify(teamsToRequest)} - ` : "",
-      usersToRequest ? `Users: ${JSON.stringify(usersToRequest)}` : "",
+      validArray(teamsToRequest) ? `Teams: ${JSON.stringify(teamsToRequest)}` : "",
+      validArray(usersToRequest) ? `Users: ${JSON.stringify(usersToRequest)}` : "",
     ].join(" - ");
 
     this.logger.info(`Need to request reviews from ${reviewersLog}`);
