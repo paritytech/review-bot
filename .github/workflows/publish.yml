@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3.3.0
+      # This checks that .github/workflows/review-bot.yml is pointing towards the main branch
+      # as, during development, we change this to use the code from the test branch and
+      # we may forget to set it back to main
       - name: Validate that action points to main branch
         run: |
           BRANCH=$(yq '.jobs.review-approvals.steps[0].uses' $FILE_NAME | cut -d "@" -f2)
