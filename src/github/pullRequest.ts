@@ -148,6 +148,7 @@ export class PullRequestApi {
       .addHeading(checkResult.output.title)
       // We redirect to the check as it can changed if it is triggered again
       .addLink("Find the result here", check.data.html_url ?? "")
+      .addBreak()
       .addRaw(checkResult.output.text)
       .write();
 
