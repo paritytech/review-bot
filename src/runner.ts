@@ -76,6 +76,27 @@ export class ActionRunner {
             this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
             errorReports.push({ ...missingData, name: rule.name });
           }
+        } else if (rule.type === "and") {
+          const reports: ReviewReport[] = [];
+          // We evaluate every individual condition
+          for (const reviewer of rule.reviewers) {
+            const [result, missingData] = await this.evaluateCondition(reviewer);
+            if (!result) {
+              // If one of the conditions failed, we add it to a report
+              reports.push(missingData);
+            }
+          }
+          if (reports.length > 0) {
+            const finalReport: RuleReport = {
+              missingReviews: reports.reduce((a, b) => a + b.missingReviews, 0),
+              missingUsers: [...new Set(reports.flatMap((r) => r.missingUsers))],
+              teamsToRequest: [...new Set(reports.flatMap((r) => r.teamsToRequest ?? []))],
+              usersToRequest: [...new Set(reports.flatMap((r) => r.usersToRequest ?? []))],
+              name: rule.name,
+            };
+            this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
+            errorReports.push(finalReport);
+          }
         }
       } catch (error: unknown) {
         // We only throw if there was an unexpected error, not if the check fails
