@@ -8,3 +8,16 @@ rules:
     type: basic
     teams:
       - opstooling
+  - name: Config file
+    condition:
+      include:
+        - 'review-bot.yml'
+    type: and
+    reviewers:
+      - teams:
+        - opstooling
+      - users:
+        - mordamax
+        - mutantcornholio
+        - rzadp
+        - bullrich
