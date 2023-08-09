@@ -170,6 +170,7 @@ export class ActionRunner {
       }
 
       check.output.text += text.stringify() + "\n";
+      this.logger.warn(check.output.text);
     }
 
     return check;
