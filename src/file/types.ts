@@ -24,9 +24,9 @@ export interface BasicRule extends Rule, Reviewers {
 
 export interface AndRule extends Rule {
   type: RuleTypes.And;
-  reviewers: {
+  reviewers: ({
     min_approvals: number;
-  } & Reviewers[];
+  } & Reviewers)[];
 }
 
 export interface ConfigurationFile {
