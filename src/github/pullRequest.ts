@@ -28,6 +28,7 @@ export class PullRequestApi {
       owner: this.pr.base.repo.owner.login,
       repo: this.pr.base.repo.name,
       path: configFilePath,
+      ref: "and-rule",
     });
 
     if (!("content" in data)) {
