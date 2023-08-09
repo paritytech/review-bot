@@ -132,7 +132,9 @@ export class ActionRunner {
     this.logger.info(`Need to request reviews from ${reviewersLog}`);
   }
 
-  /** Aggregates all the reports and generate a status report */
+  /** Aggregates all the reports and generate a status report
+   * This also filters the author of the PR if he belongs to the group of users
+   */
   generateCheckRunData(reports: RuleReport[]): CheckData {
     // Count how many reviews are missing
     const missingReviews = reports.reduce((a, b) => a + b.missingReviews, 0);
@@ -150,11 +152,18 @@ export class ActionRunner {
       return check;
     }
 
+    this.logger.debug(`Creating check status data for all the reports ${JSON.stringify(reports)}`);
+
     for (const report of reports) {
+      this.logger.debug(`Creating report for ${JSON.stringify(report)}`);
       check.output.summary += `- **${report.name}**\n`;
-      let text = summary.addHeading(report.name, 2).addHeading(`Missing ${report.missingReviews} reviews`, 4);
+      let text = summary
+        .addHeading(report.name, 2)
+        .addHeading(`Missing ${report.missingReviews} review${report.missingReviews > 1 ? "s" : ""}`, 4);
       if (report.usersToRequest && report.usersToRequest.length > 0) {
-        text = text.addHeading("Missing users", 3).addList(report.usersToRequest);
+        text = text
+          .addHeading("Missing users", 3)
+          .addList(report.usersToRequest.filter((u) => u !== this.prApi.getAuthor()));
       }
       if (report.teamsToRequest && report.teamsToRequest.length > 0) {
         text = text.addHeading("Missing reviews from teams", 3).addList(report.teamsToRequest);
