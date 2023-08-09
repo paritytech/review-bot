@@ -146,6 +146,7 @@ export class PullRequestApi {
 
     // We publish it in the action summary
     await summary
+      .emptyBuffer()
       .addHeading(checkResult.output.title)
       // We redirect to the check as it can changed if it is triggered again
       .addLink("Find the result here", check.data.html_url ?? "")

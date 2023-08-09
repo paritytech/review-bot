@@ -7,7 +7,7 @@ import { validateConfig, validateRegularExpressions } from "./file/validator";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger, CheckData } from "./github/types";
-import { concatArraysUniquely } from "./util";
+import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
 
 type ReviewReport = {
   /** The amount of missing reviews to fulfill the requirements */
@@ -158,12 +158,13 @@ export class ActionRunner {
       this.logger.debug(`Creating report for ${JSON.stringify(report)}`);
       check.output.summary += `- **${report.name}**\n`;
       let text = summary
+        .emptyBuffer()
         .addHeading(report.name, 2)
         .addHeading(`Missing ${report.missingReviews} review${report.missingReviews > 1 ? "s" : ""}`, 4);
       if (report.usersToRequest && report.usersToRequest.length > 0) {
         text = text
           .addHeading("Missing users", 3)
-          .addList(report.usersToRequest.filter((u) => u !== this.prApi.getAuthor()));
+          .addList(report.usersToRequest.filter((u) => !caseInsensitiveEqual(u, this.prApi.getAuthor())));
       }
       if (report.teamsToRequest && report.teamsToRequest.length > 0) {
         text = text.addHeading("Missing reviews from teams", 3).addList(report.teamsToRequest);
