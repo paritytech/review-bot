@@ -23,6 +23,7 @@ export interface BasicRule extends Rule, Reviewers {
 }
 
 export interface AndRule extends Rule {
+  type: RuleTypes.And;
   reviewers: {
     min_approvals: number;
   } & Reviewers[];
