@@ -152,10 +152,7 @@ export class ActionRunner {
       return check;
     }
 
-    this.logger.debug(`Creating check status data for all the reports ${JSON.stringify(reports)}`);
-
     for (const report of reports) {
-      this.logger.debug(`Creating report for ${JSON.stringify(report)}`);
       check.output.summary += `- **${report.name}**\n`;
       let text = summary
         .emptyBuffer()
@@ -171,7 +168,6 @@ export class ActionRunner {
       }
 
       check.output.text += text.stringify() + "\n";
-      this.logger.warn(check.output.text);
     }
 
     return check;
