@@ -26,7 +26,8 @@ jobs:
           private_key: ${{ secrets.TEAM_APP_KEY }}
       # !This must always point to main. 
       # Change it for the PRs but remember to change it back
-      - uses: paritytech/review-bot@main
+      - name: "Evaluates PR reviews and assigns reviewers"
+        uses: paritytech/review-bot@main
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           team-token: ${{ steps.team_token.outputs.token }}
