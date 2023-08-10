@@ -1,6 +1,6 @@
 import { mock, MockProxy } from "jest-mock-extended";
 
-import { ConfigurationFile, Rule, RuleTypes } from "../../file/types";
+import { ConfigurationFile, Rule, RuleTypes } from "../../rules/types";
 import { PullRequestApi } from "../../github/pullRequest";
 import { TeamApi } from "../../github/teams";
 import { ActionRunner } from "../../runner";
