@@ -53,6 +53,5 @@ jobs:
       - uses: c-hive/gha-yarn-cache@v2
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-      - run: yarn run cli
       - name: Evaluates config file
-        run: node dist ".github/review-bot.yml"
+        run: yarn run cli ".github/review-bot.yml"
