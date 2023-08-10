@@ -41,3 +41,18 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       - run: yarn run test
+
+  evaluate-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use node 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - uses: c-hive/gha-yarn-cache@v2
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - run: yarn run cli
+      - name: Evaluates config file
+        run: node dist ".github/review-bot.yml"
