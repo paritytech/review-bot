@@ -9,7 +9,7 @@ import { AndRule } from "../../rules/types";
 import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
-describe("Basic rule parsing", () => {
+describe("'And' rule parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
   let teamsApi: MockProxy<TeamApi>;
@@ -32,6 +32,8 @@ describe("Basic rule parsing", () => {
             reviewers:
               - teams:
                 - team-example
+              - teams:
+                - team-abc
         `);
     const config = await runner.getConfigFile("");
     expect(config.rules[0].name).toEqual("Test review");
@@ -52,12 +54,16 @@ describe("Basic rule parsing", () => {
             reviewers:
               - teams:
                 - team-example
+              - teams:
+                - team-abc
         `);
       const config = await runner.getConfigFile("");
       const rule = config.rules[0] as AndRule;
-      expect(rule.reviewers.length).toEqual(1);
+      expect(rule.reviewers.length).toEqual(2);
       expect(rule.reviewers[0].teams).toContainEqual("team-example");
       expect(rule.reviewers[0].users).toBeUndefined();
+      expect(rule.reviewers[1].teams).toContainEqual("team-abc");
+      expect(rule.reviewers[1].users).toBeUndefined();
     });
     test("should require users", async () => {
       api.getConfigFile.mockResolvedValue(`
@@ -72,11 +78,15 @@ describe("Basic rule parsing", () => {
             reviewers:
               - users:
                 - user-example
+              - users:
+                - user-special
         `);
       const config = await runner.getConfigFile("");
       const rule = config.rules[0] as AndRule;
       expect(rule.reviewers[0].users).toContainEqual("user-example");
       expect(rule.reviewers[0].teams).toBeUndefined();
+      expect(rule.reviewers[1].users).toContainEqual("user-special");
+      expect(rule.reviewers[1].teams).toBeUndefined();
     });
 
     test("should fail without reviewers", async () => {
@@ -136,6 +146,8 @@ describe("Basic rule parsing", () => {
             reviewers:
               - users:
                 - user-example
+              - teams:
+                - team-example
         `);
     const config = await runner.getConfigFile("");
     const [rule] = config.rules;

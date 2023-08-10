@@ -42,7 +42,7 @@ export const basicRuleSchema = Joi.object<BasicRule>()
   .or("users", "teams");
 
 export const andRuleSchema = Joi.object<AndRule>().keys({
-  reviewers: Joi.array<AndRule["reviewers"]>().items(basicRuleSchema).required(),
+  reviewers: Joi.array<AndRule["reviewers"]>().items(basicRuleSchema).min(2).required(),
 });
 
 /**
