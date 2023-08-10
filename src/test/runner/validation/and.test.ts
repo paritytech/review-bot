@@ -23,7 +23,7 @@ describe("'And' rule validation", () => {
   });
 
   describe("approvals", () => {
-    test("should return true if the reviewers reviewed", async () => {
+    test("should not report errors if the reviewers reviewed", async () => {
       const config: ConfigurationFile = {
         rules: [
           {
@@ -39,7 +39,7 @@ describe("'And' rule validation", () => {
       expect(evaluation).toHaveLength(0);
     });
 
-    test("should return true if the reviewer belong to both conditions", async () => {
+    test("should not report errors if the reviewer belong to both conditions", async () => {
       const config: ConfigurationFile = {
         rules: [
           {
