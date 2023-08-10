@@ -11,6 +11,5 @@ Have custom review rules for PRs with auto assignment.
 If you want to evaluate the config, we have a simple `cli` to do so.
 
 ```bash
-yarn run cli # this builds the cli
-node dist ".github/review-bot.yml" # set the parameter as the location of the config
+yarn run cli ".github/review-bot.yml" # set the parameter as the location of the config
 ```
