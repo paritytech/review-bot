@@ -59,7 +59,7 @@ describe("'And' rule parsing", () => {
         `);
       const config = await runner.getConfigFile("");
       const rule = config.rules[0] as AndRule;
-      expect(rule.reviewers.length).toEqual(2);
+      expect(rule.reviewers).toHaveLength(2);
       expect(rule.reviewers[0].teams).toContainEqual("team-example");
       expect(rule.reviewers[0].users).toBeUndefined();
       expect(rule.reviewers[1].teams).toContainEqual("team-abc");
@@ -124,7 +124,7 @@ describe("'And' rule parsing", () => {
         `);
       const config = await runner.getConfigFile("");
       const rule = config.rules[0] as AndRule;
-      expect(rule.reviewers.length).toEqual(2);
+      expect(rule.reviewers).toHaveLength(2);
       expect(rule.reviewers[0].teams).toContainEqual("team-example");
       expect(rule.reviewers[0].users).toBeUndefined();
       expect(rule.reviewers[1].min_approvals).toEqual(2);
