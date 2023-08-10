@@ -2,11 +2,11 @@ import { summary } from "@actions/core";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
-import { ConfigurationFile, Reviewers, Rule } from "./rules/types";
-import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger, CheckData } from "./github/types";
+import { ConfigurationFile, Reviewers, Rule } from "./rules/types";
+import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
 
 type ReviewReport = {

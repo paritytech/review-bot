@@ -3,9 +3,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { mock, MockProxy } from "jest-mock-extended";
 
-import { AndRule } from "../../rules/types";
 import { PullRequestApi } from "../../github/pullRequest";
 import { TeamApi } from "../../github/teams";
+import { AndRule } from "../../rules/types";
 import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
