@@ -59,7 +59,7 @@ export class ActionRunner {
    */
   async validatePullRequest({ rules }: ConfigurationFile): Promise<RuleReport[]> {
     const errorReports: RuleReport[] = [];
-    for (const rule of rules) {
+    ruleCheck: for (const rule of rules) {
       try {
         this.logger.info(`Validating rule '${rule.name}'`);
         // We get all the files that were modified and match the rules condition
@@ -87,14 +87,28 @@ export class ActionRunner {
             }
           }
           if (reports.length > 0) {
-            const finalReport: RuleReport = {
-              missingReviews: reports.reduce((a, b) => a + b.missingReviews, 0),
-              missingUsers: [...new Set(reports.flatMap((r) => r.missingUsers))],
-              teamsToRequest: [...new Set(reports.flatMap((r) => r.teamsToRequest ?? []))],
-              usersToRequest: [...new Set(reports.flatMap((r) => r.usersToRequest ?? []))],
-              name: rule.name,
-            };
+            const finalReport = unifyReport(reports, rule.name);
             this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
+            errorReports.push(finalReport);
+          }
+        } else if (rule.type === "or") {
+          const reports: ReviewReport[] = [];
+          for (const reviewer of rule.reviewers) {
+            const [result, missingData] = await this.evaluateCondition(reviewer);
+            if (result) {
+              // This is a OR condition, so with ONE positive result
+              // we can continue the loop to check the following rule
+              continue ruleCheck;
+            }
+            // But, until we get a positive case we add all the failed cases
+            reports.push(missingData);
+          }
+
+          // If the loop was not skipped it means that we have errors
+          if (reports.length > 0) {
+            const finalReport = unifyReport(reports, rule.name);
+            this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
+            // We unify the reports and push them for handling
             errorReports.push(finalReport);
           }
         }
@@ -291,3 +305,13 @@ export class ActionRunner {
     return checkRunData;
   }
 }
+
+const unifyReport = (reports: ReviewReport[], name: string): RuleReport => {
+  return {
+    missingReviews: reports.reduce((a, b) => a + b.missingReviews, 0),
+    missingUsers: [...new Set(reports.flatMap((r) => r.missingUsers))],
+    teamsToRequest: [...new Set(reports.flatMap((r) => r.teamsToRequest ?? []))],
+    usersToRequest: [...new Set(reports.flatMap((r) => r.usersToRequest ?? []))],
+    name,
+  };
+};
