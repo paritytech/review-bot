@@ -106,7 +106,15 @@ export class ActionRunner {
 
           // If the loop was not skipped it means that we have errors
           if (reports.length > 0) {
+            // We get the lowest amount of reviews needed to fulfill one of the reviews
+            const lowerAmountOfReviewsNeeded = reports.reduce(
+              (a, b) => (a.missingReviews < b.missingReviews ? a : b),
+              10,
+            ).missingReviews;
+            // We unify the reports
             const finalReport = unifyReport(reports, rule.name);
+            // We set the value to the minimum neccesary
+            finalReport.missingReviews = lowerAmountOfReviewsNeeded;
             this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
             // We unify the reports and push them for handling
             errorReports.push(finalReport);
