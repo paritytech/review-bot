@@ -2,9 +2,10 @@ export enum RuleTypes {
   Basic = "basic",
   Debug = "debug",
   And = "and",
+  Or = "or",
 }
 
-export type Reviewers = { users?: string[]; teams?: string[] };
+export type Reviewers = { users?: string[]; teams?: string[]; min_approvals: number };
 
 export interface Rule {
   name: string;
@@ -19,21 +20,23 @@ export interface DebugRule extends Rule {
 
 export interface BasicRule extends Rule, Reviewers {
   type: RuleTypes.Basic;
-  min_approvals: number;
 }
 
 export interface AndRule extends Rule {
   type: RuleTypes.And;
-  reviewers: ({
-    min_approvals: number;
-  } & Reviewers)[];
+  reviewers: Reviewers[];
+}
+
+export interface OrRule extends Rule {
+  type: RuleTypes.Or;
+  reviewers: Reviewers[];
 }
 
 export interface ConfigurationFile {
   /** Based on the `type` parameter, Typescript converts the object to the correct type
    * @see {@link Rules}
    */
-  rules: (BasicRule | DebugRule | AndRule)[];
+  rules: (BasicRule | DebugRule | AndRule | OrRule)[];
   preventReviewRequests?: {
     teams?: string[];
     users?: string[];
