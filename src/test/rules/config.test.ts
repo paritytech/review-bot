@@ -72,7 +72,7 @@ describe("Config Parsing", () => {
                 - team-example
           `);
       await expect(runner.getConfigFile("")).rejects.toThrowError(
-        'Configuration file is invalid: "rules[0].type" must be one of [basic, debug]',
+        'Configuration file is invalid: "rules[0].type" must be one of [basic, debug, and]',
       );
     });
 

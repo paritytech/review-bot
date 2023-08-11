@@ -2,12 +2,12 @@ import { summary } from "@actions/core";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
-import { ConfigurationFile, Reviewers, Rule } from "./file/types";
-import { validateConfig, validateRegularExpressions } from "./file/validator";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger, CheckData } from "./github/types";
-import { concatArraysUniquely } from "./util";
+import { ConfigurationFile, Reviewers, Rule } from "./rules/types";
+import { validateConfig, validateRegularExpressions } from "./rules/validator";
+import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
 
 type ReviewReport = {
   /** The amount of missing reviews to fulfill the requirements */
@@ -76,6 +76,27 @@ export class ActionRunner {
             this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
             errorReports.push({ ...missingData, name: rule.name });
           }
+        } else if (rule.type === "and") {
+          const reports: ReviewReport[] = [];
+          // We evaluate every individual condition
+          for (const reviewer of rule.reviewers) {
+            const [result, missingData] = await this.evaluateCondition(reviewer);
+            if (!result) {
+              // If one of the conditions failed, we add it to a report
+              reports.push(missingData);
+            }
+          }
+          if (reports.length > 0) {
+            const finalReport: RuleReport = {
+              missingReviews: reports.reduce((a, b) => a + b.missingReviews, 0),
+              missingUsers: [...new Set(reports.flatMap((r) => r.missingUsers))],
+              teamsToRequest: [...new Set(reports.flatMap((r) => r.teamsToRequest ?? []))],
+              usersToRequest: [...new Set(reports.flatMap((r) => r.usersToRequest ?? []))],
+              name: rule.name,
+            };
+            this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
+            errorReports.push(finalReport);
+          }
         }
       } catch (error: unknown) {
         // We only throw if there was an unexpected error, not if the check fails
@@ -111,7 +132,9 @@ export class ActionRunner {
     this.logger.info(`Need to request reviews from ${reviewersLog}`);
   }
 
-  /** Aggregates all the reports and generate a status report */
+  /** Aggregates all the reports and generate a status report
+   * This also filters the author of the PR if he belongs to the group of users
+   */
   generateCheckRunData(reports: RuleReport[]): CheckData {
     // Count how many reviews are missing
     const missingReviews = reports.reduce((a, b) => a + b.missingReviews, 0);
@@ -131,9 +154,14 @@ export class ActionRunner {
 
     for (const report of reports) {
       check.output.summary += `- **${report.name}**\n`;
-      let text = summary.addHeading(report.name, 2).addHeading(`Missing ${report.missingReviews} reviews`, 4);
+      let text = summary
+        .emptyBuffer()
+        .addHeading(report.name, 2)
+        .addHeading(`Missing ${report.missingReviews} review${report.missingReviews > 1 ? "s" : ""}`, 4);
       if (report.usersToRequest && report.usersToRequest.length > 0) {
-        text = text.addHeading("Missing users", 3).addList(report.usersToRequest);
+        text = text
+          .addHeading("Missing users", 3)
+          .addList(report.usersToRequest.filter((u) => !caseInsensitiveEqual(u, this.prApi.getAuthor())));
       }
       if (report.teamsToRequest && report.teamsToRequest.length > 0) {
         text = text.addHeading("Missing reviews from teams", 3).addList(report.teamsToRequest);

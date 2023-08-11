@@ -1,8 +1,8 @@
 import { readFileSync } from "fs";
 import { parse } from "yaml";
 
-import { ConfigurationFile } from "./file/types";
-import { validateConfig, validateRegularExpressions } from "./file/validator";
+import { ConfigurationFile } from "./rules/types";
+import { validateConfig, validateRegularExpressions } from "./rules/validator";
 
 const fileLocation = process.argv[2];
 
