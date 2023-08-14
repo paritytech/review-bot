@@ -38,11 +38,7 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
  * This rule is quite simple as it only has the min_approvals field and the required reviewers
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
-  .keys({
-    type: Joi.string().valid(RuleTypes.Basic).required(),
-    min_approvals: Joi.number().min(1).default(1),
-    ...reviewersObj,
-  })
+  .keys({ min_approvals: Joi.number().min(1).default(1), ...reviewersObj })
   .or("users", "teams");
 
 /** As, with the exception of basic, every other schema has the same structure, we can recycle this */
