@@ -2,7 +2,7 @@ import { validate } from "@eng-automation/js";
 import Joi from "joi";
 
 import { ActionLogger } from "../github/types";
-import { AndRule, BasicRule, ConfigurationFile, DebugRule, Rule, RuleTypes } from "./types";
+import { AndRule, BasicRule, ConfigurationFile, Rule, RuleTypes } from "./types";
 
 /** For the users or team schema. Will be recycled A LOT
  * Remember to add `.or("users", "teams")` to force at least one of the two to be defined
@@ -38,13 +38,20 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
  * This rule is quite simple as it only has the min_approvals field and the required reviewers
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
-  .keys({ min_approvals: Joi.number().min(1).default(1), ...reviewersObj })
+  .keys({
+    type: Joi.string().valid(RuleTypes.Basic).required(),
+    min_approvals: Joi.number().min(1).default(1),
+    ...reviewersObj,
+  })
   .or("users", "teams");
 
 /** As, with the exception of basic, every other schema has the same structure, we can recycle this */
 export const otherRulesSchema = Joi.object<AndRule>().keys({
+  type: Joi.string().valid(RuleTypes.And, RuleTypes.Or).required(),
   reviewers: Joi.array<AndRule["reviewers"]>().items(basicRuleSchema).min(2).required(),
 });
+
+const generalRuleSchema = Joi.alternatives().try(basicRuleSchema, otherRulesSchema);
 
 /**
  * Evaluates a config thoroughly. If there is a problem with it, it will throw.
@@ -61,18 +68,8 @@ export const validateConfig = (config: ConfigurationFile): ConfigurationFile | n
 
   for (let i = 0; i < validatedConfig.rules.length; i++) {
     const rule = validatedConfig.rules[i];
-    const { name, type } = rule;
     const message = `Configuration for rule '${rule.name}' is invalid`;
-    if (type === "basic") {
-      validatedConfig.rules[i] = validate<BasicRule>(rule, basicRuleSchema, { message });
-    } else if (type === "debug") {
-      validatedConfig.rules[i] = validate<DebugRule>(rule, ruleSchema, { message });
-    } else if (type === "and" || type === "or") {
-      validatedConfig.rules[i] = validate<AndRule>(rule, otherRulesSchema, { message });
-    } else {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      throw new Error(`Rule ${name} has an invalid type: ${type}`);
-    }
+    validatedConfig.rules[i] = validate(rule, generalRuleSchema, { message });
   }
   return validatedConfig;
 };
