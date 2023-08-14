@@ -5,6 +5,7 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 import { PullRequestApi } from "../../github/pullRequest";
 import { TeamApi } from "../../github/teams";
+import { RuleTypes } from "../../rules/types";
 import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
@@ -71,8 +72,10 @@ describe("Config Parsing", () => {
               teams:
                 - team-example
           `);
+      // prettifies string to [basic, debug, and, or...]
+      const types = JSON.stringify(Object.values(RuleTypes)).replace(/"/g, "").replace(/,/g, ", ");
       await expect(runner.getConfigFile("")).rejects.toThrowError(
-        'Configuration file is invalid: "rules[0].type" must be one of [basic, debug, and]',
+        'Configuration file is invalid: "rules[0].type" must be one of ' + types,
       );
     });
 
