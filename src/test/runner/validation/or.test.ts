@@ -6,7 +6,7 @@ import { ConfigurationFile, RuleTypes } from "../../../rules/types";
 import { ActionRunner } from "../../../runner";
 import { TestLogger } from "../../logger";
 
-describe("'And' rule validation", () => {
+describe("'Or' rule validation", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
   let runner: ActionRunner;
