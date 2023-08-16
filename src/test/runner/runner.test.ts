@@ -30,33 +30,31 @@ describe("Shared validations", () => {
   });
 
   describe("listFilesThatMatchRuleCondition tests", () => {
-    test("should get values that match the condition", async () => {
+    test("should get values that match the condition", () => {
       const mockRule = { condition: { include: ["src"] } };
-      api.listModifiedFiles.mockResolvedValue(["src/index.ts", "README.md"]);
-      const result = await runner.listFilesThatMatchRuleCondition(mockRule as Rule);
+      const result = runner.listFilesThatMatchRuleCondition(["src/index.ts", "README.md"], mockRule as Rule);
       expect(result).toContainEqual("src/index.ts");
     });
 
-    test("should return only one file even if more than one rule matches it", async () => {
+    test("should return only one file even if more than one rule matches it", () => {
       const mockRule = { condition: { include: ["\\.ts", "src"] } };
-      api.listModifiedFiles.mockResolvedValue(["src/index.ts"]);
-      const result = await runner.listFilesThatMatchRuleCondition(mockRule as Rule);
+      const result = runner.listFilesThatMatchRuleCondition(["src/index.ts"], mockRule as Rule);
       expect(result).toEqual(["src/index.ts"]);
     });
 
-    test("should include all the files with a global value", async () => {
+    test("should include all the files with a global value", () => {
       const mockRule = { condition: { include: [".+", "src"] } };
       const listedFiles = ["src/index.ts", ".github/workflows/review-bot.yml", "yarn-error.log"];
       api.listModifiedFiles.mockResolvedValue(listedFiles);
-      const result = await runner.listFilesThatMatchRuleCondition(mockRule as Rule);
+      const result = runner.listFilesThatMatchRuleCondition(listedFiles, mockRule as Rule);
       expect(result).toEqual(listedFiles);
     });
 
-    test("should exclude files if they are captured by the include condition", async () => {
+    test("should exclude files if they are captured by the include condition", () => {
       const mockRule = { condition: { include: [".+"], exclude: ["\\.yml"] } };
       const listedFiles = ["src/index.ts", ".github/workflows/review-bot.yml", "yarn-error.log"];
       api.listModifiedFiles.mockResolvedValue(listedFiles);
-      const result = await runner.listFilesThatMatchRuleCondition(mockRule as Rule);
+      const result = runner.listFilesThatMatchRuleCondition(listedFiles, mockRule as Rule);
       expect(result).toContainEqual("src/index.ts");
       expect(result).toContainEqual("yarn-error.log");
       expect(result).not.toContain(".github/workflows/review-bot.yml");

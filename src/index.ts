@@ -70,6 +70,7 @@ runner
   .runAction(inputs)
   .then((result) => {
     info(`Action run without problem. Evaluation result was '${result.conclusion}'`);
+    setOutput("report", JSON.stringify(result));
   })
   .catch((error) => {
     console.error(error);

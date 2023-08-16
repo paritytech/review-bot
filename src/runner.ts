@@ -1,4 +1,4 @@
-import { summary } from "@actions/core";
+import { setOutput, summary } from "@actions/core";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
@@ -23,6 +23,13 @@ type ReviewReport = {
 type RuleReport = { name: string } & ReviewReport;
 
 type ReviewState = [true] | [false, ReviewReport];
+
+type PullRequestReport = {
+  /** List of files that were modified by the PR */
+  files: string[];
+  /** List of all the failed review requirements */
+  reports: RuleReport[];
+};
 
 /** Action in charge of running the GitHub action */
 export class ActionRunner {
@@ -57,13 +64,14 @@ export class ActionRunner {
    * The action evaluates if the rules requirements are meet for a PR
    * @returns an array of error reports for each failed rule. An empty array means no errors
    */
-  async validatePullRequest({ rules }: ConfigurationFile): Promise<RuleReport[]> {
+  async validatePullRequest({ rules }: ConfigurationFile): Promise<PullRequestReport> {
     const errorReports: RuleReport[] = [];
+    const modifiedFiles = await this.prApi.listModifiedFiles();
     ruleCheck: for (const rule of rules) {
       try {
         this.logger.info(`Validating rule '${rule.name}'`);
         // We get all the files that were modified and match the rules condition
-        const files = await this.listFilesThatMatchRuleCondition(rule);
+        const files = this.listFilesThatMatchRuleCondition(modifiedFiles, rule);
         // We check if there are any matches
         if (files.length === 0) {
           this.logger.info(`Skipping rule ${rule.name} as no condition matched`);
@@ -126,7 +134,7 @@ export class ActionRunner {
       }
       this.logger.info(`Finish validating '${rule.name}'`);
     }
-    return errorReports;
+    return { files: modifiedFiles, reports: errorReports };
   }
 
   /** WIP - Class that will assign the requests for review */
@@ -269,8 +277,7 @@ export class ActionRunner {
   }
 
   /** Using the include and exclude condition, it returns a list of all the files in a PR that matches the criteria */
-  async listFilesThatMatchRuleCondition({ condition }: Rule): Promise<string[]> {
-    const files = await this.prApi.listModifiedFiles();
+  listFilesThatMatchRuleCondition(files: string[], { condition }: Rule): string[] {
     let matches: string[] = [];
     for (const regex of condition.include) {
       for (const fileName of files) {
@@ -297,10 +304,11 @@ export class ActionRunner {
    * 3. It generates a status check in the Pull Request
    * 4. WIP - It assigns the required reviewers to review the PR
    */
-  async runAction(inputs: Omit<Inputs, "repoToken">): Promise<CheckData> {
+  async runAction(inputs: Omit<Inputs, "repoToken">): Promise<Pick<CheckData, "conclusion"> & PullRequestReport> {
     const config = await this.getConfigFile(inputs.configLocation);
 
-    const reports = await this.validatePullRequest(config);
+    const prValidation = await this.validatePullRequest(config);
+    const { reports } = prValidation;
 
     this.logger.info(reports.length > 0 ? "There was an error with the PR reviews." : "The PR has been successful");
 
@@ -309,7 +317,9 @@ export class ActionRunner {
 
     this.requestReviewers(reports);
 
-    return checkRunData;
+    setOutput("report", JSON.stringify(prValidation));
+
+    return { conclusion: checkRunData.conclusion, ...prValidation };
   }
 }
 
