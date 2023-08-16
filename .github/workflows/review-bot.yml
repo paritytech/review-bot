@@ -27,7 +27,7 @@ jobs:
       # !This must always point to main. 
       # Change it for the PRs but remember to change it back
       - name: "Evaluates PR reviews and assigns reviewers"
-        uses: paritytech/review-bot@main
+        uses: paritytech/review-bot@generate-output
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           team-token: ${{ steps.team_token.outputs.token }}
