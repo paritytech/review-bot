@@ -35,8 +35,8 @@ describe("'Or' rule validation", () => {
         ],
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([users[0]]);
-      const evaluation = await runner.validatePullRequest(config);
-      expect(evaluation).toHaveLength(0);
+      const { reports } = await runner.validatePullRequest(config);
+      expect(reports).toHaveLength(0);
     });
 
     test("should not report errors if the reviewer belong to both conditions", async () => {
@@ -54,8 +54,8 @@ describe("'Or' rule validation", () => {
         ],
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([users[0]]);
-      const evaluation = await runner.validatePullRequest(config);
-      expect(evaluation).toHaveLength(0);
+      const { reports } = await runner.validatePullRequest(config);
+      expect(reports).toHaveLength(0);
     });
 
     test("should not report errors if the reviewer belong to one of the conditions", async () => {
@@ -74,8 +74,8 @@ describe("'Or' rule validation", () => {
         ],
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([users[2]]);
-      const evaluation = await runner.validatePullRequest(config);
-      expect(evaluation).toHaveLength(0);
+      const { reports } = await runner.validatePullRequest(config);
+      expect(reports).toHaveLength(0);
     });
   });
   describe("errors", () => {
