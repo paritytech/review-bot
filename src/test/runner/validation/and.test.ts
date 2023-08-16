@@ -73,7 +73,8 @@ describe("'And' rule validation", () => {
           },
         ],
       };
-      const [result] = await runner.validatePullRequest(config);
+      const { reports } = await runner.validatePullRequest(config);
+      const [result] = reports;
       expect(result.missingReviews).toEqual(2);
       expect(result.missingUsers).toEqual(users);
       expect(result.teamsToRequest).toContainEqual("abc");
@@ -96,7 +97,8 @@ describe("'And' rule validation", () => {
           },
         ],
       };
-      const [result] = await runner.validatePullRequest(config);
+      const { reports } = await runner.validatePullRequest(config);
+      const [result] = reports;
       expect(result.missingReviews).toEqual(5);
     });
 
@@ -115,7 +117,8 @@ describe("'And' rule validation", () => {
         ],
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([users[2]]);
-      const [result] = await runner.validatePullRequest(config);
+      const { reports } = await runner.validatePullRequest(config);
+      const [result] = reports;
       expect(result.missingReviews).toEqual(1);
     });
 
@@ -136,7 +139,8 @@ describe("'And' rule validation", () => {
       const teamCba = [users[0], users[1]];
       teamsApi.getTeamMembers.calledWith("cba").mockResolvedValue(teamCba);
       api.listApprovedReviewsAuthors.mockResolvedValue([users[2]]);
-      const [result] = await runner.validatePullRequest(config);
+      const { reports } = await runner.validatePullRequest(config);
+      const [result] = reports;
       expect(result.missingReviews).toEqual(1);
       expect(result.missingUsers).toEqual(teamCba);
       expect(result.teamsToRequest).toEqual(["cba"]);
@@ -160,7 +164,8 @@ describe("'And' rule validation", () => {
         ],
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([users[2]]);
-      const [result] = await runner.validatePullRequest(config);
+      const { reports } = await runner.validatePullRequest(config);
+      const [result] = reports;
       expect(result.missingReviews).toEqual(2);
       expect(result.missingUsers).toEqual(individualUsers);
       expect(result.teamsToRequest).toHaveLength(0);

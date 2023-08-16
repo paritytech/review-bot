@@ -96,7 +96,8 @@ describe("'Or' rule validation", () => {
         ],
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([]);
-      const [result] = await runner.validatePullRequest(config);
+      const { reports } = await runner.validatePullRequest(config);
+      const [result] = reports;
       expect(result.missingReviews).toEqual(1);
       expect(result.missingUsers).toEqual(users);
       expect(result.teamsToRequest).toContainEqual("abc");
@@ -120,7 +121,8 @@ describe("'Or' rule validation", () => {
         ],
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([]);
-      const [result] = await runner.validatePullRequest(config);
+      const { reports } = await runner.validatePullRequest(config);
+      const [result] = reports;
       expect(result.missingReviews).toEqual(1);
     });
   });
