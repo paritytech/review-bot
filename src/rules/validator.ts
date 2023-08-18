@@ -22,7 +22,9 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     include: Joi.array().items(Joi.string()).required(),
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
-  type: Joi.string().valid(RuleTypes.Basic, RuleTypes.Debug, RuleTypes.And, RuleTypes.Or).required(),
+  type: Joi.string()
+    .valid(RuleTypes.Basic, RuleTypes.Debug, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDisctinct)
+    .required(),
 });
 
 /** General Configuration schema.
@@ -67,7 +69,7 @@ export const validateConfig = (config: ConfigurationFile): ConfigurationFile | n
       validatedConfig.rules[i] = validate<BasicRule>(rule, basicRuleSchema, { message });
     } else if (type === "debug") {
       validatedConfig.rules[i] = validate<DebugRule>(rule, ruleSchema, { message });
-    } else if (type === "and" || type === "or") {
+    } else if (type === "and" || type === "or" || type === "and-distinct") {
       validatedConfig.rules[i] = validate<AndRule>(rule, otherRulesSchema, { message });
     } else {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions

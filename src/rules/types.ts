@@ -3,6 +3,7 @@ export enum RuleTypes {
   Debug = "debug",
   And = "and",
   Or = "or",
+  AndDisctinct = "and-distinct",
 }
 
 export type Reviewers = { users?: string[]; teams?: string[]; min_approvals: number };
@@ -32,11 +33,16 @@ export interface OrRule extends Rule {
   reviewers: Reviewers[];
 }
 
+export interface AndDisctinctRule extends Rule {
+  type: RuleTypes.AndDisctinct;
+  reviewers: Reviewers[];
+}
+
 export interface ConfigurationFile {
   /** Based on the `type` parameter, Typescript converts the object to the correct type
    * @see {@link Rules}
    */
-  rules: (BasicRule | DebugRule | AndRule | OrRule)[];
+  rules: (BasicRule | DebugRule | AndRule | OrRule | AndDisctinctRule)[];
   preventReviewRequests?: {
     teams?: string[];
     users?: string[];
