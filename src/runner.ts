@@ -231,8 +231,8 @@ export class ActionRunner {
       const filterMissingUsers = (reviewData: { users?: string[] }[]): string[] =>
         reviewData.flatMap((r) => r.users ?? []).filter((u) => approvals.indexOf(u) < 0);
 
-      // Calculating all the possible combinations to see the review is very complicated
-      // Instead we request everyone who hasn't review yet
+      // Calculating all the possible combinations to see the missing reviewers is very complicated
+      // Instead we request everyone who hasn't reviewed yet
       return {
         missingReviews: requiredAmountOfReviews,
         missingUsers: filterMissingUsers(requirements),
@@ -290,7 +290,7 @@ export class ActionRunner {
     for (let i = 0; i < approvals.length; i++) {
       // We clone the array with all the requirements and the possible matches
       const workingArray = conditionApprovals.slice(0);
-      // Then we iterate over the approvals from the current point of evaluatgion
+      // Then we iterate over the approvals from the current point of evaluation
       for (let j = i; j < approvals.length + i; j++) {
         // If we went out of range, we simply substract the length to go to the array's beginning
         const approver = j < approvals.length ? approvals[j] : approvals[j - approvals.length];
