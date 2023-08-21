@@ -126,6 +126,12 @@ export class ActionRunner {
             // We unify the reports and push them for handling
             errorReports.push(finalReport);
           }
+        } else if (rule.type === "and-distinct") {
+          const [result, missingData] = await this.andDistinctEvaluation(rule);
+          if (!result) {
+            this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+            errorReports.push({ ...missingData, name: rule.name });
+          }
         }
       } catch (error: unknown) {
         // We only throw if there was an unexpected error, not if the check fails
