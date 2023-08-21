@@ -5,7 +5,7 @@ import { Inputs } from ".";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger, CheckData } from "./github/types";
-import { AndDisctinctRule, ConfigurationFile, Reviewers, Rule } from "./rules/types";
+import { AndDistinctRule, ConfigurationFile, Reviewers, Rule } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
 
@@ -207,7 +207,7 @@ export class ActionRunner {
    * As this rule has a very difficult logic we need to prepare the scenario for the evaluation
    * Read into the method and comments to see how it works.
    */
-  async andDistinctEvaluation(rule: AndDisctinctRule): Promise<ReviewState> {
+  async andDistinctEvaluation(rule: AndDistinctRule): Promise<ReviewState> {
     const requirements: { users: string[]; requiredApprovals: number }[] = [];
     // We get all the users belonging to each 'and distinct' review condition
     for (const reviewers of rule.reviewers) {

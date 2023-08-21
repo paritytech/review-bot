@@ -5,11 +5,11 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 import { PullRequestApi } from "../../github/pullRequest";
 import { TeamApi } from "../../github/teams";
-import { AndDisctinctRule } from "../../rules/types";
+import { AndDistinctRule } from "../../rules/types";
 import { ActionRunner } from "../../runner";
 import { TestLogger } from "../logger";
 
-describe("'AndDisctinctRule' rule parsing", () => {
+describe("'AndDistinctRule' rule parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
   let teamsApi: MockProxy<TeamApi>;
@@ -58,7 +58,7 @@ describe("'AndDisctinctRule' rule parsing", () => {
                 - team-abc
         `);
       const config = await runner.getConfigFile("");
-      const rule = config.rules[0] as AndDisctinctRule;
+      const rule = config.rules[0] as AndDistinctRule;
       expect(rule.reviewers).toHaveLength(2);
       expect(rule.reviewers[0].teams).toContainEqual("team-example");
       expect(rule.reviewers[0].users).toBeUndefined();
@@ -82,7 +82,7 @@ describe("'AndDisctinctRule' rule parsing", () => {
                 - user-special
         `);
       const config = await runner.getConfigFile("");
-      const rule = config.rules[0] as AndDisctinctRule;
+      const rule = config.rules[0] as AndDistinctRule;
       expect(rule.reviewers[0].users).toContainEqual("user-example");
       expect(rule.reviewers[0].teams).toBeUndefined();
       expect(rule.reviewers[1].users).toContainEqual("user-special");
@@ -123,7 +123,7 @@ describe("'AndDisctinctRule' rule parsing", () => {
                   - xyz
         `);
       const config = await runner.getConfigFile("");
-      const rule = config.rules[0] as AndDisctinctRule;
+      const rule = config.rules[0] as AndDistinctRule;
       expect(rule.reviewers).toHaveLength(2);
       expect(rule.reviewers[0].teams).toContainEqual("team-example");
       expect(rule.reviewers[0].users).toBeUndefined();

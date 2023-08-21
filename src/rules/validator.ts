@@ -23,7 +23,7 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
   type: Joi.string()
-    .valid(RuleTypes.Basic, RuleTypes.Debug, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDisctinct)
+    .valid(RuleTypes.Basic, RuleTypes.Debug, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDistinct)
     .required(),
 });
 
