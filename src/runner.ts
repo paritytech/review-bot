@@ -243,6 +243,7 @@ export class ActionRunner {
 
     // If not enough reviews (or no reviews at all)
     if (approvals.length < requiredAmountOfReviews) {
+      this.logger.warn("Not enough approvals");
       // We return an error and request reviewers
       return [false, generateErrorReport()];
     }
@@ -264,6 +265,7 @@ export class ActionRunner {
 
     // If one of the rules doesn't have the required approval we fail the evaluation
     if (conditionApprovals.some((cond) => cond.matchingUsers.length === 0)) {
+      this.logger.warn("One of the groups does not have any approvals");
       return [false, generateErrorReport()];
     }
 
@@ -312,6 +314,7 @@ export class ActionRunner {
       }
     }
 
+    this.logger.warn("Didn't find any matches to match all the rules requirements");
     // If, by the end of all the loops, there are still matches, we didn't find a solution so we fail the rule
     return [false, generateErrorReport()];
   }
