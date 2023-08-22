@@ -249,7 +249,7 @@ export class ActionRunner {
 
     // If not enough reviews (or no reviews at all)
     if (approvals.length < requiredAmountOfReviews) {
-      this.logger.warn("Not enough approvals");
+      this.logger.warn(`Not enough approvals. Need at least ${requiredAmountOfReviews} and got ${approvals.length}`);
       // We return an error and request reviewers
       return [false, generateErrorReport()];
     }

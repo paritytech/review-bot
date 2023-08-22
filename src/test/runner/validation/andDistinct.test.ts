@@ -38,7 +38,7 @@ describe("'And' rule validation", () => {
       const [result, error] = await runner.andDistinctEvaluation(rule);
       expect(result).toBe(false);
       expect(error?.missingReviews).toBe(4);
-      expect(logger.warn).toHaveBeenCalledWith("Not enough approvals");
+      expect(logger.warn).toHaveBeenCalledWith("Not enough approvals. Need at least 4 and got 0");
     });
 
     test("should fail early if it doesn't have enough positive reviews", async () => {
@@ -57,7 +57,7 @@ describe("'And' rule validation", () => {
       const [result, error] = await runner.andDistinctEvaluation(rule);
       expect(result).toBe(false);
       expect(error?.missingReviews).toBe(4);
-      expect(logger.warn).toHaveBeenCalledWith("Not enough approvals");
+      expect(logger.warn).toHaveBeenCalledWith("Not enough approvals. Need at least 4 and got 1");
     });
 
     test("should fail early if one of the rules doesn't have a match", async () => {
