@@ -274,6 +274,9 @@ export class ActionRunner {
     if (conditionApprovals.some((cond) => cond.matchingUsers.length === 0)) {
       this.logger.warn("One of the groups does not have any approvals");
       return [false, generateErrorReport()];
+    } else if (conditionApprovals.some((cond) => cond.matchingUsers.length < cond.requiredApprovals)) {
+      this.logger.warn("Not enough positive reviews to match a subcondition");
+      return [false, generateErrorReport()];
     }
 
     /**

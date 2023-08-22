@@ -98,19 +98,22 @@ describe("'And' rule validation", () => {
       expect(logger.warn).toHaveBeenCalledWith("Didn't find any matches to match all the rules requirements");
     });
 
-    test("should evaluate splitting requirements with this setup", async () => {
+    test("should fail if one of the rules doesn't have enough positive reviews", async () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["user-1", "user-2"], min_approvals: 2 },
-          { users: ["user-1"], min_approvals: 1 },
+          { users: [users[0], "def"], min_approvals: 2 },
+          { teams: ["team-abc"], min_approvals: 1 },
         ],
         name: "test",
         condition: { include: [] },
       };
+
       api.listApprovedReviewsAuthors.mockResolvedValue(users);
-      const [result] = await runner.andDistinctEvaluation(rule);
+      const [result, error] = await runner.andDistinctEvaluation(rule);
       expect(result).toBe(false);
+      expect(error?.missingReviews).toBe(3);
+      expect(logger.warn).toHaveBeenCalledWith("Not enough positive reviews to match a subcondition");
     });
   });
 
@@ -191,6 +194,21 @@ describe("'And' rule validation", () => {
       api.listApprovedReviewsAuthors.mockResolvedValue([...users, "abc", "def"]);
       const [result] = await runner.andDistinctEvaluation(rule);
       expect(result).toBe(true);
+    });
+
+    test("should evaluate splitting requirements with this setup", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: ["user-1", "user-2"], min_approvals: 2 },
+          { users: ["user-1"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue(users);
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(false);
     });
   });
 });
