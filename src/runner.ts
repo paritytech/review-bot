@@ -222,7 +222,7 @@ export class ActionRunner {
       if (reviewers.teams) {
         for (const team of reviewers.teams) {
           const members = await this.teamApi.getTeamMembers(team);
-          usersToAdd = concatArraysUniquely(usersToAdd, members);
+          usersToAdd = [...new Set([...usersToAdd, ...members])];
         }
       }
       requirements.push({ users: usersToAdd, requiredApprovals: reviewers.min_approvals });
