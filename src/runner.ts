@@ -296,7 +296,7 @@ export class ActionRunner {
      */
     for (let i = 0; i < approvals.length; i++) {
       // We clone the array with all the requirements and the possible matches
-      const workingArray = conditionApprovals.slice(0);
+      const workingArray = splittedRequirements.slice(0);
       // Then we iterate over the approvals from the current point of evaluation
       for (let j = i; j < approvals.length + i; j++) {
         // If we went out of range, we simply substract the length to go to the array's beginning

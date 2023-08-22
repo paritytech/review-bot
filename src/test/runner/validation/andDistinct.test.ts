@@ -98,84 +98,99 @@ describe("'And' rule validation", () => {
       expect(logger.warn).toHaveBeenCalledWith("Didn't find any matches to match all the rules requirements");
     });
 
-    describe("Passing scenarios", () => {
-      test("should pass with a valid different matches", async () => {
-        const rule: AndDistinctRule = {
-          type: RuleTypes.AndDistinct,
-          reviewers: [
-            { users: ["abc", "def", "fgh"], min_approvals: 1 },
-            { teams: ["team-abc"], min_approvals: 1 },
-          ],
-          name: "test",
-          condition: { include: [] },
-        };
-        api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc"]);
-        const [result] = await runner.andDistinctEvaluation(rule);
-        expect(result).toBe(true);
-      });
+    test("should evaluate splitting requirements with this setup", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: ["user-1", "user-2"], min_approvals: 2 },
+          { users: ["user-1"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue(users);
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(false);
+    });
+  });
 
-      test("should pass with a valid combination of matches", async () => {
-        const rule: AndDistinctRule = {
-          type: RuleTypes.AndDistinct,
-          reviewers: [
-            { users: ["abc", "def", "fgh", users[0]], min_approvals: 1 },
-            { teams: ["team-abc"], min_approvals: 1 },
-          ],
-          name: "test",
-          condition: { include: [] },
-        };
-        api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc"]);
-        const [result] = await runner.andDistinctEvaluation(rule);
-        expect(result).toBe(true);
-      });
+  describe("Passing scenarios", () => {
+    test("should pass with a valid different matches", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: ["abc", "def", "fgh"], min_approvals: 1 },
+          { teams: ["team-abc"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc"]);
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(true);
+    });
 
-      test("should pass with a valid complicate combination of matches", async () => {
-        const rule: AndDistinctRule = {
-          type: RuleTypes.AndDistinct,
-          reviewers: [
-            { users: ["abc", "def", "fgh", users[0]], min_approvals: 1 },
-            { teams: ["team-abc"], min_approvals: 1 },
-            { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 1 },
-          ],
-          name: "test",
-          condition: { include: [] },
-        };
-        api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc", "def"]);
-        const [result] = await runner.andDistinctEvaluation(rule);
-        expect(result).toBe(true);
-      });
+    test("should pass with a valid combination of matches", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: ["abc", "def", "fgh", users[0]], min_approvals: 1 },
+          { teams: ["team-abc"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc"]);
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(true);
+    });
 
-      test("should pass with a valid complicate combination of matches and more than one min approval in a rule", async () => {
-        const rule: AndDistinctRule = {
-          type: RuleTypes.AndDistinct,
-          reviewers: [
-            { users: ["abc", "def", "fgh", users[0]], min_approvals: 2 },
-            { teams: ["team-abc"], min_approvals: 1 },
-            { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 1 },
-          ],
-          name: "test",
-          condition: { include: [] },
-        };
-        api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc", "def", "fgh"]);
-        const [result] = await runner.andDistinctEvaluation(rule);
-        expect(result).toBe(true);
-      });
+    test("should pass with a valid complicate combination of matches", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: ["abc", "def", "fgh", users[0]], min_approvals: 1 },
+          { teams: ["team-abc"], min_approvals: 1 },
+          { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc", "def"]);
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(true);
+    });
 
-      test("should pass with a valid very complicate combination of matches", async () => {
-        const rule: AndDistinctRule = {
-          type: RuleTypes.AndDistinct,
-          reviewers: [
-            { users: ["abc", "def", "fgh", users[0]], min_approvals: 2 },
-            { teams: ["team-abc"], min_approvals: 1 },
-            { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 2 },
-          ],
-          name: "test",
-          condition: { include: [] },
-        };
-        api.listApprovedReviewsAuthors.mockResolvedValue([...users, "abc", "def"]);
-        const [result] = await runner.andDistinctEvaluation(rule);
-        expect(result).toBe(true);
-      });
+    test("should pass with a valid complicate combination of matches and more than one min approval in a rule", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: ["abc", "def", "fgh", users[0]], min_approvals: 2 },
+          { teams: ["team-abc"], min_approvals: 1 },
+          { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc", "def", "fgh"]);
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(true);
+    });
+
+    test("should pass with a valid very complicate combination of matches", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: ["abc", "def", "fgh", users[0]], min_approvals: 2 },
+          { teams: ["team-abc"], min_approvals: 1 },
+          { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 2 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue([...users, "abc", "def"]);
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(true);
     });
   });
 });
