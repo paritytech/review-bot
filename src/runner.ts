@@ -5,7 +5,7 @@ import { Inputs } from ".";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger, CheckData } from "./github/types";
-import { ConfigurationFile, Reviewers, Rule } from "./rules/types";
+import { AndDistinctRule, ConfigurationFile, Reviewers, Rule } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
 
@@ -126,6 +126,12 @@ export class ActionRunner {
             // We unify the reports and push them for handling
             errorReports.push(finalReport);
           }
+        } else if (rule.type === "and-distinct") {
+          const [result, missingData] = await this.andDistinctEvaluation(rule);
+          if (!result) {
+            this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+            errorReports.push({ ...missingData, name: rule.name });
+          }
         }
       } catch (error: unknown) {
         // We only throw if there was an unexpected error, not if the check fails
@@ -200,6 +206,127 @@ export class ActionRunner {
     }
 
     return check;
+  }
+
+  /**
+   * Evaluation of the AndDistinct rule
+   * As this rule has a very difficult logic we need to prepare the scenario for the evaluation
+   * It splits all the required reviews into individual cases and applies a sudoku solving algorithm
+   * Until it finds a perfect match or ran out of possible matches
+   */
+  async andDistinctEvaluation(rule: AndDistinctRule): Promise<ReviewState> {
+    const requirements: { users: string[]; requiredApprovals: number }[] = [];
+    // We get all the users belonging to each 'and distinct' review condition
+    for (const reviewers of rule.reviewers) {
+      let usersToAdd: string[] = reviewers.users ?? [];
+      if (reviewers.teams) {
+        for (const team of reviewers.teams) {
+          const members = await this.teamApi.getTeamMembers(team);
+          usersToAdd = [...new Set([...usersToAdd, ...members])];
+        }
+      }
+      requirements.push({ users: usersToAdd, requiredApprovals: reviewers.min_approvals });
+    }
+
+    // We count how many reviews are needed in total
+    const requiredAmountOfReviews = rule.reviewers.map((r) => r.min_approvals).reduce((a, b) => a + b, 0);
+    // We get the list of users that approved the PR
+    const approvals = await this.prApi.listApprovedReviewsAuthors();
+
+    // Utility method used to generate error
+    const generateErrorReport = (): ReviewReport => {
+      const filterMissingUsers = (reviewData: { users?: string[] }[]): string[] =>
+        reviewData.flatMap((r) => r.users ?? []).filter((u) => approvals.indexOf(u) < 0);
+
+      // Calculating all the possible combinations to see the missing reviewers is very complicated
+      // Instead we request everyone who hasn't reviewed yet
+      return {
+        missingReviews: requiredAmountOfReviews,
+        missingUsers: filterMissingUsers(requirements),
+        teamsToRequest: rule.reviewers.flatMap((r) => r.teams ?? []),
+        usersToRequest: filterMissingUsers(rule.reviewers),
+      };
+    };
+
+    // If not enough reviews (or no reviews at all)
+    if (approvals.length < requiredAmountOfReviews) {
+      this.logger.warn(`Not enough approvals. Need at least ${requiredAmountOfReviews} and got ${approvals.length}`);
+      // We return an error and request reviewers
+      return [false, generateErrorReport()];
+    }
+
+    this.logger.debug(`Required users to review: ${JSON.stringify(requirements)}`);
+
+    const conditionApprovals: {
+      matchingUsers: string[];
+      requiredUsers: string[];
+      requiredApprovals: number;
+    }[] = [];
+
+    // Now we see, from all the approvals, which approvals could match each rule
+    for (const { users, requiredApprovals } of requirements) {
+      const ruleApprovals = approvals.filter((ap) => users.indexOf(ap) !== -1);
+      conditionApprovals.push({ matchingUsers: ruleApprovals, requiredUsers: users, requiredApprovals });
+    }
+    this.logger.debug(`Matching approvals: ${JSON.stringify(conditionApprovals)}`);
+
+    // If one of the rules doesn't have the required approval we fail the evaluation
+    if (conditionApprovals.some((cond) => cond.matchingUsers.length === 0)) {
+      this.logger.warn("One of the groups does not have any approvals");
+      return [false, generateErrorReport()];
+    } else if (conditionApprovals.some((cond) => cond.matchingUsers.length < cond.requiredApprovals)) {
+      this.logger.warn("Not enough positive reviews to match a subcondition");
+      return [false, generateErrorReport()];
+    }
+
+    /**
+     * We split all the reviewers that have more than one required review into its own object
+     * So if a there is a [requiredApprovals: 2, users: ["abc", "def"]]
+     * It is split into [requiredApprovals: 1, users: ["abc", "def"]], [requiredApprovals: 1, users: ["abc", "def"]]
+     * This allows us to be more flexible when testing cases
+     */
+    const splittedRequirements = conditionApprovals.flatMap((reviewer) =>
+      Array.from({ length: reviewer.requiredApprovals }, () => {
+        return { ...reviewer, requiredApprovals: 1 };
+      }),
+    );
+
+    this.logger.debug(`Splitted reviewers: ${JSON.stringify(splittedRequirements)}`);
+
+    /**
+     * Now this is the fun part. We brute force a sudoku algorithm by basically iterating over each possible match
+     * We iterate over all the approvals from different possitions and we see where we can get a match
+     */
+    for (let i = 0; i < approvals.length; i++) {
+      // We clone the array with all the requirements and the possible matches
+      const workingArray = splittedRequirements.slice(0);
+      // Then we iterate over the approvals from the current point of evaluation
+      for (let j = i; j < approvals.length + i; j++) {
+        // If we went out of range, we simply substract the length to go to the array's beginning
+        const approver = j < approvals.length ? approvals[j] : approvals[j - approvals.length];
+        // Now we check over every possible match using this particular approval
+        for (let reviewIndex = 0; reviewIndex < workingArray.length; reviewIndex++) {
+          const review = workingArray[reviewIndex];
+          // If the possible matches contains the current approval we remove the match element from the array
+          // and we break the loop so we try with the next approval
+          if (review.matchingUsers.indexOf(approver) > -1) {
+            workingArray.splice(reviewIndex, 1);
+            break;
+          }
+        }
+      }
+      this.logger.debug(`Force brute iteration ${i} with result: ${JSON.stringify(workingArray)}`);
+
+      // We check by the end of this iteration if all the approvals could be assigned
+      // and we have ran out of elements in the array
+      if (workingArray.length === 0) {
+        return [true];
+      }
+    }
+
+    this.logger.warn("Didn't find any matches to match all the rules requirements");
+    // If, by the end of all the loops, there are still matches, we didn't find a solution so we fail the rule
+    return [false, generateErrorReport()];
   }
 
   /** Evaluates if the required reviews for a condition have been meet
