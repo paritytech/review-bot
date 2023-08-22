@@ -211,7 +211,8 @@ export class ActionRunner {
   /**
    * Evaluation of the AndDistinct rule
    * As this rule has a very difficult logic we need to prepare the scenario for the evaluation
-   * Read into the method and comments to see how it works.
+   * It splits all the required reviews into individual cases and applies a sudoku solving algorithm
+   * Until it finds a perfect match or ran out of possible matches
    */
   async andDistinctEvaluation(rule: AndDistinctRule): Promise<ReviewState> {
     const requirements: { users: string[]; requiredApprovals: number }[] = [];
