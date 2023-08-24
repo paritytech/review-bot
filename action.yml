@@ -18,6 +18,8 @@ inputs:
 outputs:
   repo:
     description: 'The name of the repo in owner/repo pattern'
+  report:
+    description: 'The report of the review'
   
 
 runs:
