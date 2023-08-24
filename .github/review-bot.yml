@@ -12,10 +12,11 @@ rules:
     condition:
       include:
         - 'review-bot.yml'
-    type: and
+    type: and-distinct
     reviewers:
       - teams:
         - opstooling
+        countAuthor: true
       - users:
         - mordamax
         - mutantcornholio
