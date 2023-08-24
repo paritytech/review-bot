@@ -155,7 +155,12 @@ interface Report {
 }
 ```
 ## Rule configuration file
-This is the file where all the available rules are written. It contains an object called `rules` which has an array of rules. Every rule has a same base structure:
+This is the file where all the available rules are written. 
+
+**This file is only read from the main branch.** So if you modify the file the changes won’t happen until it is merged into the main branch. 
+This is done to stop users from modifying the rules in their own PRs.
+
+It contains an object called `rules` which has an array of rules. Every rule has a same base structure:
 ```yaml
   - name: Rule name
     condition:
