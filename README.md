@@ -6,14 +6,6 @@
 
 Have custom review rules for Pull Requests, assigning a given amount of code owners and required requests to different areas of the code.
 
-## Evaluating config
-
-If you want to evaluate the config, we have a simple `cli` to do so.
-
-```bash
-yarn run cli ".github/review-bot.yml" # set the parameter as the location of the config
-```
-
 ## Why?
 
 This action is intended for the case where a repository needs to have a more custom review criteria. This is not a replacement for [`CODEOWNERS`](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners) but an enhancement of it.
@@ -77,39 +69,44 @@ jobs:
 
 ```
 Create a new PR and see if it is working.
-You should see a new action running called `Review PR/review-approvals`. Wait for it to finish.
+
+You should see a new action running called `Review PR/review-approvals`. 
+
+Wait for it to finish.
 
 After this go to your branch protection rules and make sure that you have the following setup enabled:
-- [x](#) Require status checks to pass before merging
+- [x] Require status checks to pass before merging
 - Status checks that are required.
 	- `review-bot`
+
 **If `review-bot` does not appear, make a new PR and wait for `review-approvals` action to finish**. This will create the status and now it should be available in your list.
 ### Important
 Use [`pull_request_target`](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target) for the event, not `pull_request`.
 - This is a security measure so that an attacker doesn’t have access to our secrets.
 ## Workflow Configuration
 Review bot has multiple configurations available. It has available inputs and outputs. It also has rule configurations, but you can find that in the [Rule Configuration](#rule-configuration) section.
+
 ### Inputs
 You can find all the inputs in [the action file](./action.yml) but let's walk through each one of them:
 
 - `repo-token`: Token to access to the repository.
-	  - **required**
-	  - This is provided by the repo, you can simply use `${{ github.token }}`.
+	-  **required**
+	-  This is provided by the repo, you can simply use `${{ github.token }}`.
 	- It is already in the installation section, but you need to give the following [permissions](https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs#defining-access-for-the-github_token-scopes) to the action:
 		- `contents`: read
 		- `checks`: write
 - `team-token`: Token to read the team members.
-	  - **required**.
+	- **required**.
 	- This needs to be a [GitHub Personal Access](https://github.com/settings/tokens/new) token with `read:org` permission.
 	- It is used to extract the members of teams.
 - `config-file`: The location of the config file.
-	- **default**:`.github/review-bot.yml`
+	- **default**: `.github/review-bot.yml`
 
 #### Using a GitHub app instead of a PAT
 In some cases, specially in big organizations, it is more organized to use a GitHub app to authenticate, as it allows us to give it permissions per repository and we can fine-grain them even better. If you wish to do that, you need to create a GitHub app with the following permissions:
 - Organization permissions:
 	- Members
-		- [x](#) Read
+		- [x] Read
 
 Because this project is intended to be used with a token we need to do an extra step to generate one from the GitHub app:
 - After you create the app, copy the *App ID* and the *private key* and set them as secrets.
@@ -126,11 +123,12 @@ Because this project is intended to be used with a token we need to do an extra 
         uses: paritytech/review-bot@main
         with:
           repo-token: ${{ github.token }}
-		  # The previous step generates a token which is used as the input for this action
+          # The previous step generates a token which is used as the input for this action
           team-token: ${{ steps.generate_token.outputs.token }
 ```
 ### Outputs
 Outputs are needed for your chained actions. If you want to use this information, remember to set an `id` field in the step so you can access it.
+
 You can find all the outputs in [the action file](./action.yml) but let's walk through each one of them:
 - `repo`: Organization and repo name. Written in the format of `owner/repo`.
 - `report`: WIP - THIS PART NEEDS TO BE MODIFIED IN THE `action.yml` FILE
@@ -141,7 +139,7 @@ This is the file were all the available rules are written. It contains an object
     condition:
       include:
         - '.*'
-	  exclude:
+      exclude:
         - 'README.md'
     type: the type of the rule
 ```
@@ -164,6 +162,7 @@ This is the file were all the available rules are written. It contains an object
 Every type has a *slightly* different configuration and works for different scenarios, so let’s analyze all of them.
 #### Basic rule
 As the name implies, this type is quite simple. All the files that fall under the rule evaluation must receive a given amount of approvals by the listed users and/or team members.
+
 A minimal full configuration file is:
 ```yaml
 rules:
@@ -171,15 +170,15 @@ rules:
     condition:
       include:
         - '.*'
-	  exclude:
+      exclude:
         - '.github/'
     type: basic
-	min_approvals: 2
+    min_approvals: 2
     teams:
       - team-1
       - team-2
 	users:
-	  - user-1
+      - user-1
       - user-2
 ```
 It has the same parameters than a normal rule:
@@ -236,6 +235,7 @@ rules:
 
 ##### Or rule logic
 This is a rule that has at least two available options of reviewers and need **at least one group to approve**.
+
 If we look at the `reviewers` field in the example above:
 ```yaml
 reviewers:
@@ -251,9 +251,11 @@ reviewers:
 This rule will be approved with *any of the following* conditions:
 - If a user that belong to `team-example` or is `user-1` or `user-2` approves the PR.
 - If *two users* that belong to `team-abc` approves the PR.
+
 As you can see, this only needs **one of the conditions to be fulfilled** to approve the rule. You could approve the rule with only one user’s review instead of two. That’s why it is called the `or` rule.
 ##### And rule logic
 This is a rule that has at least two available options of reviewers and need **all of the options to approve the PR**.
+
 If we look at the `reviewers` field in the example above:
 ```yaml
 reviewers:
@@ -269,11 +271,33 @@ reviewers:
 This rule will be approved if *all of the the following conditions get fulfilled*:
 - *one* user that belong to `team-example` or is `user-1` or `user-2` approves the PR.
 - If *two users* that belong to `team-abc` approves the PR.
+
 If only one of these conditions get fulfilled, the check won’t pass as **it needs all the groups**. You would need *3 approvals to fulfill all the conditions*.
 
 Although, there is a *caveat* with this rule.
+
 In this example, if a user belongs to both `team-abc` and to `team-example` his approval will count towards both rules so you could use only two approvals instead of three. To fight that we created the `and-distinct` rule.
 ##### And distinct logic
 The logic in this rule is the *same as the `and` rule with one exception.* Like the `and` rule it needs all of its requirements to be fulfilled, **but they all must be fulfilled by different users.**
+
 Meaning that if a user belongs to both `team-abc` and `team-example` their approval will count only towards one of the available options *even if they fulfill both needs*.
+
 This rule is useful when you need to make sure that at leasts two sets of eyes of two different teams review a Pull Request.
+
+### Evaluating config
+
+If you want to evaluate the config file to find problems before merging it, we have a simple `cli` to do so.
+
+```bash
+yarn run cli ".github/review-bot.yml" # set the parameter as the location of the config
+```
+It will inform you if you have any types of errors.
+## Developing
+We use `yarn` package manager and `node 18`.
+- Use `yarn install` to install the dependencies.
+- Use `yarn build` to build the project.
+- Use `yarn test` to run tests on all the `*.test.ts` files.
+- Use `yarn lint` to run the linter.
+- Use `yarn fix` to fix all the auto fixable problems reported by the linter.
+## Deployment
+Pending on https://github.com/paritytech/review-bot/issues/55
