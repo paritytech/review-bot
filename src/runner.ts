@@ -215,7 +215,7 @@ export class ActionRunner {
    * Until it finds a perfect match or ran out of possible matches
    */
   async andDistinctEvaluation(rule: AndDistinctRule): Promise<ReviewState> {
-    const requirements: { users: string[]; requiredApprovals: number }[] = [];
+    const requirements: { users: string[]; requiredApprovals: number; countAuthor: boolean }[] = [];
     // We get all the users belonging to each 'and distinct' review condition
     for (const reviewers of rule.reviewers) {
       let usersToAdd: string[] = reviewers.users ?? [];
@@ -225,13 +225,17 @@ export class ActionRunner {
           usersToAdd = [...new Set([...usersToAdd, ...members])];
         }
       }
-      requirements.push({ users: usersToAdd, requiredApprovals: reviewers.min_approvals });
+      requirements.push({
+        users: usersToAdd,
+        requiredApprovals: reviewers.min_approvals,
+        countAuthor: reviewers.countAuthor ?? false,
+      });
     }
 
     // We count how many reviews are needed in total
     const requiredAmountOfReviews = rule.reviewers.map((r) => r.min_approvals).reduce((a, b) => a + b, 0);
     // We get the list of users that approved the PR
-    const approvals = await this.prApi.listApprovedReviewsAuthors();
+    const approvals = await this.prApi.listApprovedReviewsAuthors(true);
 
     // Utility method used to generate error
     const generateErrorReport = (): ReviewReport => {
@@ -264,8 +268,10 @@ export class ActionRunner {
     }[] = [];
 
     // Now we see, from all the approvals, which approvals could match each rule
-    for (const { users, requiredApprovals } of requirements) {
-      const ruleApprovals = approvals.filter((ap) => users.indexOf(ap) !== -1);
+    for (const { users, requiredApprovals, countAuthor } of requirements) {
+      const ruleApprovals = approvals.filter(
+        (ap) => users.indexOf(ap) !== -1 && (countAuthor ? true : ap !== this.prApi.getAuthor()),
+      );
       conditionApprovals.push({ matchingUsers: ruleApprovals, requiredUsers: users, requiredApprovals });
     }
     this.logger.debug(`Matching approvals: ${JSON.stringify(conditionApprovals)}`);
@@ -368,7 +374,7 @@ export class ActionRunner {
     }
 
     // We get the list of users that approved the PR
-    const approvals = await this.prApi.listApprovedReviewsAuthors();
+    const approvals = await this.prApi.listApprovedReviewsAuthors(rule.countAuthor ?? false);
     this.logger.info(`Found ${approvals.length} approvals.`);
 
     // This is the amount of reviews required. To succeed this should be 0 or lower
