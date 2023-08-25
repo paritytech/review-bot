@@ -143,4 +143,66 @@ describe("Basic rule parsing", () => {
         `);
     await expect(runner.getConfigFile("")).rejects.toThrowError('"min_approvals" must be greater than or equal to 1');
   });
+
+  test("should default countAuthor to false", async () => {
+    api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Test review
+            condition:
+              include: 
+                - '.*'
+              exclude: 
+                - 'example'
+            type: basic
+            users:
+              - user-example
+        `);
+    const config = await runner.getConfigFile("");
+    const [rule] = config.rules;
+    if (rule.type === "basic") {
+      expect(rule.countAuthor).toBeFalsy();
+    } else {
+      throw new Error(`Rule type ${rule.type} is invalid`);
+    }
+  });
+
+  test("should fail if countAuthor is not a boolean", async () => {
+    api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Test review
+            condition:
+              include: 
+                - '.*'
+              exclude: 
+                - 'example'
+            type: basic
+            users:
+              - user-example
+            countAuthor: bla
+        `);
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"countAuthor" must be a boolean');
+  });
+
+  test("should set countAuthor to true", async () => {
+    api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Test review
+            condition:
+              include: 
+                - '.*'
+              exclude: 
+                - 'example'
+            type: basic
+            users:
+              - user-example
+            countAuthor: true
+        `);
+    const config = await runner.getConfigFile("");
+    const [rule] = config.rules;
+    if (rule.type === "basic") {
+      expect(rule.countAuthor).toBeTruthy();
+    } else {
+      throw new Error(`Rule type ${rule.type} is invalid`);
+    }
+  });
 });
