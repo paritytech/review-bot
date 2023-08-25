@@ -234,9 +234,8 @@ export class ActionRunner {
 
     // We count how many reviews are needed in total
     const requiredAmountOfReviews = rule.reviewers.map((r) => r.min_approvals).reduce((a, b) => a + b, 0);
-    // We get the list of users that approved the PR and the author
-    // we filter the author later
-    const approvals = await this.prApi.listApprovedReviewsAuthors(true);
+    // We get the list of users that approved the PR
+    const approvals = await this.prApi.listApprovedReviewsAuthors(false);
 
     // Utility method used to generate error
     const generateErrorReport = (): ReviewReport => {
@@ -270,12 +269,11 @@ export class ActionRunner {
 
     // Now we see, from all the approvals, which approvals could match each rule
     for (const { users, requiredApprovals, countAuthor } of requirements) {
-      const ruleApprovals = approvals.filter(
-        (ap) =>
-          users.indexOf(ap) !== -1 &&
-          // If we are not counting the author we remove them from the equation
-          (countAuthor ? true : ap !== this.prApi.getAuthor()),
-      );
+      const ruleApprovals = approvals.filter((ap) => users.indexOf(ap) !== -1);
+      const author = this.prApi.getAuthor();
+      if (countAuthor && users.indexOf(author) > -1) {
+        ruleApprovals.push(this.prApi.getAuthor());
+      }
       conditionApprovals.push({ matchingUsers: ruleApprovals, requiredUsers: users, requiredApprovals });
     }
     this.logger.debug(`Matching approvals: ${JSON.stringify(conditionApprovals)}`);
