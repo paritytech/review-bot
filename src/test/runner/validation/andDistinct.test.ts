@@ -7,7 +7,7 @@ import { ActionLogger } from "../../../github/types";
 import { AndDistinctRule, RuleTypes } from "../../../rules/types";
 import { ActionRunner } from "../../../runner";
 
-describe("'And' rule validation", () => {
+describe("'And distinct' rule validation", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
   let runner: ActionRunner;
@@ -134,8 +134,9 @@ describe("'And' rule validation", () => {
     test("should not consider author in evaluation", async () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
+        countAuthor: false,
         reviewers: [
-          { users: [users[0], "example", "random"], countAuthor: false, min_approvals: 2 },
+          { users: [users[0], "example", "random"], min_approvals: 2 },
           { teams: ["team-abc"], min_approvals: 1 },
         ],
         name: "test",
@@ -227,11 +228,12 @@ describe("'And' rule validation", () => {
       expect(result).toBe(true);
     });
 
-    test.only("should consider author in evaluation", async () => {
+    test("should consider author in evaluation", async () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
+        countAuthor: true,
         reviewers: [
-          { users: [users[0], "example", "author"], countAuthor: true, min_approvals: 2 },
+          { users: [users[0], "example", "author"], min_approvals: 2 },
           { teams: ["team-abc"], min_approvals: 1 },
         ],
         name: "test",

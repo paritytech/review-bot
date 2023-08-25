@@ -217,7 +217,7 @@ describe("'Or' rule parsing", () => {
     const config = await runner.getConfigFile("");
     const [rule] = config.rules;
     if (rule.type === "or") {
-      expect(rule.reviewers[1].countAuthor).toBeFalsy();
+      expect(rule.countAuthor).toBeFalsy();
     } else {
       throw new Error(`Rule type ${rule.type} is invalid`);
     }
@@ -227,6 +227,7 @@ describe("'Or' rule parsing", () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
         - name: Test review
+          countAuthor: bla
           condition:
             include: 
               - '.*'
@@ -238,9 +239,8 @@ describe("'Or' rule parsing", () => {
               - team-example
             - users:
                 - user-example
-              countAuthor: bla
         `);
-    await expect(runner.getConfigFile("")).rejects.toThrowError('"reviewers[1].countAuthor" must be a boolean');
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"countAuthor" must be a boolean');
   });
 
   test("should set countAuthor to true", async () => {
@@ -252,18 +252,18 @@ describe("'Or' rule parsing", () => {
               - '.*'
             exclude: 
               - 'example'
+          countAuthor: true
           type: or
           reviewers:
             - teams:
               - team-example
             - users:
                 - user-example
-              countAuthor: true
         `);
     const config = await runner.getConfigFile("");
     const [rule] = config.rules;
     if (rule.type === "or") {
-      expect(rule.reviewers[1].countAuthor).toBeTruthy();
+      expect(rule.countAuthor).toBeTruthy();
     } else {
       throw new Error(`Rule type ${rule.type} is invalid`);
     }

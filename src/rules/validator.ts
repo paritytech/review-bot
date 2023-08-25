@@ -46,6 +46,7 @@ export const basicRuleSchema = Joi.object<BasicRule>()
 /** As, with the exception of basic, every other schema has the same structure, we can recycle this */
 export const otherRulesSchema = Joi.object<AndRule>().keys({
   reviewers: Joi.array<AndRule["reviewers"]>().items(basicRuleSchema).min(2).required(),
+  countAuthor: Joi.boolean().default(false),
 });
 
 /**

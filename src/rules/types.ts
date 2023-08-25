@@ -6,11 +6,12 @@ export enum RuleTypes {
   AndDistinct = "and-distinct",
 }
 
-export type Reviewers = { users?: string[]; teams?: string[]; min_approvals: number; countAuthor?: boolean };
+export type Reviewers = { users?: string[]; teams?: string[]; min_approvals: number };
 
 export interface Rule {
   name: string;
   condition: { include: string[]; exclude?: string[] };
+  countAuthor?: boolean;
 }
 
 // TODO: Delete this once we add a second type of rule

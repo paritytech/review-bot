@@ -79,7 +79,7 @@ export class ActionRunner {
           continue;
         }
         if (rule.type === "basic") {
-          const [result, missingData] = await this.evaluateCondition(rule);
+          const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
           if (!result) {
             this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
             errorReports.push({ ...missingData, name: rule.name });
@@ -88,7 +88,7 @@ export class ActionRunner {
           const reports: ReviewReport[] = [];
           // We evaluate every individual condition
           for (const reviewer of rule.reviewers) {
-            const [result, missingData] = await this.evaluateCondition(reviewer);
+            const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
             if (!result) {
               // If one of the conditions failed, we add it to a report
               reports.push(missingData);
@@ -102,7 +102,7 @@ export class ActionRunner {
         } else if (rule.type === "or") {
           const reports: ReviewReport[] = [];
           for (const reviewer of rule.reviewers) {
-            const [result, missingData] = await this.evaluateCondition(reviewer);
+            const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
             if (result) {
               // This is a OR condition, so with ONE positive result
               // we can continue the loop to check the following rule
@@ -215,7 +215,7 @@ export class ActionRunner {
    * Until it finds a perfect match or ran out of possible matches
    */
   async andDistinctEvaluation(rule: AndDistinctRule): Promise<ReviewState> {
-    const requirements: { users: string[]; requiredApprovals: number; countAuthor: boolean }[] = [];
+    const requirements: { users: string[]; requiredApprovals: number }[] = [];
     // We get all the users belonging to each 'and distinct' review condition
     for (const reviewers of rule.reviewers) {
       let usersToAdd: string[] = reviewers.users ?? [];
@@ -225,17 +225,13 @@ export class ActionRunner {
           usersToAdd = [...new Set([...usersToAdd, ...members])];
         }
       }
-      requirements.push({
-        users: usersToAdd,
-        requiredApprovals: reviewers.min_approvals,
-        countAuthor: reviewers.countAuthor ?? false,
-      });
+      requirements.push({ users: usersToAdd, requiredApprovals: reviewers.min_approvals });
     }
 
     // We count how many reviews are needed in total
     const requiredAmountOfReviews = rule.reviewers.map((r) => r.min_approvals).reduce((a, b) => a + b, 0);
     // We get the list of users that approved the PR
-    const approvals = await this.prApi.listApprovedReviewsAuthors(false);
+    const approvals = await this.prApi.listApprovedReviewsAuthors(rule.countAuthor ?? false);
 
     // Utility method used to generate error
     const generateErrorReport = (): ReviewReport => {
@@ -267,15 +263,10 @@ export class ActionRunner {
       requiredApprovals: number;
     }[] = [];
 
-    const author = this.prApi.getAuthor();
-
     // Now we see, from all the approvals, which approvals could match each rule
-    for (const { users, requiredApprovals, countAuthor } of requirements) {
+    for (const { users, requiredApprovals } of requirements) {
       const ruleApprovals = approvals.filter((ap) => users.indexOf(ap) !== -1);
 
-      if (countAuthor && users.indexOf(author) > -1) {
-        ruleApprovals.push(this.prApi.getAuthor());
-      }
       conditionApprovals.push({ matchingUsers: ruleApprovals, requiredUsers: users, requiredApprovals });
     }
     this.logger.debug(`Matching approvals: ${JSON.stringify(conditionApprovals)}`);
@@ -344,7 +335,10 @@ export class ActionRunner {
    * @returns a [bool, error data] tuple which evaluates if the condition (not the rule itself) has fulfilled the requirements
    * @see-also ReviewError
    */
-  async evaluateCondition(rule: { min_approvals: number } & Reviewers): Promise<ReviewState> {
+  async evaluateCondition(
+    rule: { min_approvals: number } & Reviewers,
+    countAuthor: boolean = false,
+  ): Promise<ReviewState> {
     this.logger.debug(JSON.stringify(rule));
 
     // This is a list of all the users that need to approve a PR
@@ -378,7 +372,7 @@ export class ActionRunner {
     }
 
     // We get the list of users that approved the PR
-    const approvals = await this.prApi.listApprovedReviewsAuthors(rule.countAuthor ?? false);
+    const approvals = await this.prApi.listApprovedReviewsAuthors(countAuthor ?? false);
     this.logger.info(`Found ${approvals.length} approvals.`);
 
     // This is the amount of reviews required. To succeed this should be 0 or lower
