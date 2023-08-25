@@ -115,6 +115,37 @@ describe("'And' rule validation", () => {
       expect(error?.missingReviews).toBe(3);
       expect(logger.warn).toHaveBeenCalledWith("Not enough positive reviews to match a subcondition");
     });
+
+    test("should evaluate splitting requirements with this setup", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: ["user-1", "user-2"], min_approvals: 2 },
+          { users: ["user-1"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue(users);
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(false);
+    });
+
+    test("should not consider author in evaluation", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: [users[0], "example", "random"], countAuthor: false, min_approvals: 2 },
+          { teams: ["team-abc"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue([...users, "random"]);
+      api.getAuthor.mockReturnValue("random");
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(false);
+    });
   });
 
   describe("Passing scenarios", () => {
@@ -196,19 +227,20 @@ describe("'And' rule validation", () => {
       expect(result).toBe(true);
     });
 
-    test("should evaluate splitting requirements with this setup", async () => {
+    test("should consider author in evaluation", async () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["user-1", "user-2"], min_approvals: 2 },
-          { users: ["user-1"], min_approvals: 1 },
+          { users: [users[0], "example", "random"], countAuthor: true, min_approvals: 2 },
+          { teams: ["team-abc"], min_approvals: 1 },
         ],
         name: "test",
         condition: { include: [] },
       };
-      api.listApprovedReviewsAuthors.mockResolvedValue(users);
+      api.listApprovedReviewsAuthors.mockResolvedValue([...users, "random"]);
+      api.getAuthor.mockReturnValue("random");
       const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
   });
 });
