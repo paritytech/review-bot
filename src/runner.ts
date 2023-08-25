@@ -267,10 +267,12 @@ export class ActionRunner {
       requiredApprovals: number;
     }[] = [];
 
+    const author = this.prApi.getAuthor();
+
     // Now we see, from all the approvals, which approvals could match each rule
     for (const { users, requiredApprovals, countAuthor } of requirements) {
       const ruleApprovals = approvals.filter((ap) => users.indexOf(ap) !== -1);
-      const author = this.prApi.getAuthor();
+
       if (countAuthor && users.indexOf(author) > -1) {
         ruleApprovals.push(this.prApi.getAuthor());
       }
