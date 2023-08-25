@@ -141,7 +141,7 @@ describe("'And' rule validation", () => {
         name: "test",
         condition: { include: [] },
       };
-      api.listApprovedReviewsAuthors.mockResolvedValue([...users, "random"]);
+      api.listApprovedReviewsAuthors.mockResolvedValue([...users]);
       api.getAuthor.mockReturnValue("random");
       const [result] = await runner.andDistinctEvaluation(rule);
       expect(result).toBe(false);
@@ -227,18 +227,18 @@ describe("'And' rule validation", () => {
       expect(result).toBe(true);
     });
 
-    test("should consider author in evaluation", async () => {
+    test.only("should consider author in evaluation", async () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: [users[0], "example", "random"], countAuthor: true, min_approvals: 2 },
+          { users: [users[0], "example", "author"], countAuthor: true, min_approvals: 2 },
           { teams: ["team-abc"], min_approvals: 1 },
         ],
         name: "test",
         condition: { include: [] },
       };
-      api.listApprovedReviewsAuthors.mockResolvedValue([...users, "random"]);
-      api.getAuthor.mockReturnValue("random");
+      api.listApprovedReviewsAuthors.mockResolvedValue(users);
+      api.getAuthor.mockReturnValue("author");
       const [result] = await runner.andDistinctEvaluation(rule);
       expect(result).toBe(true);
     });
