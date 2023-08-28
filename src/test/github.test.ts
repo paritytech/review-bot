@@ -46,12 +46,12 @@ describe("Pull Request API Tests", () => {
       ] as PullRequestReview[];
       reviews.push(...mockReviews);
 
-      for (let i = 1; i < 10; i++) {
+      for (let i = 0; i < 10; i++) {
         const approvals = await api.listApprovedReviewsAuthors(false);
         expect(approvals).toEqual(["yes-user"]);
       }
 
-      expect(client.rest.pulls.listReviews).toHaveBeenCalledTimes(0);
+      expect(client.rest.pulls.listReviews).toHaveBeenCalledTimes(1);
     });
 
     test("Should return approvals and ignore other reviews", async () => {
@@ -111,6 +111,31 @@ describe("Pull Request API Tests", () => {
       const dir = "example/file.yml";
       const result = await api.getConfigFile(dir);
       expect(result).toEqual(text);
+    });
+  });
+
+  describe("List modified files", () => {
+    const files = ["abc", "def"];
+    beforeEach(() => {
+      const data = files.map((f) => {
+        return { filename: f };
+      });
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore because the official type and the library type do not match
+      client.rest.pulls.listFiles.mockResolvedValue({ data });
+    });
+
+    test("Should return files", async () => {
+      const modifiedFiles = await api.listModifiedFiles();
+      expect(modifiedFiles).toEqual(files);
+    });
+
+    test("Should cache call", async () => {
+      for (let i = 0; i < 10; i++) {
+        const modifiedFiles = await api.listModifiedFiles();
+        expect(modifiedFiles).toEqual(files);
+      }
+      expect(client.rest.pulls.listFiles).toHaveBeenCalledTimes(1);
     });
   });
 });
