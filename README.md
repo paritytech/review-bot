@@ -237,6 +237,7 @@ rules:
         - '.*'
       exclude: 
         - 'example'
+    countAuthor: true
     type: or | and | and-distinct
     reviewers:
       - teams:
@@ -247,10 +248,12 @@ rules:
       - teams:
         - team-abc
         min_approvals: 2
-        countAuthor: true
 ```
 - The **name** and **conditions** fields have the same requirements that the `basic` rule has.
 - **type**: Must be `or`, `and` or `and-distinct`.
+- **countAuthor**: If the pull request author should be considered as an approval.
+	- If the author belongs to the list of approved users (either by team or by users) his approval will be counted (requiring one less approvals in total).
+	- ** Optional**: Defaults to `false`
 - **reviewers**: This is an array that contains all the available options for review.
 	- Each of these options works independently.
 	- Must have at least two options.
@@ -264,10 +267,6 @@ rules:
 			- *Optional if **users** is defined*.
 		- **users**: An array of the GitHub usernames of the users who need to review this file. 
 			- *Optional if **teams** is defined*.
-		-  **countAuthor**: If the pull request author should be considered as an approval.
-			- If the author belongs to the list of approved users (either by team or by users) his approval will be counted (requiring one less approvals in total).
-			- ** Optional**: Defaults to `false`
-
 ##### Or rule logic
 This is a rule that has at least two available options of reviewers and needs **at least one group to approve**.
 
