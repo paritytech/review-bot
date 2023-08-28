@@ -2,7 +2,7 @@ import { validate } from "@eng-automation/js";
 import Joi from "joi";
 
 import { ActionLogger } from "../github/types";
-import { AndRule, BasicRule, ConfigurationFile, DebugRule, Rule, RuleTypes } from "./types";
+import { AndRule, BasicRule, ConfigurationFile, DebugRule, Reviewers, Rule, RuleTypes } from "./types";
 
 /** For the users or team schema. Will be recycled A LOT
  * Remember to add `.or("users", "teams")` to force at least one of the two to be defined
@@ -10,6 +10,7 @@ import { AndRule, BasicRule, ConfigurationFile, DebugRule, Rule, RuleTypes } fro
 const reviewersObj = {
   users: Joi.array().items(Joi.string()).optional().empty(null),
   teams: Joi.array().items(Joi.string()).optional().empty(null),
+  min_approvals: Joi.number().min(1).default(1),
 };
 
 /** Base rule condition.
@@ -40,12 +41,16 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
  * This rule is quite simple as it only has the min_approvals field and the required reviewers
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
-  .keys({ min_approvals: Joi.number().min(1).default(1), ...reviewersObj })
+  .keys({ ...reviewersObj, countAuthor: Joi.boolean().default(false) })
   .or("users", "teams");
 
 /** As, with the exception of basic, every other schema has the same structure, we can recycle this */
 export const otherRulesSchema = Joi.object<AndRule>().keys({
-  reviewers: Joi.array<AndRule["reviewers"]>().items(basicRuleSchema).min(2).required(),
+  reviewers: Joi.array<AndRule["reviewers"]>()
+    .items(Joi.object<Reviewers>().keys(reviewersObj).or("users", "teams"))
+    .min(2)
+    .required(),
+  countAuthor: Joi.boolean().default(false),
 });
 
 /**
@@ -70,6 +75,8 @@ export const validateConfig = (config: ConfigurationFile): ConfigurationFile | n
     } else if (type === "debug") {
       validatedConfig.rules[i] = validate<DebugRule>(rule, ruleSchema, { message });
     } else if (type === "and" || type === "or" || type === "and-distinct") {
+      // Aside from the type, every other field in this rules is identical so we can
+      // use any of these rules to validate the other fields.
       validatedConfig.rules[i] = validate<AndRule>(rule, otherRulesSchema, { message });
     } else {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions

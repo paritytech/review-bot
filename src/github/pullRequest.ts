@@ -53,7 +53,7 @@ export class PullRequestApi {
   }
 
   /** List all the approved reviews in a PR */
-  async listApprovedReviewsAuthors(): Promise<string[]> {
+  async listApprovedReviewsAuthors(countAuthor: boolean): Promise<string[]> {
     if (!this.usersThatApprovedThePr) {
       const request = await this.api.rest.pulls.listReviews({ ...this.repoInfo, pull_number: this.number });
       const reviews = request.data as PullRequestReview[];
@@ -97,6 +97,12 @@ export class PullRequestApi {
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
     }
     this.logger.debug(`PR approvals are ${JSON.stringify(this.usersThatApprovedThePr)}`);
+
+    if (countAuthor) {
+      // If this value is true, we add the author to the list of approvals
+      return [...this.usersThatApprovedThePr, this.pr.user.login];
+    }
+
     return this.usersThatApprovedThePr;
   }
 

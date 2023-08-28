@@ -7,7 +7,7 @@ import { ActionLogger } from "../../../github/types";
 import { AndDistinctRule, RuleTypes } from "../../../rules/types";
 import { ActionRunner } from "../../../runner";
 
-describe("'And' rule validation", () => {
+describe("'And distinct' rule validation", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
   let runner: ActionRunner;
@@ -115,6 +115,23 @@ describe("'And' rule validation", () => {
       expect(error?.missingReviews).toBe(3);
       expect(logger.warn).toHaveBeenCalledWith("Not enough positive reviews to match a subcondition");
     });
+
+    test("should not consider author in evaluation", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        countAuthor: false,
+        reviewers: [
+          { users: [users[0], "example", "random"], min_approvals: 2 },
+          { teams: ["team-abc"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+      api.listApprovedReviewsAuthors.mockResolvedValue([...users]);
+      api.getAuthor.mockReturnValue("random");
+      const [result] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(false);
+    });
   });
 
   describe("Passing scenarios", () => {
@@ -196,19 +213,21 @@ describe("'And' rule validation", () => {
       expect(result).toBe(true);
     });
 
-    test("should evaluate splitting requirements with this setup", async () => {
+    test("should call listApprovedReviewsAuthors with true", async () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
+        countAuthor: true,
         reviewers: [
-          { users: ["user-1", "user-2"], min_approvals: 2 },
-          { users: ["user-1"], min_approvals: 1 },
+          { users: [users[0], "example"], min_approvals: 1 },
+          { teams: ["team-abc"], min_approvals: 2 },
         ],
         name: "test",
         condition: { include: [] },
       };
       api.listApprovedReviewsAuthors.mockResolvedValue(users);
       const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
+      expect(result).toBe(true);
+      expect(api.listApprovedReviewsAuthors).lastCalledWith(true);
     });
   });
 });

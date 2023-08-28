@@ -11,6 +11,7 @@ export type Reviewers = { users?: string[]; teams?: string[]; min_approvals: num
 export interface Rule {
   name: string;
   condition: { include: string[]; exclude?: string[] };
+  countAuthor?: boolean;
 }
 
 // TODO: Delete this once we add a second type of rule

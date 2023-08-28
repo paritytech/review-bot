@@ -207,6 +207,7 @@ rules:
     users:
       - user-1
       - user-2
+    countAuthor: true
 ```
 It has the same parameters as a normal rule:
 -  **name**: Name of the rule. This value must be unique per rule.
@@ -223,6 +224,9 @@ It has the same parameters as a normal rule:
 	- *Optional if **users** is defined*.
 - **users**: An array of the GitHub usernames of the users who need to review this file. 
 	- *Optional if **teams** is defined*.
+- **countAuthor**: If the pull request author should be considered as an approval.
+	- If the author belongs to the list of approved users (either by team or by users) his approval will be counted (requiring one less approvals in total).
+	- ** Optional**: Defaults to `false`
 #### Other rules
 The other three rules (**or**, **and** and **and-distinct**) have the same configuration, so let’s summarize that here and then move into how they work.
 ```yaml
@@ -233,6 +237,7 @@ rules:
         - '.*'
       exclude: 
         - 'example'
+    countAuthor: true
     type: or | and | and-distinct
     reviewers:
       - teams:
@@ -246,6 +251,9 @@ rules:
 ```
 - The **name** and **conditions** fields have the same requirements that the `basic` rule has.
 - **type**: Must be `or`, `and` or `and-distinct`.
+- **countAuthor**: If the pull request author should be considered as an approval.
+	- If the author belongs to the list of approved users (either by team or by users) his approval will be counted (requiring one less approvals in total).
+	- ** Optional**: Defaults to `false`
 - **reviewers**: This is an array that contains all the available options for review.
 	- Each of these options works independently.
 	- Must have at least two options.
@@ -259,7 +267,6 @@ rules:
 			- *Optional if **users** is defined*.
 		- **users**: An array of the GitHub usernames of the users who need to review this file. 
 			- *Optional if **teams** is defined*.
-
 ##### Or rule logic
 This is a rule that has at least two available options of reviewers and needs **at least one group to approve**.
 
