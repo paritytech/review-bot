@@ -56,13 +56,12 @@ const api = new PullRequestApi(
   getOctokit(inputs.repoToken),
   context.payload.pull_request as PullRequest,
   generateCoreLogger(),
-  repo,
   actionId,
 );
 
 const logger = generateCoreLogger();
 
-const teamApi = new GitHubTeamsApi(inputs.teamApiToken, repo.owner, logger);
+const teamApi = new GitHubTeamsApi(getOctokit(inputs.teamApiToken), repo.owner, logger);
 
 const runner = new ActionRunner(api, teamApi, logger);
 
