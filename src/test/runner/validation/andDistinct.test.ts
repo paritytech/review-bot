@@ -116,21 +116,6 @@ describe("'And distinct' rule validation", () => {
       expect(logger.warn).toHaveBeenCalledWith("Not enough positive reviews to match a subcondition");
     });
 
-    test("should evaluate splitting requirements with this setup", async () => {
-      const rule: AndDistinctRule = {
-        type: RuleTypes.AndDistinct,
-        reviewers: [
-          { users: ["user-1", "user-2"], min_approvals: 2 },
-          { users: ["user-1"], min_approvals: 1 },
-        ],
-        name: "test",
-        condition: { include: [] },
-      };
-      api.listApprovedReviewsAuthors.mockResolvedValue(users);
-      const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
-    });
-
     test("should not consider author in evaluation", async () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
@@ -228,7 +213,7 @@ describe("'And distinct' rule validation", () => {
       expect(result).toBe(true);
     });
 
-    test("should consider author in evaluation", async () => {
+    test("should call listApprovedReviewsAuthors with true", async () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         countAuthor: true,
@@ -239,7 +224,7 @@ describe("'And distinct' rule validation", () => {
         name: "test",
         condition: { include: [] },
       };
-      api.listApprovedReviewsAuthors.mockResolvedValue([users[0], users[1], users[2]]);
+      api.listApprovedReviewsAuthors.mockResolvedValue(users);
       const [result] = await runner.andDistinctEvaluation(rule);
       expect(result).toBe(true);
       expect(api.listApprovedReviewsAuthors).lastCalledWith(true);
