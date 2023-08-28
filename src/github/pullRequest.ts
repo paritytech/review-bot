@@ -7,14 +7,15 @@ import { ActionLogger, CheckData, GitHubClient } from "./types";
 /** API class that uses the default token to access the data from the pull request and the repository */
 export class PullRequestApi {
   private readonly number: number;
+  private readonly repoInfo: { repo: string; owner: string };
   constructor(
     private readonly api: GitHubClient,
     private readonly pr: PullRequest,
     private readonly logger: ActionLogger,
-    private readonly repoInfo: { repo: string; owner: string },
     private readonly detailsUrl: string,
   ) {
     this.number = pr.number;
+    this.repoInfo = { owner: this.pr.base.repo.owner.login, repo: this.pr.base.repo.name };
   }
 
   /** Cache of the list of files that have been modified by a PR */

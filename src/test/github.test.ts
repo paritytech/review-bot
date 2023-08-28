@@ -14,7 +14,9 @@ describe("Pull Request API Tests", () => {
     client = mockDeep<GitHubClient>();
     pr = mockDeep<PullRequest>();
     pr.number = 99;
-    api = new PullRequestApi(client, pr, logger, { owner: "org", repo: "repo" }, "");
+    pr.base.repo.owner.login = "org";
+
+    api = new PullRequestApi(client, pr, logger, "");
   });
 
   describe("Approvals", () => {
@@ -36,6 +38,20 @@ describe("Pull Request API Tests", () => {
 
       const approvals = await api.listApprovedReviewsAuthors(false);
       expect(approvals).toEqual(["yes-user"]);
+    });
+
+    test("Should cache call", async () => {
+      const mockReviews: PullRequestReview[] = [
+        { state: "approved", user: { login: "yes-user", id: random() }, id: random() },
+      ] as PullRequestReview[];
+      reviews.push(...mockReviews);
+
+      for (let i = 1; i < 10; i++) {
+        const approvals = await api.listApprovedReviewsAuthors(false);
+        expect(approvals).toEqual(["yes-user"]);
+      }
+
+      expect(client.rest.pulls.listReviews).toHaveBeenCalledTimes(0);
     });
 
     test("Should return approvals and ignore other reviews", async () => {
@@ -74,6 +90,27 @@ describe("Pull Request API Tests", () => {
 
       const approvals = await api.listApprovedReviewsAuthors(true);
       expect(approvals).toEqual(["yes-user", "abc"]);
+    });
+  });
+
+  describe("Config file", () => {
+    const text = "This is an example text";
+    beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore because the official type and the library type do not match
+      client.rest.repos.getContent.mockResolvedValue({ data: { content: Buffer.from(text, "utf-8") } });
+    });
+
+    test("Should request config file from directory", async () => {
+      const dir = "example/file.yml";
+      await api.getConfigFile(dir);
+      expect(client.rest.repos.getContent).toHaveBeenCalledWith({ path: dir, owner: "org", repo: pr.base.repo.name });
+    });
+
+    test("Should decrypt the string", async () => {
+      const dir = "example/file.yml";
+      const result = await api.getConfigFile(dir);
+      expect(result).toEqual(text);
     });
   });
 });
