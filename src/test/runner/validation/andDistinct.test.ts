@@ -233,16 +233,16 @@ describe("'And distinct' rule validation", () => {
         type: RuleTypes.AndDistinct,
         countAuthor: true,
         reviewers: [
-          { users: [users[0], "example", "author"], min_approvals: 2 },
-          { teams: ["team-abc"], min_approvals: 1 },
+          { users: [users[0], "example"], min_approvals: 1 },
+          { teams: ["team-abc"], min_approvals: 2 },
         ],
         name: "test",
         condition: { include: [] },
       };
-      api.listApprovedReviewsAuthors.mockResolvedValue(users);
-      api.getAuthor.mockReturnValue("author");
+      api.listApprovedReviewsAuthors.mockResolvedValue([users[0], users[1], users[2]]);
       const [result] = await runner.andDistinctEvaluation(rule);
       expect(result).toBe(true);
+      expect(api.listApprovedReviewsAuthors).lastCalledWith(true);
     });
   });
 });
