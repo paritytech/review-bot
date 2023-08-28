@@ -1,5 +1,3 @@
-import { getOctokit } from "@actions/github";
-
 import { ActionLogger, GitHubClient } from "./types";
 
 /**
@@ -16,8 +14,6 @@ export interface TeamApi {
  * @see-also {@link TeamApi}
  */
 export class GitHubTeamsApi implements TeamApi {
-  private readonly api: GitHubClient;
-
   /** Cache variable so we don't request the same information from GitHub in one run  */
   private readonly teamsCache: Map<string, string[]> = new Map<string, string[]>();
 
@@ -25,9 +21,11 @@ export class GitHubTeamsApi implements TeamApi {
    * @param teamOrgToken GitHub token with read:org access. It is used to access the organization team members
    * @param org Name of the organization the team will belong to. Should be available in context.repo.owner
    */
-  constructor(teamOrgToken: string, private readonly org: string, private readonly logger: ActionLogger) {
-    this.api = getOctokit(teamOrgToken);
-  }
+  constructor(
+    private readonly api: GitHubClient,
+    private readonly org: string,
+    private readonly logger: ActionLogger,
+  ) {}
 
   async getTeamMembers(teamName: string): Promise<string[]> {
     // We first verify that this information hasn't been fetched yet
