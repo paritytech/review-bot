@@ -10,8 +10,9 @@ import { AndRule, BasicRule, ConfigurationFile, DebugRule, Reviewers, Rule, Rule
 const reviewersObj = {
   users: Joi.array().items(Joi.string()).optional().empty(null),
   teams: Joi.array().items(Joi.string()).optional().empty(null),
-  min_approvals: Joi.number().min(1).default(1),
 };
+
+const reviewerConditionObj = { ...reviewersObj, min_approvals: Joi.number().min(1).default(1) };
 
 /** Base rule condition.
  * This are the minimum requirements that all the rules must have.
@@ -41,13 +42,13 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
  * This rule is quite simple as it only has the min_approvals field and the required reviewers
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
-  .keys({ ...reviewersObj, countAuthor: Joi.boolean().default(false) })
+  .keys({ ...reviewerConditionObj, countAuthor: Joi.boolean().default(false) })
   .or("users", "teams");
 
 /** As, with the exception of basic, every other schema has the same structure, we can recycle this */
 export const otherRulesSchema = Joi.object<AndRule>().keys({
   reviewers: Joi.array<AndRule["reviewers"]>()
-    .items(Joi.object<Reviewers>().keys(reviewersObj).or("users", "teams"))
+    .items(Joi.object<Reviewers>().keys(reviewerConditionObj).or("users", "teams"))
     .min(2)
     .required(),
   countAuthor: Joi.boolean().default(false),
