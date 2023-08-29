@@ -11,6 +11,9 @@ inputs:
   team-token:
     required: true
     description: A GitHub Token with read:org access
+  checks-token:
+    required: true
+    description: A GitHub Token with check:write access
   config-file:
     description: 'Location of the configuration file'
     required: false
