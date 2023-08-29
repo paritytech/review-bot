@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { mock, MockProxy } from "jest-mock-extended";
 
+import { GitHubChecksApi } from "../../../github/check";
 import { PullRequestApi } from "../../../github/pullRequest";
 import { TeamApi } from "../../../github/teams";
 import { ActionLogger } from "../../../github/types";
@@ -20,7 +21,7 @@ describe("'And distinct' rule validation", () => {
     teamsApi.getTeamMembers.calledWith("team-abc").mockResolvedValue(users);
     api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml"]);
     api.listApprovedReviewsAuthors.mockResolvedValue([]);
-    runner = new ActionRunner(api, teamsApi, logger);
+    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), logger);
   });
 
   describe("Fail scenarios", () => {

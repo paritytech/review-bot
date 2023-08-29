@@ -1,8 +1,7 @@
-import { summary } from "@actions/core";
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 
 import { caseInsensitiveEqual } from "../util";
-import { ActionLogger, CheckData, GitHubClient } from "./types";
+import { ActionLogger, GitHubClient } from "./types";
 
 /** API class that uses the default token to access the data from the pull request and the repository */
 export class PullRequestApi {
