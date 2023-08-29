@@ -2,7 +2,7 @@ import { setOutput, summary } from "@actions/core";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
-import { CheckApi } from "./github/check";
+import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger, CheckData } from "./github/types";
@@ -37,7 +37,7 @@ export class ActionRunner {
   constructor(
     private readonly prApi: PullRequestApi,
     private readonly teamApi: TeamApi,
-    private readonly checks: CheckApi,
+    private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
   ) {}
 
