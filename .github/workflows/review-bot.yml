@@ -22,8 +22,8 @@ jobs:
         id: team_token
         uses: tibdex/github-app-token@v1
         with:
-          app_id: ${{ secrets.TEAM_APP_ID }}
-          private_key: ${{ secrets.TEAM_APP_KEY }}
+          app_id: ${{ secrets.REVIEW_APP_ID }}
+          private_key: ${{ secrets.REVIEW_APP_KEY }}
       # !This must always point to main. 
       # Change it for the PRs but remember to change it back
       - name: "Evaluates PR reviews and assigns reviewers"
@@ -31,3 +31,4 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           team-token: ${{ steps.team_token.outputs.token }}
+          checks-token: ${{ steps.team_token.outputs.token }}
