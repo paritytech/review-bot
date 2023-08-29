@@ -355,7 +355,7 @@ export class ActionRunner {
 
     const author = this.prApi.getAuthor();
 
-    if (preventReviewRequests.users && preventReviewRequests.users.indexOf(author)) {
+    if (preventReviewRequests.users && preventReviewRequests.users.indexOf(author) > -1) {
       this.logger.info("User does belongs to list of users to prevent the review request.");
       return true;
     }
@@ -364,7 +364,7 @@ export class ActionRunner {
       for (const team of preventReviewRequests.teams) {
         const members = await this.teamApi.getTeamMembers(team);
         if (members.indexOf(author) > -1) {
-          this.logger.info(`User belong to the team ${team} which is part of the preventReviewRequests.`);
+          this.logger.info(`User belong to the team '${team}' which is part of the preventReviewRequests.`);
           return true;
         }
       }

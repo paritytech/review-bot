@@ -169,6 +169,32 @@ describe("Config Parsing", () => {
       expect(config.preventReviewRequests?.users).toEqual(["user-a", "user-b"]);
     });
 
+    test("should get both users and teams", async () => {
+      api.getConfigFile.mockResolvedValue(`
+      rules:
+        - name: Default review
+          condition:
+            include: 
+                - '.*'
+            exclude: 
+                - 'example'
+          type: basic
+          teams:
+            - team-example
+
+      preventReviewRequests:
+        users:
+          - user-a
+          - user-b
+        teams:
+          - team-a
+          - team-b
+        `);
+      const config = await runner.getConfigFile("");
+      expect(config.preventReviewRequests?.users).toEqual(["user-a", "user-b"]);
+      expect(config.preventReviewRequests?.teams).toEqual(["team-a", "team-b"]);
+    });
+
     test("should pass if preventReviewRequests is not assigned", async () => {
       api.getConfigFile.mockResolvedValue(`
       rules:

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { mock, MockProxy } from "jest-mock-extended";
 
 import { GitHubChecksApi } from "../../github/check";
@@ -10,10 +11,11 @@ import { ActionRunner } from "../../runner";
 describe("Shared validations", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
+  let logger: MockProxy<ActionLogger>;
   let runner: ActionRunner;
   beforeEach(() => {
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
+    runner = new ActionRunner(api, teamsApi, logger);
   });
 
   test("validatePullRequest should return true if no rule matches any files", async () => {
@@ -57,6 +59,50 @@ describe("Shared validations", () => {
       expect(result).toContainEqual("src/index.ts");
       expect(result).toContainEqual("yarn-error.log");
       expect(result).not.toContain(".github/workflows/review-bot.yml");
+    });
+  });
+
+  describe("Validation in reviewerConditionObj", () => {
+    const authorName = "my-great-author";
+    beforeEach(() => {
+      api.getAuthor.mockReturnValue(authorName);
+    });
+    test("should return false if the object is not defined", async () => {
+      const config: ConfigurationFile = { rules: [] };
+      const result = await runner.preventReviewEvaluation(config);
+      expect(result).toBeFalsy();
+    });
+
+    test("should return true if the user is in the users", async () => {
+      const config: ConfigurationFile = { rules: [], preventReviewRequests: { users: [authorName] } };
+      const result = await runner.preventReviewEvaluation(config);
+      expect(result).toBeTruthy();
+      expect(logger.info).toHaveBeenCalledWith("User does belongs to list of users to prevent the review request.");
+    });
+
+    test("should return true if the user is a team member", async () => {
+      const config: ConfigurationFile = { rules: [], preventReviewRequests: { teams: ["team-a", "team-b"] } };
+      teamsApi.getTeamMembers.calledWith("team-a").mockResolvedValue(["abc", "def", "ghi"]);
+      teamsApi.getTeamMembers.calledWith("team-b").mockResolvedValue(["zyx", "wvt", authorName]);
+      const result = await runner.preventReviewEvaluation(config);
+      expect(result).toBeTruthy();
+      expect(logger.info).toHaveBeenCalledWith(
+        "User belong to the team 'team-b' which is part of the preventReviewRequests.",
+      );
+    });
+
+    test("should return false if the user is not in the team and users", async () => {
+      const config: ConfigurationFile = {
+        rules: [],
+        preventReviewRequests: { teams: ["team-a", "team-b"], users: ["qwerty", "dvorak"] },
+      };
+      teamsApi.getTeamMembers.calledWith("team-a").mockResolvedValue(["abc", "def", "ghi"]);
+      teamsApi.getTeamMembers.calledWith("team-b").mockResolvedValue(["zyx", "wvu", "tsr"]);
+      const result = await runner.preventReviewEvaluation(config);
+      expect(result).toBeFalsy();
+      expect(logger.debug).toHaveBeenCalledWith(
+        "User does not belong to any of the preventReviewRequests requirements",
+      );
     });
   });
 });
