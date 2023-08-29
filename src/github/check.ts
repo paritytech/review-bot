@@ -7,7 +7,7 @@ import { ActionLogger, CheckData, GitHubClient } from "./types";
  * Ideally, a GitHub action.
  * This is the solution to the https://github.com/paritytech/review-bot/issues/54
  */
-export class CheckApi {
+export class GitHubChecksApi {
   private readonly repoInfo: { repo: string; owner: string };
   constructor(
     private readonly api: GitHubClient,

@@ -3,7 +3,7 @@ import { context, getOctokit } from "@actions/github";
 import { Context } from "@actions/github/lib/context";
 import { PullRequest } from "@octokit/webhooks-types";
 
-import { CheckApi } from "./github/check";
+import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { GitHubTeamsApi } from "./github/teams";
 import { ActionRunner } from "./runner";
@@ -61,7 +61,7 @@ const logger = generateCoreLogger();
 
 const teamApi = new GitHubTeamsApi(getOctokit(inputs.teamApiToken), repo.owner, logger);
 
-const checks = new CheckApi(getOctokit(inputs.teamApiToken), pr, logger, actionId);
+const checks = new GitHubChecksApi(getOctokit(inputs.teamApiToken), pr, logger, actionId);
 
 const runner = new ActionRunner(api, teamApi, checks, logger);
 
