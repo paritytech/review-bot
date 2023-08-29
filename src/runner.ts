@@ -332,6 +332,35 @@ export class ActionRunner {
     return [false, generateErrorReport()];
   }
 
+  async preventReviewEvaluation({
+    preventReviewRequests,
+  }: Pick<ConfigurationFile, "preventReviewRequests">): Promise<boolean> {
+    if (!preventReviewRequests) {
+      this.logger.debug("No preventReviewRequests. Skipping check");
+      return false;
+    }
+
+    const author = this.prApi.getAuthor();
+
+    if (preventReviewRequests.users && preventReviewRequests.users.indexOf(author)) {
+      this.logger.info("User does belongs to list of users to prevent the review request.");
+      return true;
+    }
+
+    if (preventReviewRequests.teams) {
+      for (const team of preventReviewRequests.teams) {
+        const members = await this.teamApi.getTeamMembers(team);
+        if (members.indexOf(author) > -1) {
+          this.logger.info(`User belong to the team ${team} which is part of the preventReviewRequests.`);
+          return true;
+        }
+      }
+    }
+
+    this.logger.debug("User does not belong to any of the preventReviewRequests requirements");
+    return false;
+  }
+
   /** Evaluates if the required reviews for a condition have been meet
    * @param rule Every rule check has this values which consist on the min required approvals and the reviewers.
    * @returns a [bool, error data] tuple which evaluates if the condition (not the rule itself) has fulfilled the requirements

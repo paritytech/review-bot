@@ -34,7 +34,7 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
  */
 export const generalSchema = Joi.object<ConfigurationFile>().keys({
   rules: Joi.array<ConfigurationFile["rules"]>().items(ruleSchema).unique("name").required(),
-  preventReviewRequests: Joi.object().keys(reviewersObj).optional().xor("users", "teams"),
+  preventReviewRequests: Joi.object().keys(reviewersObj).optional().or("users", "teams"),
 });
 
 /** Basic rule schema
