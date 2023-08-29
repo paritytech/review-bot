@@ -3,21 +3,20 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { mock, MockProxy } from "jest-mock-extended";
 
+import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
 import { TeamApi } from "../../github/teams";
+import { ActionLogger } from "../../github/types";
 import { BasicRule } from "../../rules/types";
 import { ActionRunner } from "../../runner";
-import { TestLogger } from "../logger";
 
 describe("Basic rule parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
   let teamsApi: MockProxy<TeamApi>;
-  let logger: TestLogger;
   beforeEach(() => {
-    logger = new TestLogger();
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, logger);
+    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`

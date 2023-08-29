@@ -3,21 +3,22 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { mock, MockProxy } from "jest-mock-extended";
 
+import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
 import { TeamApi } from "../../github/teams";
+import { ActionLogger } from "../../github/types";
 import { RuleTypes } from "../../rules/types";
 import { ActionRunner } from "../../runner";
-import { TestLogger } from "../logger";
 
 describe("Config Parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
+  let logger: MockProxy<ActionLogger>;
   let runner: ActionRunner;
-  let logger: TestLogger;
   beforeEach(() => {
-    logger = new TestLogger();
+    logger = mock<ActionLogger>();
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, logger);
+    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), logger);
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`
@@ -117,7 +118,9 @@ describe("Config Parsing", () => {
       await expect(runner.getConfigFile("")).rejects.toThrowError(
         `Regular expression is invalid: Include condition '${invalidRegex}' is not a valid regex`,
       );
-      expect(logger.logHistory).toContainEqual(`Invalid regular expression: /${invalidRegex}/: Invalid group`);
+      expect(logger.error).toHaveBeenCalledWith(
+        new Error(`Invalid regular expression: /${invalidRegex}/: Invalid group`),
+      );
     });
   });
 
