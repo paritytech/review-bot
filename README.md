@@ -213,7 +213,7 @@ This is a special field that applies to all the rules.
 
 This field is **optional**.
 
-It supports two fields: `users` and `teams`. If *the user is inside the users array, or they belong to one of the teams listed there, the validation will automatically be skipped, and a success status check will be reported*.
+It supports two fields: `users` and `teams`. If *the author of the Pull Request is inside the users array, or they belong to one of the teams listed there, the validation will automatically be skipped, and a success status check will be reported*.
 
 It is intended to stop the custom rules being required when a user is already trusted and doesn’t need such a thorough review process.
 
