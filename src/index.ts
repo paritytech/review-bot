@@ -3,6 +3,7 @@ import { context, getOctokit } from "@actions/github";
 import { Context } from "@actions/github/lib/context";
 import { PullRequest } from "@octokit/webhooks-types";
 
+import { CheckApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { GitHubTeamsApi } from "./github/teams";
 import { ActionRunner } from "./runner";
@@ -52,18 +53,17 @@ const inputs = getInputs();
 
 const actionId = `${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
 
-const api = new PullRequestApi(
-  getOctokit(inputs.repoToken),
-  context.payload.pull_request as PullRequest,
-  generateCoreLogger(),
-  actionId,
-);
+const pr = context.payload.pull_request as PullRequest;
+
+const api = new PullRequestApi(getOctokit(inputs.repoToken), pr, generateCoreLogger(), actionId);
 
 const logger = generateCoreLogger();
 
 const teamApi = new GitHubTeamsApi(getOctokit(inputs.teamApiToken), repo.owner, logger);
 
-const runner = new ActionRunner(api, teamApi, logger);
+const checks = new CheckApi(getOctokit(inputs.teamApiToken), pr, logger, actionId);
+
+const runner = new ActionRunner(api, teamApi, checks, logger);
 
 runner
   .runAction(inputs)
