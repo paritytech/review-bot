@@ -66,9 +66,17 @@ export class ActionRunner {
    * The action evaluates if the rules requirements are meet for a PR
    * @returns an array of error reports for each failed rule. An empty array means no errors
    */
-  async validatePullRequest({ rules }: ConfigurationFile): Promise<PullRequestReport> {
-    const errorReports: RuleReport[] = [];
+  async validatePullRequest({ rules, preventReviewRequests }: ConfigurationFile): Promise<PullRequestReport> {
     const modifiedFiles = await this.prApi.listModifiedFiles();
+
+    // verify if we should skip the validation
+    if (await this.preventReviewEvaluation({ preventReviewRequests })) {
+      this.logger.info("Skipping validation. User belongs to 'preventReviewRequests'");
+      return { files: modifiedFiles, reports: [] };
+    }
+
+    const errorReports: RuleReport[] = [];
+
     ruleCheck: for (const rule of rules) {
       try {
         this.logger.info(`Validating rule '${rule.name}'`);
@@ -332,6 +340,11 @@ export class ActionRunner {
     return [false, generateErrorReport()];
   }
 
+  /**
+   * Evaluates if the user belongs to the special rule of preventReviewRequests
+   * and if the check should be skipped.
+   * @returns a boolean. True if the check should be skipped.
+   */
   async preventReviewEvaluation({
     preventReviewRequests,
   }: Pick<ConfigurationFile, "preventReviewRequests">): Promise<boolean> {
