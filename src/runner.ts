@@ -2,6 +2,7 @@ import { setOutput, summary } from "@actions/core";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
+import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { TeamApi } from "./github/teams";
 import { ActionLogger, CheckData } from "./github/types";
@@ -36,6 +37,7 @@ export class ActionRunner {
   constructor(
     private readonly prApi: PullRequestApi,
     private readonly teamApi: TeamApi,
+    private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
   ) {}
 
@@ -444,7 +446,7 @@ export class ActionRunner {
     this.logger.info(reports.length > 0 ? "There was an error with the PR reviews." : "The PR has been successful");
 
     const checkRunData = this.generateCheckRunData(reports);
-    await this.prApi.generateCheckRun(checkRunData);
+    await this.checks.generateCheckRun(checkRunData);
 
     this.requestReviewers(reports);
 

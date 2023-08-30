@@ -1,25 +1,24 @@
 import { mock, MockProxy } from "jest-mock-extended";
 
+import { GitHubChecksApi } from "../../../github/check";
 import { PullRequestApi } from "../../../github/pullRequest";
 import { TeamApi } from "../../../github/teams";
+import { ActionLogger } from "../../../github/types";
 import { ConfigurationFile, RuleTypes } from "../../../rules/types";
 import { ActionRunner } from "../../../runner";
-import { TestLogger } from "../../logger";
 
 describe("'And' rule validation", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
   let runner: ActionRunner;
-  let logger: TestLogger;
   const users = ["user-1", "user-2", "user-3"];
   beforeEach(() => {
-    logger = new TestLogger();
     api = mock<PullRequestApi>();
     teamsApi = mock<TeamApi>();
     teamsApi.getTeamMembers.calledWith("abc").mockResolvedValue(users);
     api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml"]);
     api.listApprovedReviewsAuthors.mockResolvedValue([]);
-    runner = new ActionRunner(api, teamsApi, logger);
+    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
 
   describe("approvals", () => {

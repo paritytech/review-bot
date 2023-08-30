@@ -66,6 +66,7 @@ jobs:
         with:
           repo-token: ${{ github.token }}
           team-token: ${{ secrets.TEAM_TOKEN }}
+          checks-token: ${{ secrets.CHECKS_TOKEN }}
 
 ```
 Create a new PR and see if it is working.
@@ -99,6 +100,13 @@ You can find all the inputs in [the action file](./action.yml), but let's walk t
 	- **required**.
 	- This needs to be a [GitHub Personal Access](https://github.com/settings/tokens/new) token with `read:org` permission.
 	- It is used to extract the members of teams.
+- `checks-token`: Token to write the status checks.
+	- **required**.
+	- This needs to be a [GitHub Personal Access](https://github.com/settings/tokens/new) token with `checks:write` permission.
+	- It is used to write the status checks of successful/failed runs.
+	- Can be `${{ github.token }}` but there is a [known bug](https://github.com/paritytech/review-bot/issues/54).
+		- If you use a GitHub app, this bug will be fixed.
+			- You can use the same GitHub app for `checks-token` and `team-token`.
 - `config-file`: The location of the config file.
 	- **default**: `.github/review-bot.yml`
 
@@ -107,6 +115,9 @@ In some cases, specially in big organizations, it is more organized to use a Git
 - Organization permissions:
 	- Members
 		- [x] Read
+- Repository permissions:
+	- Checks
+		- [x] Write
 
 Because this project is intended to be used with a token, we need to do an extra step to generate one from the GitHub app:
 - After you create the app, copy the *App ID* and the *private key* and set them as secrets.
@@ -125,6 +136,7 @@ Because this project is intended to be used with a token, we need to do an extra
           repo-token: ${{ github.token }}
           # The previous step generates a token which is used as the input for this action
           team-token: ${{ steps.generate_token.outputs.token }
+          checks-token: ${{ steps.generate_token.outputs.token }
 ```
 ### Outputs
 Outputs are needed for your chained actions. If you want to use this information, remember to set an `id` field in the step, so you can access it.
