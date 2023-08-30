@@ -13,10 +13,10 @@ rules:
       include:
         - 'review-bot.yml'
     type: and-distinct
+    countAuthor: true
     reviewers:
       - teams:
         - opstooling
-        countAuthor: true
       - users:
         - mordamax
         - mutantcornholio
