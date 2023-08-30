@@ -64,47 +64,39 @@ describe("Shared validations", () => {
     });
   });
 
-  describe("Validation in reviewerConditionObj", () => {
-    const authorName = "my-great-author";
-    beforeEach(() => {
-      api.getAuthor.mockReturnValue(authorName);
-    });
-    test("should return false if the object is not defined", async () => {
-      const config: ConfigurationFile = { rules: [] };
-      const result = await runner.preventReviewEvaluation(config);
-      expect(result).toBeFalsy();
+  describe("Validation in requestReviewers", () => {
+    const exampleReport = {
+      name: "Example",
+      missingUsers: ["user-1", "user-2", "user-3"],
+      missingReviews: 2,
+      teamsToRequest: ["team-1"],
+      usersToRequest: ["user-1"],
+    };
+
+    test("should request reviewers if object is not defined", () => {
+      runner.requestReviewers([exampleReport], undefined);
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
     });
 
-    test("should return true if the user is in the users", async () => {
-      const config: ConfigurationFile = { rules: [], preventReviewRequests: { users: [authorName] } };
-      const result = await runner.preventReviewEvaluation(config);
-      expect(result).toBeTruthy();
-      expect(logger.info).toHaveBeenCalledWith("User does belongs to list of users to prevent the review request.");
+    test("should not request user if he is defined", () => {
+      runner.requestReviewers([exampleReport], { users: ["user-1"] });
+      expect(logger.info).toHaveBeenCalledWith("Filtering users to request a review from.");
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
+      expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
     });
 
-    test("should return true if the user is a team member", async () => {
-      const config: ConfigurationFile = { rules: [], preventReviewRequests: { teams: ["team-a", "team-b"] } };
-      teamsApi.getTeamMembers.calledWith("team-a").mockResolvedValue(["abc", "def", "ghi"]);
-      teamsApi.getTeamMembers.calledWith("team-b").mockResolvedValue(["zyx", "wvt", authorName]);
-      const result = await runner.preventReviewEvaluation(config);
-      expect(result).toBeTruthy();
-      expect(logger.info).toHaveBeenCalledWith(
-        "User belong to the team 'team-b' which is part of the preventReviewRequests.",
-      );
+    test("should not request team if it is defined", () => {
+      runner.requestReviewers([exampleReport], { teams: ["team-1"] });
+      expect(logger.info).toHaveBeenCalledWith("Filtering teams to request a review from.");
+      expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
     });
 
-    test("should return false if the user is not in the team and users", async () => {
-      const config: ConfigurationFile = {
-        rules: [],
-        preventReviewRequests: { teams: ["team-a", "team-b"], users: ["qwerty", "dvorak"] },
-      };
-      teamsApi.getTeamMembers.calledWith("team-a").mockResolvedValue(["abc", "def", "ghi"]);
-      teamsApi.getTeamMembers.calledWith("team-b").mockResolvedValue(["zyx", "wvu", "tsr"]);
-      const result = await runner.preventReviewEvaluation(config);
-      expect(result).toBeFalsy();
-      expect(logger.debug).toHaveBeenCalledWith(
-        "User does not belong to any of the preventReviewRequests requirements",
-      );
+    test("should request reviewers if the team and user are not the same", () => {
+      runner.requestReviewers([exampleReport], { users: ["user-pi"], teams: ["team-alpha"] });
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
     });
   });
 });

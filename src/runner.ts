@@ -66,14 +66,8 @@ export class ActionRunner {
    * The action evaluates if the rules requirements are meet for a PR
    * @returns an array of error reports for each failed rule. An empty array means no errors
    */
-  async validatePullRequest({ rules, preventReviewRequests }: ConfigurationFile): Promise<PullRequestReport> {
+  async validatePullRequest({ rules }: ConfigurationFile): Promise<PullRequestReport> {
     const modifiedFiles = await this.prApi.listModifiedFiles();
-
-    // verify if we should skip the validation
-    if (await this.preventReviewEvaluation({ preventReviewRequests })) {
-      this.logger.info("Skipping validation. User belongs to 'preventReviewRequests'");
-      return { files: modifiedFiles, reports: [] };
-    }
 
     const errorReports: RuleReport[] = [];
 
@@ -176,14 +170,14 @@ export class ActionRunner {
     if (preventReviewRequests) {
       if (
         preventReviewRequests.teams &&
-        teamsToRequest?.some((team) => preventReviewRequests.teams?.indexOf(team) === -1)
+        teamsToRequest?.some((team) => preventReviewRequests.teams?.indexOf(team) !== -1)
       ) {
         this.logger.info("Filtering teams to request a review from.");
         teamsToRequest = teamsToRequest?.filter((team) => preventReviewRequests.teams?.indexOf(team) === -1);
       }
       if (
         preventReviewRequests.users &&
-        usersToRequest?.some((user) => preventReviewRequests.users?.indexOf(user) === -1)
+        usersToRequest?.some((user) => preventReviewRequests.users?.indexOf(user) !== -1)
       ) {
         this.logger.info("Filtering users to request a review from.");
         usersToRequest = usersToRequest?.filter((user) => preventReviewRequests.users?.indexOf(user) === -1);
