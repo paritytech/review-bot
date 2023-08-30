@@ -15,7 +15,9 @@ describe("Shared validations", () => {
   let runner: ActionRunner;
   beforeEach(() => {
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, logger);
+    logger = mock<ActionLogger>();
+    teamsApi = mock<TeamApi>();
+    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), logger);
   });
 
   test("validatePullRequest should return true if no rule matches any files", async () => {
