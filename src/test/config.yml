@@ -12,13 +12,16 @@ rules:
       exclude: 
         - ^./gitlab/pipeline/zombienet.yml$
     min_approvals: 2
+    type: basic
     teams:
       - ci
       - release-engineering
 
   - name: Core developers
+    countAuthor: true
     condition:
-      include: .*
+      include: 
+        - .*
       # excluding files from 'Runtime files' and 'CI files' rules
       exclude: 
         - ^polkadot/runtime/(kusama|polkadot)/src/[^/]+\.rs$
@@ -26,29 +29,21 @@ rules:
         - ^cumulus/parachains/runtimes/bridge-hubs/(bridge-hub-kusama|bridge-hub-polkadot)/src/[^/]+\.rs$
         - ^cumulus/parachains/runtimes/collectives/collectives-polkadot/src/[^/]+\.rs$
         - ^cumulus/parachains/common/src/[^/]+\.rs$
-        - ^substrate/frame/(?!.*(nfts/.*
-        - uniques/.*
-        - babe/.*
-        - grandpa/.*
-        - beefy
-        - merkle-mountain-range/.*
-        - contracts/.*
-        - election
-        - nomination-pools/.*
-        - staking/.*
-        - aura/.*))
+        - ^substrate/frame/(?!.*(nfts/.*|uniques/.*|babe/.*|grandpa/.*|beefy|merkle-mountain-range/.*|contracts/.*|election|nomination-pools/.*|staking/.*|aura/.*))
         - ^polkadot/runtime/(kusama|polkadot)/src/[^/]+\.rs$
         - ^\.gitlab-ci\.yml
-        - ^(?!.*\.dic$
-        - .*spellcheck\.toml$)scripts/ci/.*
+        - ^(?!.*\.dic$|.*spellcheck\.toml$)scripts/ci/.*
         - ^\.github/.*
     min_approvals: 2
+    type: basic
     teams:
       - core-devs
 
   # cumulus
   - name: Runtime files cumulus
+    countAuthor: true
     condition: 
+      include:
         - ^cumulus/parachains/runtimes/assets/(asset-hub-kusama|asset-hub-polkadot)/src/[^/]+\.rs$
         - ^cumulus/parachains/runtimes/bridge-hubs/(bridge-hub-kusama|bridge-hub-polkadot)/src/[^/]+\.rs$
         - ^cumulus/parachains/runtimes/collectives/collectives-polkadot/src/[^/]+\.rs$
@@ -64,8 +59,9 @@ rules:
 
   # if there are any changes in the bridges subtree (in case of backport changes back to bridges repo)
   - name: Bridges subtree files
-    check_type: changed_files
+    type: basic
     condition: 
+      include:
         - ^cumulus/bridges/.*
     min_approvals: 1
     teams:
@@ -74,21 +70,11 @@ rules:
   # substrate
 
   - name: FRAME coders substrate
-    check_type: changed_files
     condition:
       include: 
-        - ^substrate/frame/(?!.*(nfts/.*
-        - uniques/.*
-        - babe/.*
-        - grandpa/.*
-        - beefy
-        - merkle-mountain-range/.*
-        - contracts/.*
-        - election
-        - nomination-pools/.*
-        - staking/.*
-        - aura/.*))
-    all:
+        - ^substrate/frame/(?!.*(nfts/.*|uniques/.*|babe/.*|grandpa/.*|beefy|merkle-mountain-range/.*|contracts/.*|election|nomination-pools/.*|staking/.*|aura/.*))
+    type: "and"
+    reviewers:
       - min_approvals: 2
         teams:
           - core-devs
