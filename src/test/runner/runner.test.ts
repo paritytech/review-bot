@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { mock, MockProxy } from "jest-mock-extended";
 
 import { GitHubChecksApi } from "../../github/check";
@@ -10,10 +11,13 @@ import { ActionRunner } from "../../runner";
 describe("Shared validations", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
+  let logger: MockProxy<ActionLogger>;
   let runner: ActionRunner;
   beforeEach(() => {
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
+    logger = mock<ActionLogger>();
+    teamsApi = mock<TeamApi>();
+    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), logger);
   });
 
   test("validatePullRequest should return true if no rule matches any files", async () => {
@@ -57,6 +61,42 @@ describe("Shared validations", () => {
       expect(result).toContainEqual("src/index.ts");
       expect(result).toContainEqual("yarn-error.log");
       expect(result).not.toContain(".github/workflows/review-bot.yml");
+    });
+  });
+
+  describe("Validation in requestReviewers", () => {
+    const exampleReport = {
+      name: "Example",
+      missingUsers: ["user-1", "user-2", "user-3"],
+      missingReviews: 2,
+      teamsToRequest: ["team-1"],
+      usersToRequest: ["user-1"],
+    };
+
+    test("should request reviewers if object is not defined", () => {
+      runner.requestReviewers([exampleReport], undefined);
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
+    });
+
+    test("should not request user if he is defined", () => {
+      runner.requestReviewers([exampleReport], { users: ["user-1"] });
+      expect(logger.info).toHaveBeenCalledWith("Filtering users to request a review from.");
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
+      expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
+    });
+
+    test("should not request team if it is defined", () => {
+      runner.requestReviewers([exampleReport], { teams: ["team-1"] });
+      expect(logger.info).toHaveBeenCalledWith("Filtering teams to request a review from.");
+      expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
+    });
+
+    test("should request reviewers if the team and user are not the same", () => {
+      runner.requestReviewers([exampleReport], { users: ["user-pi"], teams: ["team-alpha"] });
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
     });
   });
 });

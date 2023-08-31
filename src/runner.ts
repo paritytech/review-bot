@@ -67,8 +67,10 @@ export class ActionRunner {
    * @returns an array of error reports for each failed rule. An empty array means no errors
    */
   async validatePullRequest({ rules }: ConfigurationFile): Promise<PullRequestReport> {
-    const errorReports: RuleReport[] = [];
     const modifiedFiles = await this.prApi.listModifiedFiles();
+
+    const errorReports: RuleReport[] = [];
+
     ruleCheck: for (const rule of rules) {
       try {
         this.logger.info(`Validating rule '${rule.name}'`);
@@ -146,7 +148,7 @@ export class ActionRunner {
   }
 
   /** WIP - Class that will assign the requests for review */
-  requestReviewers(reports: RuleReport[]): void {
+  requestReviewers(reports: RuleReport[], preventReviewRequests: ConfigurationFile["preventReviewRequests"]): void {
     if (reports.length === 0) {
       return;
     }
@@ -159,7 +161,29 @@ export class ActionRunner {
       finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, report.usersToRequest);
     }
 
-    const { teamsToRequest, usersToRequest } = finalReport;
+    let { teamsToRequest, usersToRequest } = finalReport;
+
+    /**
+     * Evaluates if the user belongs to the special rule of preventReviewRequests
+     * and if the request for a review should be skipped
+     */
+    if (preventReviewRequests) {
+      if (
+        preventReviewRequests.teams &&
+        teamsToRequest?.some((team) => preventReviewRequests.teams?.indexOf(team) !== -1)
+      ) {
+        this.logger.info("Filtering teams to request a review from.");
+        teamsToRequest = teamsToRequest?.filter((team) => preventReviewRequests.teams?.indexOf(team) === -1);
+      }
+      if (
+        preventReviewRequests.users &&
+        usersToRequest?.some((user) => preventReviewRequests.users?.indexOf(user) !== -1)
+      ) {
+        this.logger.info("Filtering users to request a review from.");
+        usersToRequest = usersToRequest?.filter((user) => preventReviewRequests.users?.indexOf(user) === -1);
+      }
+    }
+
     const validArray = (array: string[] | undefined): boolean => !!array && array.length > 0;
     const reviewersLog = [
       validArray(teamsToRequest) ? `Teams: ${JSON.stringify(teamsToRequest)}` : "",
@@ -448,7 +472,7 @@ export class ActionRunner {
     const checkRunData = this.generateCheckRunData(reports);
     await this.checks.generateCheckRun(checkRunData);
 
-    this.requestReviewers(reports);
+    this.requestReviewers(reports, config.preventReviewRequests);
 
     setOutput("report", JSON.stringify(prValidation));
 

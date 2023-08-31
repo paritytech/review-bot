@@ -169,7 +169,7 @@ describe("Config Parsing", () => {
       expect(config.preventReviewRequests?.users).toEqual(["user-a", "user-b"]);
     });
 
-    test("should fail with both users and teams", async () => {
+    test("should get both users and teams", async () => {
       api.getConfigFile.mockResolvedValue(`
       rules:
         - name: Default review
@@ -187,12 +187,12 @@ describe("Config Parsing", () => {
           - user-a
           - user-b
         teams:
-              - team-a
-              - team-b
+          - team-a
+          - team-b
         `);
-      await expect(runner.getConfigFile("")).rejects.toThrowError(
-        '"preventReviewRequests" contains a conflict between exclusive peers [users, teams]',
-      );
+      const config = await runner.getConfigFile("");
+      expect(config.preventReviewRequests?.users).toEqual(["user-a", "user-b"]);
+      expect(config.preventReviewRequests?.teams).toEqual(["team-a", "team-b"]);
     });
 
     test("should pass if preventReviewRequests is not assigned", async () => {

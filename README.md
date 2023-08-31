@@ -169,11 +169,12 @@ interface Report {
 ## Rule configuration file
 This is the file where all the available rules are written. 
 
-**This file is only read from the main branch.** So if you modify the file the changes won’t happen until it is merged into the main branch. 
-This is done to stop users from modifying the rules in their own PRs.
+**This file is only read from the main branch.** So if you modify the file, the changes won’t happen until it is merged into the main branch. 
+This is done to stop users from modifying the rules in their PRs.
 
-It contains an object called `rules` which has an array of rules. Every rule has a same base structure:
+It contains an object called `rules` which has an array of rules. Every rule has a same base structure. There is also a second optional field called `preventReviewRequests`.
 ```yaml
+rules:
   - name: Rule name
     condition:
       include:
@@ -181,8 +182,17 @@ It contains an object called `rules` which has an array of rules. Every rule has
       exclude:
         - 'README.md'
     type: the type of the rule
+
+preventReviewRequests:
+  users:
+    - user-a
+    - user-b
+  teams:
+    - team-a
+    - team-b
 ```
 
+#### Rules fields
 - **name**: Name of the rule. This value must be unique per rule.
 - **condition**: This is an object that contains two values:
 	- **include**: An array of regex expressions of the files that match this rule.
@@ -197,8 +207,16 @@ It contains an object called `rules` which has an array of rules. Every rule has
 			- **or**: Has many review options, requires at least *one option* to be fulfilled.
 			- **and**: Has many review options, requires *all the options* to be fulfilled.
 			-  **and-distinct**: Has many review options, requires *all the options* to be fulfilled *by different people*.
+
+#### preventReviewRequests
+This is a special field that applies to all the rules.
+
+This field is **optional** and currently not used. Pending on https://github.com/paritytech/review-bot/issues/53
+
+
 ### Types
 Every type has a *slightly* different configuration and works for different scenarios, so let’s analyze all of them.
+
 #### Basic rule
 As the name implies, this type is elementary. All the files that fall under the rule evaluation must receive a given number of approvals by the listed users and/or team members.
 
