@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { PullRequest } from "@octokit/webhooks-types";
+import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 import { readFileSync } from "fs";
-import { DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
+import { DeepMockProxy, Matcher, mock, mockDeep, MockProxy } from "jest-mock-extended";
 import { join } from "path";
 
 import { GitHubChecksApi } from "../github/check";
@@ -14,6 +14,15 @@ describe("Integration testing", () => {
   const file = join(__dirname, "./", "config.yml");
   const config = readFileSync(file, "utf8");
 
+  const teamsMembers: [string, string[]][] = [
+    ["ci", ["ci-1", "ci-2", "ci-3"]],
+    ["release-engineering", ["re-1", "re-2", "re-3"]],
+    ["core-devs", ["gavofyork", "bkchr", "core-1", "core-2"]],
+    ["locks-review", ["gavofyork", "bkchr", "lock-1"]],
+    ["bridges-core", ["bridge-1", "bridge-2", "bridge-3"]],
+    ["frame-coders", ["frame-1", "frame-2", "frame-3"]],
+  ];
+
   let api: PullRequestApi;
   let logger: MockProxy<ActionLogger>;
   let client: DeepMockProxy<GitHubClient>;
@@ -21,6 +30,22 @@ describe("Integration testing", () => {
   let checks: GitHubChecksApi;
   let teams: TeamApi;
   let runner: ActionRunner;
+
+  const generateReviewer = (
+    state: "commented" | "changes_requested" | "approved" | "dismissed",
+    user: string,
+  ): PullRequestReview =>
+    ({
+      state,
+      user: { login: user, id: Math.floor(Math.random() * 1000) },
+      id: Math.floor(Math.random() * 1000),
+    }) as PullRequestReview;
+
+  const mockReviews = (reviews: PullRequestReview[]) => {
+    // @ts-ignore because the official type and the library type do not match
+    client.rest.pulls.listReviews.mockResolvedValue({ data: reviews });
+  };
+
   beforeEach(() => {
     logger = mock<ActionLogger>();
     client = mockDeep<GitHubClient>();
@@ -35,6 +60,19 @@ describe("Integration testing", () => {
 
     // @ts-ignore problem with the type being mocked
     client.rest.repos.getContent.mockResolvedValue({ data: { content: Buffer.from(config, "utf-8") } });
+    mockReviews([]);
+    for (const [teamName, members] of teamsMembers) {
+      client.rest.teams.listMembersInOrg
+        // @ts-ignore as the error is related to the matcher type
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
+        .calledWith(new Matcher<{ team_slug: string }>((value) => value.team_slug === teamName, "Different team name"))
+        .mockResolvedValue({
+          // @ts-ignore as we don't need the full type
+          data: members.map((m) => {
+            return { login: m };
+          }),
+        });
+    }
   });
 
   describe("Error in config", () => {
@@ -85,5 +123,10 @@ describe("Integration testing", () => {
         "Regular expression is invalid",
       );
     });
+  });
+  test("should not report problems on empty files", async () => {
+    // @ts-ignore
+    client.rest.pulls.listFiles.mockResolvedValue({ data: [{ filename: "README.md" }] });
+    await runner.runAction({ configLocation: "abc" });
   });
 });
