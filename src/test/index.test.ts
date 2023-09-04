@@ -49,17 +49,8 @@ describe("Integration testing", () => {
   let teams: TeamApi;
   let runner: ActionRunner;
 
-  const generateReviewer = (
-    state: "commented" | "changes_requested" | "approved" | "dismissed",
-    user: string,
-  ): PullRequestReview =>
-    ({
-      state,
-      user: { login: user, id: Math.floor(Math.random() * 1000) },
-      id: Math.floor(Math.random() * 1000),
-    }) as PullRequestReview;
-
   const mockReviews = (reviews: (Pick<PullRequestReview, "state" | "id"> & { login: string })[]) => {
+    // convert name into ID
     const getHash = (input: string): number => {
       let hash = 0;
       const len = input.length;
