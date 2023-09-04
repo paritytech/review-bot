@@ -75,7 +75,7 @@ describe("Integration testing", () => {
     });
 
     // @ts-ignore because the official type and the library type do not match
-    client.rest.pulls.listReviews.mockResolvedValue({data});
+    client.rest.pulls.listReviews.mockResolvedValue({ data });
   };
 
   const summaryTestFile = "./summary-test.html";

@@ -41,7 +41,7 @@ rules:
   # cumulus
   - name: Runtime files cumulus
     countAuthor: true
-    condition: 
+    condition:
       include:
         - ^cumulus/parachains/runtimes/assets/(asset-hub-kusama|asset-hub-polkadot)/src/[^/]+\.rs$
         - ^cumulus/parachains/runtimes/bridge-hubs/(bridge-hub-kusama|bridge-hub-polkadot)/src/[^/]+\.rs$
