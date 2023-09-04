@@ -21,7 +21,7 @@ type ReviewReport = {
   usersToRequest?: string[];
 };
 
-type RuleReport = { name: string } & ReviewReport;
+export type RuleReport = { name: string } & ReviewReport;
 
 type ReviewState = [true] | [false, ReviewReport];
 

@@ -8,3 +8,6 @@
 !.vscode/settings.json
 .idea
 .DS_Store
+
+# Testing
+summary-test.html
