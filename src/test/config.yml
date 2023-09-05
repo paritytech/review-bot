@@ -19,10 +19,10 @@ rules:
   - name: Core developers
     countAuthor: true
     condition:
-      include: 
+      include:
         - .*
       # excluding files from 'Runtime files' and 'CI files' rules
-      exclude: 
+      exclude:
         - ^polkadot/runtime/(kusama|polkadot)/src/[^/]+\.rs$
         - ^cumulus/parachains/runtimes/assets/(asset-hub-kusama|asset-hub-polkadot)/src/[^/]+\.rs$
         - ^cumulus/parachains/runtimes/bridge-hubs/(bridge-hub-kusama|bridge-hub-polkadot)/src/[^/]+\.rs$

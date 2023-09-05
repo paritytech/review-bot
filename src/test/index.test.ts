@@ -226,4 +226,31 @@ describe("Integration testing", () => {
     console.log(report);
     expect(report.missingReviews).toBe(2);
   });
+
+  describe("Combinations", () => {
+    test("should use same reviewer for separate rules", async () => {
+      client.rest.pulls.listFiles.mockResolvedValue({
+        // @ts-ignore
+        data: [{ filename: "cumulus/parachains/common/src/example.rs" }, { filename: "README.md" }],
+      });
+      mockReviews([{ state: "approved", id: 123, login: "gavofyork" }]);
+      const newResult = await runner.runAction({ configLocation: "abc" });
+      console.log("nre result", JSON.stringify(newResult, null, 2));
+      expect(newResult.reports.map((r) => r.missingReviews).reduce((a, b) => a + b, 0)).toBe(3);
+    });
+
+    test("should use same reviewers for separate rules", async () => {
+      client.rest.pulls.listFiles.mockResolvedValue({
+        // @ts-ignore
+        data: [{ filename: "" }, { filename: "README.md" }],
+      });
+      mockReviews([
+        { state: "approved", id: 123, login: "gavofyork" },
+        { state: "approved", id: 124, login: "bkchr" },
+      ]);
+      const result = await runner.runAction({ configLocation: "abc" });
+      console.log("nre result", JSON.stringify(result, null, 2));
+      expect(result.conclusion).toEqual("success");
+    });
+  });
 });
