@@ -363,5 +363,13 @@ We use `yarn` package manager and `node 18`.
 - Use `yarn test` to run tests on all the `*.test.ts` files.
 - Use `yarn lint` to run the linter.
 - Use `yarn fix` to fix all the auto fixable issues reported by the linter.
+
 ## Deployment
-Pending on https://github.com/paritytech/review-bot/issues/55
+To deploy a new version you need to update two files:
+- [`package.json`](./package.json): Update the version number.
+- [`action.yml`](./action.yml): Update the image number in `runs.image`.
+**Important**: Both versions must have the same number.
+
+When a commit is pushed to the main branch and the versions have changed, the system will automatically tag the commit and release a new package with such version.
+
+You can find all the available versions in the [release section](./releases).
