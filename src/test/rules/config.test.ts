@@ -271,5 +271,92 @@ describe("Config Parsing", () => {
       const config = await runner.getConfigFile("");
       expect(config.rules[0].condition.exclude).toBeUndefined();
     });
+
+    describe("excludeAuthor", () => {
+      test("should get teams", async () => {
+        api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Default review
+            condition:
+              include: 
+                  - '.*'
+              exclude: 
+                  - 'example'
+            type: basic
+            excludeAuthors:
+              teams:
+                - team-example
+            teams:
+              - team-example
+          `);
+        const config = await runner.getConfigFile("");
+        const { excludeAuthors } = config.rules[0];
+        expect(excludeAuthors?.teams).toEqual(["team-example"]);
+        expect(excludeAuthors?.users).toBeUndefined();
+      });
+
+      test("should get users", async () => {
+        api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Default review
+            condition:
+              include: 
+                  - '.*'
+              exclude: 
+                  - 'example'
+            type: basic
+            excludeAuthors:
+              users:
+                - user-example
+            teams:
+              - team-example
+          `);
+        const config = await runner.getConfigFile("");
+        const { excludeAuthors } = config.rules[0];
+        expect(excludeAuthors?.users).toEqual(["user-example"]);
+        expect(excludeAuthors?.teams).toBeUndefined();
+      });
+
+      test("should get teams and users", async () => {
+        api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Default review
+            condition:
+              include: 
+                  - '.*'
+              exclude: 
+                  - 'example'
+            type: basic
+            excludeAuthors:
+              teams:
+                - team-example
+              users:
+                - user-example
+            teams:
+              - team-example
+          `);
+        const config = await runner.getConfigFile("");
+        const { excludeAuthors } = config.rules[0];
+        expect(excludeAuthors?.teams).toEqual(["team-example"]);
+        expect(excludeAuthors?.users).toEqual(["user-example"]);
+      });
+
+      test("should be null by default", async () => {
+        api.getConfigFile.mockResolvedValue(`
+        rules:
+          - name: Default review
+            condition:
+              include: 
+                  - '.*'
+              exclude: 
+                  - 'example'
+            type: basic
+            teams:
+              - team-example
+          `);
+        const config = await runner.getConfigFile("");
+        expect(config.rules[0].excludeAuthors).toBeUndefined();
+      });
+    });
   });
 });
