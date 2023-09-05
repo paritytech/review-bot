@@ -82,7 +82,7 @@ export class ActionRunner {
           // If there are no matches, we simply skip the check
           continue;
         } else if (rule.greenlightFrom) {
-          const members = await this.fetchAllMembers(rule.greenlightFrom);
+          const members = await this.fetchAllUsers(rule.greenlightFrom);
           const author = this.prApi.getAuthor();
           if (members.indexOf(author) > -1) {
             this.logger.info(`Skipping rule ${rule.name} as author belong to greenlight rule.`);
@@ -375,7 +375,7 @@ export class ActionRunner {
     this.logger.debug(JSON.stringify(rule));
 
     // This is a list of all the users that need to approve a PR
-    const requiredUsers: string[] = await this.fetchAllMembers(rule);
+    const requiredUsers: string[] = await this.fetchAllUsers(rule);
 
     if (requiredUsers.length === 0) {
       throw new Error("No users have been found in the required reviewers");
@@ -457,7 +457,7 @@ export class ActionRunner {
    * @param reviewers Object with users or teams to fetch members
    * @returns an array with all the users
    */
-  async fetchAllMembers(reviewers: Omit<Reviewers, "min_approvals">): Promise<string[]> {
+  async fetchAllUsers(reviewers: Omit<Reviewers, "min_approvals">): Promise<string[]> {
     const users: Set<string> = new Set<string>();
     if (reviewers.teams) {
       for (const team of reviewers.teams) {

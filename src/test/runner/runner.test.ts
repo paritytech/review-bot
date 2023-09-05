@@ -32,6 +32,24 @@ describe("Shared validations", () => {
     expect(evaluation).toBeTruthy();
   });
 
+  test("validatePullRequest should return true if no rule matches any files", async () => {
+    const config: ConfigurationFile = {
+      rules: [
+        { name: "Rule 1", type: RuleTypes.Basic, condition: { include: ["src"] }, min_approvals: 1 },
+        { name: "Rule 2", type: RuleTypes.Basic, condition: { include: ["README.md"] }, min_approvals: 99 },
+      ],
+    };
+    api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml", "LICENSE"]);
+    const evaluation = await runner.validatePullRequest(config);
+    expect(evaluation).toBeTruthy();
+  });
+
+  test("fetchAllUsers should not return duplicates", async () => {
+    teamsApi.getTeamMembers.mockResolvedValue(["user-1", "user-2", "user-3"]);
+    const users = await runner.fetchAllUsers({ teams: ["abc"], users: ["user-1", "user-2", "user-4"] });
+    expect(users).toStrictEqual(["user-1", "user-2", "user-3", "user-4"]);
+  });
+
   describe("listFilesThatMatchRuleCondition tests", () => {
     test("should get values that match the condition", () => {
       const mockRule = { condition: { include: ["src"] } };
