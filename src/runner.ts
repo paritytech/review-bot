@@ -81,6 +81,13 @@ export class ActionRunner {
           this.logger.info(`Skipping rule ${rule.name} as no condition matched`);
           // If there are no matches, we simply skip the check
           continue;
+        } else if (rule.greenlightFrom) {
+          const members = await this.fetchAllMembers(rule.greenlightFrom);
+          const author = this.prApi.getAuthor();
+          if (members.indexOf(author) > -1) {
+            this.logger.info(`Skipping rule ${rule.name} as author belong to greenlight rule.`);
+            continue;
+          }
         }
         if (rule.type === "basic") {
           const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
@@ -453,6 +460,25 @@ export class ActionRunner {
     }
 
     return matches;
+  }
+
+  async fetchAllMembers(reviewers: Omit<Reviewers, "min_approvals">): Promise<string[]> {
+    const users: Set<string> = new Set<string>();
+    if (reviewers.teams) {
+      for (const team of reviewers.teams) {
+        const members = await this.teamApi.getTeamMembers(team);
+        for (const member of members) {
+          users.add(member);
+        }
+      }
+    }
+    if (reviewers.users) {
+      for (const user of reviewers.users) {
+        users.add(user);
+      }
+    }
+
+    return Array.from(users);
   }
 
   /** Core runner of the app.
