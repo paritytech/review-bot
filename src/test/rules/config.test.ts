@@ -272,7 +272,7 @@ describe("Config Parsing", () => {
       expect(config.rules[0].condition.exclude).toBeUndefined();
     });
 
-    describe("excludeAuthor", () => {
+    describe("allowedToSkipRule", () => {
       test("should get teams", async () => {
         api.getConfigFile.mockResolvedValue(`
         rules:

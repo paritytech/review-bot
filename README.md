@@ -262,7 +262,7 @@ It has the same parameters as a normal rule:
 - **countAuthor**: If the pull request author should be considered as an approval.
 	- If the author belongs to the list of approved users (either by team or by users) his approval will be counted (requiring one less approvals in total).
 	- ** Optional**: Defaults to `false`
-- **excludeAuthor**: If the author belong to one of the teams and/or users in the list, the rule should be skipped.
+- **allowedToSkipRule**: If the author belong to one of the teams and/or users in the list, the rule should be skipped.
 	- **Optional**.
 	- This is useful for cases where we want to make sure that some eyes look into a PR, but for we don’t need to ensure that much security on internal teams.
 		- For example, if someone modifies a CI file, we want to make sure they didn’t break anything. Unless it’s someone from the CI team. They *should know* what they are doing.
