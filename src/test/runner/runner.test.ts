@@ -32,16 +32,24 @@ describe("Shared validations", () => {
     expect(evaluation).toBeTruthy();
   });
 
-  test("validatePullRequest should return true if no rule matches any files", async () => {
+  test("validatePullRequest should return true if author belongs to excludeAuthors", async () => {
     const config: ConfigurationFile = {
       rules: [
-        { name: "Rule 1", type: RuleTypes.Basic, condition: { include: ["src"] }, min_approvals: 1 },
-        { name: "Rule 2", type: RuleTypes.Basic, condition: { include: ["README.md"] }, min_approvals: 99 },
+        {
+          name: "Rule excludeAuthors",
+          type: RuleTypes.Basic,
+          condition: { include: ["src"] },
+          min_approvals: 1,
+          excludeAuthors: { teams: ["abc"] },
+        },
       ],
     };
-    api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml", "LICENSE"]);
+    api.listModifiedFiles.mockResolvedValue(["src/polkadot/init.rs", "LICENSE"]);
+    teamsApi.getTeamMembers.mockResolvedValue(["user-1", "user-2", "user-3"]);
+    api.getAuthor.mockReturnValue("user-1");
     const evaluation = await runner.validatePullRequest(config);
     expect(evaluation).toBeTruthy();
+    expect(logger.info).toHaveBeenCalledWith("Skipping rule Rule excludeAuthors as author belong to greenlight rule.");
   });
 
   test("fetchAllUsers should not return duplicates", async () => {
