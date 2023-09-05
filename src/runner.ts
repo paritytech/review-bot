@@ -21,7 +21,7 @@ type ReviewReport = {
   usersToRequest?: string[];
 };
 
-type RuleReport = { name: string } & ReviewReport;
+export type RuleReport = { name: string } & ReviewReport;
 
 type ReviewState = [true] | [false, ReviewReport];
 
@@ -461,7 +461,7 @@ export class ActionRunner {
    * 3. It generates a status check in the Pull Request
    * 4. WIP - It assigns the required reviewers to review the PR
    */
-  async runAction(inputs: Omit<Inputs, "repoToken">): Promise<Pick<CheckData, "conclusion"> & PullRequestReport> {
+  async runAction(inputs: Pick<Inputs, "configLocation">): Promise<Pick<CheckData, "conclusion"> & PullRequestReport> {
     const config = await this.getConfigFile(inputs.configLocation);
 
     const prValidation = await this.validatePullRequest(config);
