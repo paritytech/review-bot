@@ -2,7 +2,7 @@ import { validate } from "@eng-automation/js";
 import Joi from "joi";
 
 import { ActionLogger } from "../github/types";
-import { AndRule, BasicRule, ConfigurationFile, DebugRule, Reviewers, Rule, RuleTypes } from "./types";
+import { AndRule, BasicRule, ConfigurationFile, Reviewers, Rule, RuleTypes } from "./types";
 
 /** For the users or team schema. Will be recycled A LOT
  * Remember to add `.or("users", "teams")` to force at least one of the two to be defined
@@ -24,9 +24,7 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     include: Joi.array().items(Joi.string()).required(),
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
-  type: Joi.string()
-    .valid(RuleTypes.Basic, RuleTypes.Debug, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDistinct)
-    .required(),
+  type: Joi.string().valid(RuleTypes.Basic, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDistinct).required(),
 });
 
 /** General Configuration schema.
@@ -73,8 +71,6 @@ export const validateConfig = (config: ConfigurationFile): ConfigurationFile | n
     const message = `Configuration for rule '${rule.name}' is invalid`;
     if (type === "basic") {
       validatedConfig.rules[i] = validate<BasicRule>(rule, basicRuleSchema, { message });
-    } else if (type === "debug") {
-      validatedConfig.rules[i] = validate<DebugRule>(rule, ruleSchema, { message });
     } else if (type === "and" || type === "or" || type === "and-distinct") {
       // Aside from the type, every other field in this rules is identical so we can
       // use any of these rules to validate the other fields.
