@@ -10,7 +10,7 @@ export type Reviewers = { users?: string[]; teams?: string[]; min_approvals: num
 export interface Rule {
   name: string;
   condition: { include: string[]; exclude?: string[] };
-  greenlightAuthorsFrom?: Omit<Reviewers, "min_approvals">;
+  excludeAuthors?: Omit<Reviewers, "min_approvals">;
   countAuthor?: boolean;
 }
 

@@ -28,7 +28,7 @@ rules:
         - ^polkadot/runtime\/(kusama|polkadot)\/src\/weights\/.+\.rs$
         - ^substrate\/frame\/.+\.md$
     min_approvals: 2
-    greenlightAuthorsFrom:
+    excludeAuthors:
       teams:
         - core-devs
     teams:
