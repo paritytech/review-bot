@@ -24,6 +24,7 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     include: Joi.array().items(Joi.string()).required(),
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
+  allowedToSkipRule: Joi.object<Omit<Reviewers, "min_approvals">>().keys(reviewersObj).optional().or("users", "teams"),
   type: Joi.string().valid(RuleTypes.Basic, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDistinct).required(),
 });
 

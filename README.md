@@ -238,6 +238,11 @@ rules:
       - user-1
       - user-2
     countAuthor: true
+    allowedToSkipRule:
+      teams:
+        - team-1
+      users:
+        - user-1
 ```
 It has the same parameters as a normal rule:
 -  **name**: Name of the rule. This value must be unique per rule.
@@ -257,6 +262,10 @@ It has the same parameters as a normal rule:
 - **countAuthor**: If the pull request author should be considered as an approval.
 	- If the author belongs to the list of approved users (either by team or by users) his approval will be counted (requiring one less approvals in total).
 	- ** Optional**: Defaults to `false`
+- **allowedToSkipRule**: If the author belong to one of the teams and/or users in the list, the rule should be skipped.
+	- **Optional**.
+	- This is useful for cases where we want to make sure that some eyes look into a PR, but for we don’t need to ensure that much security on internal teams.
+		- For example, if someone modifies a CI file, we want to make sure they didn’t break anything. Unless it’s someone from the CI team. They *should know* what they are doing.
 #### Other rules
 The other three rules (**or**, **and** and **and-distinct**) have the same configuration, so let’s summarize that here and then move into how they work.
 ```yaml

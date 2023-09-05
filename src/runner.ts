@@ -81,6 +81,13 @@ export class ActionRunner {
           this.logger.info(`Skipping rule ${rule.name} as no condition matched`);
           // If there are no matches, we simply skip the check
           continue;
+        } else if (rule.allowedToSkipRule) {
+          const members = await this.fetchAllUsers(rule.allowedToSkipRule);
+          const author = this.prApi.getAuthor();
+          if (members.indexOf(author) > -1) {
+            this.logger.info(`Skipping rule ${rule.name} as author belong to greenlight rule.`);
+            continue;
+          }
         }
         if (rule.type === "basic") {
           const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
@@ -368,18 +375,8 @@ export class ActionRunner {
     this.logger.debug(JSON.stringify(rule));
 
     // This is a list of all the users that need to approve a PR
-    let requiredUsers: string[] = [];
-    // If team is set, we fetch the members of such team
-    if (rule.teams) {
-      for (const team of rule.teams) {
-        const members = await this.teamApi.getTeamMembers(team);
-        requiredUsers = concatArraysUniquely(requiredUsers, members);
-      }
-      // If, instead, users are set, we simply push them to the array as we don't need to scan a team
-    }
-    if (rule.users) {
-      requiredUsers = concatArraysUniquely(requiredUsers, rule.users);
-    }
+    const requiredUsers: string[] = await this.fetchAllUsers(rule);
+
     if (requiredUsers.length === 0) {
       throw new Error("No users have been found in the required reviewers");
     }
@@ -453,6 +450,30 @@ export class ActionRunner {
     }
 
     return matches;
+  }
+
+  /**
+   * Fetch all the members of a team and/or list and removes duplicates
+   * @param reviewers Object with users or teams to fetch members
+   * @returns an array with all the users
+   */
+  async fetchAllUsers(reviewers: Omit<Reviewers, "min_approvals">): Promise<string[]> {
+    const users: Set<string> = new Set<string>();
+    if (reviewers.teams) {
+      for (const team of reviewers.teams) {
+        const members = await this.teamApi.getTeamMembers(team);
+        for (const member of members) {
+          users.add(member);
+        }
+      }
+    }
+    if (reviewers.users) {
+      for (const user of reviewers.users) {
+        users.add(user);
+      }
+    }
+
+    return Array.from(users);
   }
 
   /** Core runner of the app.

@@ -13,6 +13,7 @@ import { ActionRunner, RuleReport } from "../runner";
 type ReportName =
   | "CI files"
   | "Core developers"
+  | "Audit rules"
   | "Runtime files cumulus"
   | "Bridges subtree files"
   | "FRAME coders substrate";
@@ -39,6 +40,7 @@ describe("Integration testing", () => {
     ["polkadot-review", ["gavofyork", "bkchr", "pr-1", "pr-2"]],
     ["bridges-core", ["bridge-1", "bridge-2", "bridge-3"]],
     ["frame-coders", ["frame-1", "frame-2", "frame-3"]],
+    ["srlabs", ["audit-1", "audit-2", "audit-3"]],
   ];
 
   let api: PullRequestApi;
@@ -223,6 +225,18 @@ describe("Integration testing", () => {
     expect(result.conclusion).toBe("failure");
     const report = getReport(result.reports, "Runtime files cumulus");
     expect(report.missingReviews).toBe(2);
+  });
+
+  test("should skip audit rule if author belongs to greenlighted team", async () => {
+    // @ts-ignore
+    client.rest.pulls.listFiles.mockResolvedValue({ data: [{ filename: "polkadot/primitives/src/transfer.rs" }] });
+    const result = await runner.runAction({ configLocation: "abc" });
+    expect(result.reports).toHaveLength(2);
+    expect(result.reports.map((r) => r.name)).toContainEqual("Audit rules");
+    pr.user.login = "gavofyork";
+    const newResult = await runner.runAction({ configLocation: "abc" });
+    expect(newResult.reports).toHaveLength(1);
+    expect(newResult.reports.map((r) => r.name)).not.toContainEqual("Audit rules");
   });
 
   describe("Combinations", () => {

@@ -32,6 +32,34 @@ describe("Shared validations", () => {
     expect(evaluation).toBeTruthy();
   });
 
+  test("validatePullRequest should return true if author belongs to allowedToSkipRule", async () => {
+    const config: ConfigurationFile = {
+      rules: [
+        {
+          name: "Rule allowedToSkipRule",
+          type: RuleTypes.Basic,
+          condition: { include: ["src"] },
+          min_approvals: 1,
+          allowedToSkipRule: { teams: ["abc"] },
+        },
+      ],
+    };
+    api.listModifiedFiles.mockResolvedValue(["src/polkadot/init.rs", "LICENSE"]);
+    teamsApi.getTeamMembers.mockResolvedValue(["user-1", "user-2", "user-3"]);
+    api.getAuthor.mockReturnValue("user-1");
+    const evaluation = await runner.validatePullRequest(config);
+    expect(evaluation).toBeTruthy();
+    expect(logger.info).toHaveBeenCalledWith(
+      "Skipping rule Rule allowedToSkipRule as author belong to greenlight rule.",
+    );
+  });
+
+  test("fetchAllUsers should not return duplicates", async () => {
+    teamsApi.getTeamMembers.mockResolvedValue(["user-1", "user-2", "user-3"]);
+    const users = await runner.fetchAllUsers({ teams: ["abc"], users: ["user-1", "user-2", "user-4"] });
+    expect(users).toStrictEqual(["user-1", "user-2", "user-3", "user-4"]);
+  });
+
   describe("listFilesThatMatchRuleCondition tests", () => {
     test("should get values that match the condition", () => {
       const mockRule = { condition: { include: ["src"] } };
