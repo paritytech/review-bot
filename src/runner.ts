@@ -81,8 +81,8 @@ export class ActionRunner {
           this.logger.info(`Skipping rule ${rule.name} as no condition matched`);
           // If there are no matches, we simply skip the check
           continue;
-        } else if (rule.greenlightFrom) {
-          const members = await this.fetchAllUsers(rule.greenlightFrom);
+        } else if (rule.greenlightAuthorsFrom) {
+          const members = await this.fetchAllUsers(rule.greenlightAuthorsFrom);
           const author = this.prApi.getAuthor();
           if (members.indexOf(author) > -1) {
             this.logger.info(`Skipping rule ${rule.name} as author belong to greenlight rule.`);
