@@ -283,16 +283,16 @@ describe("Config Parsing", () => {
               exclude: 
                   - 'example'
             type: basic
-            excludeAuthors:
+            allowedToSkipRule:
               teams:
                 - team-example
             teams:
               - team-example
           `);
         const config = await runner.getConfigFile("");
-        const { excludeAuthors } = config.rules[0];
-        expect(excludeAuthors?.teams).toEqual(["team-example"]);
-        expect(excludeAuthors?.users).toBeUndefined();
+        const { allowedToSkipRule } = config.rules[0];
+        expect(allowedToSkipRule?.teams).toEqual(["team-example"]);
+        expect(allowedToSkipRule?.users).toBeUndefined();
       });
 
       test("should get users", async () => {
@@ -305,16 +305,16 @@ describe("Config Parsing", () => {
               exclude: 
                   - 'example'
             type: basic
-            excludeAuthors:
+            allowedToSkipRule:
               users:
                 - user-example
             teams:
               - team-example
           `);
         const config = await runner.getConfigFile("");
-        const { excludeAuthors } = config.rules[0];
-        expect(excludeAuthors?.users).toEqual(["user-example"]);
-        expect(excludeAuthors?.teams).toBeUndefined();
+        const { allowedToSkipRule } = config.rules[0];
+        expect(allowedToSkipRule?.users).toEqual(["user-example"]);
+        expect(allowedToSkipRule?.teams).toBeUndefined();
       });
 
       test("should get teams and users", async () => {
@@ -327,7 +327,7 @@ describe("Config Parsing", () => {
               exclude: 
                   - 'example'
             type: basic
-            excludeAuthors:
+            allowedToSkipRule:
               teams:
                 - team-example
               users:
@@ -336,9 +336,9 @@ describe("Config Parsing", () => {
               - team-example
           `);
         const config = await runner.getConfigFile("");
-        const { excludeAuthors } = config.rules[0];
-        expect(excludeAuthors?.teams).toEqual(["team-example"]);
-        expect(excludeAuthors?.users).toEqual(["user-example"]);
+        const { allowedToSkipRule } = config.rules[0];
+        expect(allowedToSkipRule?.teams).toEqual(["team-example"]);
+        expect(allowedToSkipRule?.users).toEqual(["user-example"]);
       });
 
       test("should be null by default", async () => {
@@ -355,7 +355,7 @@ describe("Config Parsing", () => {
               - team-example
           `);
         const config = await runner.getConfigFile("");
-        expect(config.rules[0].excludeAuthors).toBeUndefined();
+        expect(config.rules[0].allowedToSkipRule).toBeUndefined();
       });
     });
   });

@@ -238,7 +238,7 @@ rules:
       - user-1
       - user-2
     countAuthor: true
-    excludeAuthors:
+    allowedToSkipRule:
       teams:
         - team-1
       users:

@@ -32,15 +32,15 @@ describe("Shared validations", () => {
     expect(evaluation).toBeTruthy();
   });
 
-  test("validatePullRequest should return true if author belongs to excludeAuthors", async () => {
+  test("validatePullRequest should return true if author belongs to allowedToSkipRule", async () => {
     const config: ConfigurationFile = {
       rules: [
         {
-          name: "Rule excludeAuthors",
+          name: "Rule allowedToSkipRule",
           type: RuleTypes.Basic,
           condition: { include: ["src"] },
           min_approvals: 1,
-          excludeAuthors: { teams: ["abc"] },
+          allowedToSkipRule: { teams: ["abc"] },
         },
       ],
     };
@@ -49,7 +49,9 @@ describe("Shared validations", () => {
     api.getAuthor.mockReturnValue("user-1");
     const evaluation = await runner.validatePullRequest(config);
     expect(evaluation).toBeTruthy();
-    expect(logger.info).toHaveBeenCalledWith("Skipping rule Rule excludeAuthors as author belong to greenlight rule.");
+    expect(logger.info).toHaveBeenCalledWith(
+      "Skipping rule Rule allowedToSkipRule as author belong to greenlight rule.",
+    );
   });
 
   test("fetchAllUsers should not return duplicates", async () => {
