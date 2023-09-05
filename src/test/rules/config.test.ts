@@ -73,7 +73,7 @@ describe("Config Parsing", () => {
               teams:
                 - team-example
           `);
-      // prettifies string to [basic, debug, and, or...]
+      // prettifies string to [basic, and, or...]
       const types = JSON.stringify(Object.values(RuleTypes)).replace(/"/g, "").replace(/,/g, ", ");
       await expect(runner.getConfigFile("")).rejects.toThrowError(
         'Configuration file is invalid: "rules[0].type" must be one of ' + types,

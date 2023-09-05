@@ -1,6 +1,5 @@
 export enum RuleTypes {
   Basic = "basic",
-  Debug = "debug",
   And = "and",
   Or = "or",
   AndDistinct = "and-distinct",
@@ -12,12 +11,6 @@ export interface Rule {
   name: string;
   condition: { include: string[]; exclude?: string[] };
   countAuthor?: boolean;
-}
-
-// TODO: Delete this once we add a second type of rule
-export interface DebugRule extends Rule {
-  type: RuleTypes.Debug;
-  size: number;
 }
 
 export interface BasicRule extends Rule, Reviewers {
@@ -43,7 +36,7 @@ export interface ConfigurationFile {
   /** Based on the `type` parameter, Typescript converts the object to the correct type
    * @see {@link Rules}
    */
-  rules: (BasicRule | DebugRule | AndRule | OrRule | AndDistinctRule)[];
+  rules: (BasicRule | AndRule | OrRule | AndDistinctRule)[];
   preventReviewRequests?: {
     teams?: string[];
     users?: string[];
