@@ -26,4 +26,4 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/paritytech/review-bot/action:0.0.1'
+  image: 'docker://ghcr.io/paritytech/review-bot/action:1.0.0'
