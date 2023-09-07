@@ -269,7 +269,7 @@ export class ActionRunner {
     // Utility method used to generate error
     const generateErrorReport = (): ReviewReport => {
       const filterMissingUsers = (reviewData: { users?: string[] }[]): string[] =>
-        reviewData.flatMap((r) => r.users ?? []).filter((u) => approvals.indexOf(u) < 0);
+        Array.from(new Set(reviewData.flatMap((r) => r.users ?? []).filter((u) => approvals.indexOf(u) < 0)));
 
       // Calculating all the possible combinations to see the missing reviewers is very complicated
       // Instead we request everyone who hasn't reviewed yet
