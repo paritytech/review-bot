@@ -33,6 +33,7 @@ export class GitHubTeamsApi implements TeamApi {
       this.logger.debug(`Fetching team '${teamName}'`);
       const { data } = await this.api.rest.teams.listMembersInOrg({ org: this.org, team_slug: teamName });
       const members = data.map((d) => d.login);
+      this.logger.debug(`Members are ${JSON.stringify(members)}`);
       this.teamsCache.set(teamName, members);
     }
     return this.teamsCache.get(teamName) as string[];
