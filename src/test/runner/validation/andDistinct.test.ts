@@ -117,6 +117,23 @@ describe("'And distinct' rule validation", () => {
       expect(logger.warn).toHaveBeenCalledWith("Not enough positive reviews to match a subcondition");
     });
 
+    test("should not have duplicates in missingUsers", async () => {
+      const rule: AndDistinctRule = {
+        type: RuleTypes.AndDistinct,
+        reviewers: [
+          { users: [users[0], "def"], min_approvals: 2 },
+          { teams: ["team-abc"], min_approvals: 1 },
+        ],
+        name: "test",
+        condition: { include: [] },
+      };
+
+      const [result, error] = await runner.andDistinctEvaluation(rule);
+      expect(result).toBe(false);
+      const hasDuplicates = <T>(arr: T[]) => arr.some((item, index) => arr.indexOf(item) !== index);
+      expect(hasDuplicates(error?.missingUsers as string[])).toBeFalsy();
+    });
+
     test("should not consider author in evaluation", async () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
