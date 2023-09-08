@@ -96,14 +96,16 @@ export class PullRequestApi {
       const approvals = latestReviews.filter((review) => caseInsensitiveEqual(review.state, "approved"));
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
     }
-    this.logger.debug(`PR approvals are ${JSON.stringify(this.usersThatApprovedThePr)}`);
+
+    const approvals = this.usersThatApprovedThePr;
 
     if (countAuthor) {
-      // If this value is true, we add the author to the list of approvals
-      return [...this.usersThatApprovedThePr, this.pr.user.login];
+      this.logger.info("Counting author in list of approvals");
+      approvals.push(this.pr.user.login);
     }
+    this.logger.debug(`PR approvals are ${JSON.stringify(approvals)}`);
 
-    return this.usersThatApprovedThePr;
+    return approvals;
   }
 
   /** Returns the login of the PR's author */
