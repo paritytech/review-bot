@@ -25,7 +25,7 @@ export class GitHubTeamsApi implements TeamApi {
     private readonly api: GitHubClient,
     private readonly org: string,
     private readonly logger: ActionLogger,
-  ) { }
+  ) {}
 
   async getTeamMembers(teamName: string): Promise<string[]> {
     // We first verify that this information hasn't been fetched yet
