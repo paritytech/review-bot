@@ -89,7 +89,16 @@ describe("Pull Request API Tests", () => {
       reviews.push(...mockReviews);
 
       const approvals = await api.listApprovedReviewsAuthors(true);
-      expect(approvals).toEqual(["yes-user", "abc"]);
+      expect(approvals).toEqual(["abc", "yes-user"]);
+    });
+
+    test("Should not return duplicated author approval", async () => {
+      pr.user.login = "test";
+
+      const approvals = await api.listApprovedReviewsAuthors(true);
+      expect(approvals).toEqual(["test"]);
+      const approvals2 = await api.listApprovedReviewsAuthors(true);
+      expect(approvals2).toEqual(["test"]);
     });
   });
 

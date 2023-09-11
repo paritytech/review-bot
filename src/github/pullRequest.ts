@@ -97,11 +97,11 @@ export class PullRequestApi {
       this.usersThatApprovedThePr = approvals.map((approval) => approval.user.login);
     }
 
-    const approvals = this.usersThatApprovedThePr;
+    let approvals = this.usersThatApprovedThePr;
 
     if (countAuthor) {
       this.logger.info("Counting author in list of approvals");
-      approvals.push(this.pr.user.login);
+      approvals = [this.pr.user.login, ...approvals];
     }
     this.logger.debug(`PR approvals are ${JSON.stringify(approvals)}`);
 
