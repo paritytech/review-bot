@@ -6,6 +6,7 @@ import { PullRequest } from "@octokit/webhooks-types";
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { GitHubTeamsApi } from "./github/teams";
+import { PolkadotFellows } from "./polkadot/fellows";
 import { ActionRunner } from "./runner";
 import { generateCoreLogger } from "./util";
 
@@ -63,7 +64,9 @@ const teamApi = new GitHubTeamsApi(getOctokit(inputs.teamApiToken), repo.owner, 
 
 const checks = new GitHubChecksApi(getOctokit(inputs.teamApiToken), pr, logger, actionId);
 
-const runner = new ActionRunner(api, teamApi, checks, logger);
+const fellows = new PolkadotFellows(logger);
+
+const runner = new ActionRunner(api, teamApi, fellows, checks, logger);
 
 runner
   .runAction(inputs)

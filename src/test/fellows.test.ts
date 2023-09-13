@@ -2,7 +2,7 @@
 import { mock, mockClear, MockProxy } from "jest-mock-extended";
 
 import { ActionLogger, TeamApi } from "../github/types";
-import { PolkadotFellows } from "../polkadot/teams";
+import { PolkadotFellows } from "../polkadot/fellows";
 
 describe("CAPI test", () => {
   let fellows: TeamApi;
