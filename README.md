@@ -243,6 +243,7 @@ rules:
         - team-1
       users:
         - user-1
+      rank: 2
 ```
 It has the same parameters as a normal rule:
 -  **name**: Name of the rule. This value must be unique per rule.
@@ -256,9 +257,13 @@ It has the same parameters as a normal rule:
 	- **Optional**: Defaults to 1.
 	- Must be greater than the number of users available (you cannot request 5 approvals from a team of 4 users)
 - **teams**: An array of team *slugs* that need to review this file.
-	- *Optional if **users** is defined*.
+	- *Optional if **rank** or **users** are defined*.
 - **users**: An array of the GitHub usernames of the users who need to review this file. 
-	- *Optional if **teams** is defined*.
+	- *Optional if **teams** or **rank** are defined*.
+- **rank**: A number defining the minimum [rank a fellow](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fkusama.api.onfinality.io%2Fpublic-ws#/fellowship) needs to have to approve this PR.
+	-  *Optional if **teams** or **users** are defined*.
+	- If it is set to rank 3, it will need the approval of a fellow of rank 3 or higher to pass.
+		- The username is fetched [from the additional field](https://github.com/polkadot-fellows/runtimes/issues/7) in the identity of the fellows. If it is null, the fellow’s review won’t count towards the required approval.
 - **countAuthor**: If the pull request author should be considered as an approval.
 	- If the author belongs to the list of approved users (either by team or by users) his approval will be counted (requiring one less approvals in total).
 	- ** Optional**: Defaults to `false`
@@ -303,9 +308,13 @@ rules:
 			- **Optional**: Defaults to 1.
 			- Must be greater than the number of users available (you cannot request 5 approvals from a team of 4 users)
 		- **teams**: An array of team *slugs* that need to review this file.
-			- *Optional if **users** is defined*.
+			- *Optional if **rank** or **users** are defined*.
 		- **users**: An array of the GitHub usernames of the users who need to review this file. 
-			- *Optional if **teams** is defined*.
+			- *Optional if **teams** or **rank** are defined*.
+		- **rank**: A number defining the minimum [rank a fellow](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fkusama.api.onfinality.io%2Fpublic-ws#/fellowship) needs to have to approve this PR.
+			-  *Optional if **teams** or **users** are defined*.
+			- If it is set to rank 3, it will need the approval of a fellow of rank 3 or higher to pass.
+				- The username is fetched [from the additional field](https://github.com/polkadot-fellows/runtimes/issues/7) in the identity of the fellows. If it is null, the fellow’s review won’t count towards the required approval.
 ##### Or rule logic
 This is a rule that has at least two available options of reviewers and needs **at least one group to approve**.
 
@@ -381,4 +390,4 @@ To deploy a new version you need to update two files:
 
 When a commit is pushed to the main branch and the versions have changed, the system will automatically tag the commit and release a new package with such version.
 
-You can find all the available versions in the [release section](./releases).
+You can find all the available versions in the [release section](../releases).
