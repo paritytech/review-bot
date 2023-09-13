@@ -16,7 +16,7 @@ describe("'AndDistinctRule' rule parsing", () => {
   let teamsApi: MockProxy<TeamApi>;
   beforeEach(() => {
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
+    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`

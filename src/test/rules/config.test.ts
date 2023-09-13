@@ -5,8 +5,7 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
-import { TeamApi } from "../../github/teams";
-import { ActionLogger } from "../../github/types";
+import { ActionLogger, TeamApi } from "../../github/types";
 import { RuleTypes } from "../../rules/types";
 import { ActionRunner } from "../../runner";
 
@@ -18,7 +17,7 @@ describe("Config Parsing", () => {
   beforeEach(() => {
     logger = mock<ActionLogger>();
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), logger);
+    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), logger);
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`

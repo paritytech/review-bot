@@ -4,8 +4,7 @@ import { parse } from "yaml";
 import { Inputs } from ".";
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
-import { TeamApi } from "./github/teams";
-import { ActionLogger, CheckData } from "./github/types";
+import { ActionLogger, CheckData, TeamApi } from "./github/types";
 import { AndDistinctRule, ConfigurationFile, Reviewers, Rule } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
@@ -37,6 +36,7 @@ export class ActionRunner {
   constructor(
     private readonly prApi: PullRequestApi,
     private readonly teamApi: TeamApi,
+    private readonly polkadotApi: TeamApi,
     private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
   ) {}
@@ -470,6 +470,12 @@ export class ActionRunner {
     if (reviewers.users) {
       for (const user of reviewers.users) {
         users.add(user);
+      }
+    }
+    if (reviewers.rank) {
+      const members = await this.polkadotApi.getTeamMembers(reviewers.rank.toString());
+      for (const member of members) {
+        users.add(member);
       }
     }
 

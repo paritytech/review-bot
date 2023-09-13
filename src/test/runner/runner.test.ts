@@ -3,8 +3,7 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
-import { TeamApi } from "../../github/teams";
-import { ActionLogger } from "../../github/types";
+import { ActionLogger, TeamApi } from "../../github/types";
 import { ConfigurationFile, Rule, RuleTypes } from "../../rules/types";
 import { ActionRunner } from "../../runner";
 
@@ -17,7 +16,7 @@ describe("Shared validations", () => {
     api = mock<PullRequestApi>();
     logger = mock<ActionLogger>();
     teamsApi = mock<TeamApi>();
-    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), logger);
+    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), logger);
   });
 
   test("validatePullRequest should return true if no rule matches any files", async () => {
