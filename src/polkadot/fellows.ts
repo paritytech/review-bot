@@ -27,7 +27,7 @@ export class PolkadotFellows implements TeamApi {
         const [address]: [string] = key.toHuman();
         fellows.push({ address, ...(rank.toHuman() as object) } as FellowData);
       }
-      this.logger.info(JSON.stringify(fellows));
+      this.logger.debug(JSON.stringify(fellows));
 
       // Once we obtained this information, we disconnect this api.
       await api.disconnect();
