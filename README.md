@@ -237,13 +237,13 @@ rules:
     users:
       - user-1
       - user-2
+    rank: 2
     countAuthor: true
     allowedToSkipRule:
       teams:
         - team-1
       users:
         - user-1
-      rank: 2
 ```
 It has the same parameters as a normal rule:
 -  **name**: Name of the rule. This value must be unique per rule.
