@@ -10,13 +10,15 @@ import { ActionRunner } from "../../runner";
 describe("Shared validations", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
+  let fellowsApi: MockProxy<TeamApi>;
   let logger: MockProxy<ActionLogger>;
   let runner: ActionRunner;
   beforeEach(() => {
     api = mock<PullRequestApi>();
     logger = mock<ActionLogger>();
     teamsApi = mock<TeamApi>();
-    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), logger);
+    fellowsApi = mock<TeamApi>();
+    runner = new ActionRunner(api, teamsApi, fellowsApi, mock<GitHubChecksApi>(), logger);
   });
 
   test("validatePullRequest should return true if no rule matches any files", async () => {
@@ -45,6 +47,29 @@ describe("Shared validations", () => {
     };
     api.listModifiedFiles.mockResolvedValue(["src/polkadot/init.rs", "LICENSE"]);
     teamsApi.getTeamMembers.mockResolvedValue(["user-1", "user-2", "user-3"]);
+    api.getAuthor.mockReturnValue("user-1");
+    const evaluation = await runner.validatePullRequest(config);
+    expect(evaluation).toBeTruthy();
+    expect(logger.info).toHaveBeenCalledWith(
+      "Skipping rule Rule allowedToSkipRule as author belong to greenlight rule.",
+    );
+  });
+
+  test("validatePullRequest should return true if author belongs to allowedToSkipRule by rank", async () => {
+    const config: ConfigurationFile = {
+      rules: [
+        {
+          name: "Rule allowedToSkipRule",
+          type: RuleTypes.Basic,
+          condition: { include: ["src"] },
+          min_approvals: 1,
+          allowedToSkipRule: { rank: 2 },
+          teams: ["abc"],
+        },
+      ],
+    };
+    api.listModifiedFiles.mockResolvedValue(["src/polkadot/init.rs", "LICENSE"]);
+    fellowsApi.getTeamMembers.mockResolvedValue(["user-1"]);
     api.getAuthor.mockReturnValue("user-1");
     const evaluation = await runner.validatePullRequest(config);
     expect(evaluation).toBeTruthy();
