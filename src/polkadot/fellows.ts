@@ -102,7 +102,7 @@ export class PolkadotFellows implements TeamApi {
       throw new Error(`Found no members of rank ${requiredRank} or higher. Please see debug logs`);
     }
 
-    this.logger.info(`GitHub members of rank '${requiredRank}' or higher are: ${JSON.stringify(users)}`);
+    this.logger.info(`GitHub members of rank '${requiredRank}' or higher are: ${users.join(",")}`);
 
     return users;
   }
