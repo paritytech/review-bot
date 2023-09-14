@@ -8,7 +8,7 @@ type FellowData = { address: string; rank: number };
 export class PolkadotFellows implements TeamApi {
   private fellowsCache: Map<string, number> = new Map<string, number>();
 
-  constructor(private readonly logger: ActionLogger) {}
+  constructor(private readonly logger: ActionLogger) { }
 
   async fetchAllFellows(): Promise<Map<string, number>> {
     let api: ApiPromise;
@@ -73,13 +73,12 @@ export class PolkadotFellows implements TeamApi {
 
       this.logger.info(`Found users: ${JSON.stringify(Array.from(users.entries()))}`);
 
-      // We disconnect the API before returning the object
-      await api.disconnect();
       return users;
     } catch (error) {
-      this.logger.error(error);
-      await api.disconnect();
+      this.logger.error(error as Error);
       throw error;
+    } finally {
+      await api.disconnect();
     }
   }
 
