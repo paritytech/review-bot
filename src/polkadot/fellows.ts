@@ -77,7 +77,7 @@ export class PolkadotFellows implements TeamApi {
       await api.disconnect();
       return users;
     } catch (error) {
-      console.error(error);
+      this.logger.error(error);
       await api.disconnect();
       throw error;
     }
