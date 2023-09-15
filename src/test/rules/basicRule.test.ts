@@ -84,7 +84,7 @@ describe("Basic rule parsing", () => {
             type: basic
         `);
     await expect(runner.getConfigFile("")).rejects.toThrowError(
-      '"value" must contain at least one of [users, teams, rank]',
+      '"value" must contain at least one of [users, teams, minFellowsRank]',
     );
   });
 

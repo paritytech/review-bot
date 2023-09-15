@@ -368,11 +368,11 @@ describe("Config Parsing", () => {
             include: 
                 - 'example-include-rule-1'
           type: basic
-          rank: 2
+          minFellowsRank: 2
         `);
       const config = await runner.getConfigFile("");
       const rule = config.rules[0] as BasicRule;
-      expect(rule.rank).toEqual(2);
+      expect(rule.minFellowsRank).toEqual(2);
     });
 
     it("should default rank to undefined", async () => {
@@ -388,7 +388,7 @@ describe("Config Parsing", () => {
         `);
       const config = await runner.getConfigFile("");
       const rule = config.rules[0] as BasicRule;
-      expect(rule.rank).toBeUndefined();
+      expect(rule.minFellowsRank).toBeUndefined();
     });
 
     it("should throw with an invalid number", async () => {
@@ -399,9 +399,9 @@ describe("Config Parsing", () => {
             include: 
                 - 'example-include-rule-1'
           type: basic
-          rank: -9
+          minFellowsRank: -9
         `);
-      await expect(runner.getConfigFile("")).rejects.toThrowError('"rank" must be greater than or equal to 1');
+      await expect(runner.getConfigFile("")).rejects.toThrowError('"minFellowsRank" must be greater than or equal to 1');
     });
 
     it("should throw with an non number", async () => {
@@ -412,9 +412,9 @@ describe("Config Parsing", () => {
             include: 
                 - 'example-include-rule-1'
           type: basic
-          rank: example
+          minFellowsRank: example
         `);
-      await expect(runner.getConfigFile("")).rejects.toThrowError('"rank" must be a number');
+      await expect(runner.getConfigFile("")).rejects.toThrowError('"minFellowsRank" must be a number');
     });
   });
 });

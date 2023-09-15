@@ -10,7 +10,7 @@ import { AndRule, BasicRule, ConfigurationFile, Reviewers, Rule, RuleTypes } fro
 const reviewersObj = {
   users: Joi.array().items(Joi.string()).optional().empty(null),
   teams: Joi.array().items(Joi.string()).optional().empty(null),
-  rank: Joi.number().optional().min(1).empty(null),
+  minFellowsRank: Joi.number().optional().min(1).empty(null),
 };
 
 const reviewerConditionObj = { ...reviewersObj, min_approvals: Joi.number().min(1).default(1) };
@@ -35,7 +35,7 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
  */
 export const generalSchema = Joi.object<ConfigurationFile>().keys({
   rules: Joi.array<ConfigurationFile["rules"]>().items(ruleSchema).unique("name").required(),
-  preventReviewRequests: Joi.object().keys(reviewersObj).optional().or("users", "teams", "rank"),
+  preventReviewRequests: Joi.object().keys(reviewersObj).optional().or("users", "teams", "minFellowsRank"),
 });
 
 /** Basic rule schema
@@ -43,12 +43,12 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
   .keys({ ...reviewerConditionObj, countAuthor: Joi.boolean().default(false) })
-  .or("users", "teams", "rank");
+  .or("users", "teams", "minFellowsRank");
 
 /** As, with the exception of basic, every other schema has the same structure, we can recycle this */
 export const otherRulesSchema = Joi.object<AndRule>().keys({
   reviewers: Joi.array<AndRule["reviewers"]>()
-    .items(Joi.object<Reviewers>().keys(reviewerConditionObj).or("users", "teams", "rank"))
+    .items(Joi.object<Reviewers>().keys(reviewerConditionObj).or("users", "teams", "minFellowsRank"))
     .min(2)
     .required(),
   countAuthor: Joi.boolean().default(false),

@@ -472,8 +472,8 @@ export class ActionRunner {
         users.add(user);
       }
     }
-    if (reviewers.rank) {
-      const members = await this.polkadotApi.getTeamMembers(reviewers.rank.toString());
+    if (reviewers.minFellowsRank) {
+      const members = await this.polkadotApi.getTeamMembers(reviewers.minFellowsRank.toString());
       for (const member of members) {
         users.add(member);
       }

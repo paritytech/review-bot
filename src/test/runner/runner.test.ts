@@ -63,7 +63,7 @@ describe("Shared validations", () => {
           type: RuleTypes.Basic,
           condition: { include: ["src"] },
           min_approvals: 1,
-          allowedToSkipRule: { rank: 2 },
+          allowedToSkipRule: { minFellowsRank: 2 },
           teams: ["abc"],
         },
       ],
