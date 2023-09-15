@@ -40,6 +40,7 @@
     "@eng-automation/js": "^1.0.2",
     "@polkadot/api": "^10.9.1",
     "joi": "^17.10.0",
+    "semaphore-promise": "^1.4.2",
     "yaml": "^2.3.2"
   }
 }

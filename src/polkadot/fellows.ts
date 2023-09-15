@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { ApiPromise, WsProvider } from "@polkadot/api";
+import Semaphore from "semaphore-promise";
 
 import { ActionLogger, TeamApi } from "../github/types";
 
 type FellowData = { address: string; rank: number };
+
+const semaphore = new Semaphore(10);
 
 export class PolkadotFellows implements TeamApi {
   private fellowsCache: Map<string, number> = new Map<string, number>();
@@ -36,13 +39,17 @@ export class PolkadotFellows implements TeamApi {
       // We connect to the relay chain
       api = await ApiPromise.create({ provider: new WsProvider("wss://rpc.polkadot.io") });
 
+      const fetchIdentity = async (address: string) => {
+        const release = await semaphore.acquire();
+        return api.query.identity.identityOf(address).finally(() => {
+          release();
+        });
+      };
       // We iterate over the different members and extract their data
       const users: Map<string, number> = new Map<string, number>();
       for (const fellow of fellows) {
         this.logger.debug(`Fetching identity of '${fellow.address}', rank: ${fellow.rank}`);
-        const fellowData = (await api.query.identity.identityOf(fellow.address)).toHuman() as
-          | Record<string, unknown>
-          | undefined;
+        const fellowData = (await fetchIdentity(fellow.address)).toHuman() as Record<string, unknown> | undefined;
 
         // If the identity is null, we ignore it.
         if (!fellowData) {
