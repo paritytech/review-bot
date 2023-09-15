@@ -18,6 +18,7 @@ type ReviewReport = {
   teamsToRequest?: string[];
   /** If applicable, the users that should be requested to review */
   usersToRequest?: string[];
+  /** If applicable, the missing minimum fellows rank required to review */
   missingRank?: number;
 };
 
@@ -270,7 +271,7 @@ export class ActionRunner {
         Array.from(new Set(reviewData.flatMap((r) => r.users ?? []).filter((u) => approvals.indexOf(u) < 0)));
 
       const ranks = rule.reviewers.map((r) => r.minFellowsRank).filter((rank) => rank !== undefined && rank !== null);
-      const missingRank = ranks.length > 0 ? Math.min(...(ranks as number[])) : undefined;
+      const missingRank = ranks.length > 0 ? Math.max(...(ranks as number[])) : undefined;
 
       // Calculating all the possible combinations to see the missing reviewers is very complicated
       // Instead we request everyone who hasn't reviewed yet
@@ -511,11 +512,15 @@ export class ActionRunner {
 }
 
 const unifyReport = (reports: ReviewReport[], name: string): RuleReport => {
+  const ranks = reports.map((r) => r.missingRank).filter((rank) => rank !== undefined && rank !== null);
+  const missingRank = ranks.length > 0 ? Math.max(...(ranks as number[])) : undefined;
+
   return {
     missingReviews: reports.reduce((a, b) => a + b.missingReviews, 0),
     missingUsers: [...new Set(reports.flatMap((r) => r.missingUsers))],
     teamsToRequest: [...new Set(reports.flatMap((r) => r.teamsToRequest ?? []))],
     usersToRequest: [...new Set(reports.flatMap((r) => r.usersToRequest ?? []))],
     name,
+    missingRank,
   };
 };
