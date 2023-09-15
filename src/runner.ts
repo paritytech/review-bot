@@ -18,6 +18,7 @@ type ReviewReport = {
   teamsToRequest?: string[];
   /** If applicable, the users that should be requested to review */
   usersToRequest?: string[];
+  missingRank?: number;
 };
 
 export type RuleReport = { name: string } & ReviewReport;
@@ -39,7 +40,7 @@ export class ActionRunner {
     private readonly polkadotApi: TeamApi,
     private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
-  ) {}
+  ) { }
 
   /**
    * Fetches the configuration file, parses it and validates it.
@@ -234,6 +235,9 @@ export class ActionRunner {
       if (report.teamsToRequest && report.teamsToRequest.length > 0) {
         text = text.addHeading("Missing reviews from teams", 3).addList(report.teamsToRequest);
       }
+      if (report.missingRank) {
+        text = text.addHeading(`Missing reviews from Fellows of rank ${report.missingRank} or above`, 3);
+      }
 
       check.output.text += text.stringify() + "\n";
     }
@@ -265,6 +269,9 @@ export class ActionRunner {
       const filterMissingUsers = (reviewData: { users?: string[] }[]): string[] =>
         Array.from(new Set(reviewData.flatMap((r) => r.users ?? []).filter((u) => approvals.indexOf(u) < 0)));
 
+      const ranks = rule.reviewers.map((r) => r.minFellowsRank).filter((rank) => rank !== undefined && rank !== null);
+      const missingRank = ranks.length > 0 ? Math.min(...(ranks as number[])) : undefined;
+
       // Calculating all the possible combinations to see the missing reviewers is very complicated
       // Instead we request everyone who hasn't reviewed yet
       return {
@@ -272,6 +279,7 @@ export class ActionRunner {
         missingUsers: filterMissingUsers(requirements),
         teamsToRequest: rule.reviewers.flatMap((r) => r.teams ?? []),
         usersToRequest: filterMissingUsers(rule.reviewers),
+        missingRank
       };
     };
 
@@ -415,6 +423,7 @@ export class ActionRunner {
           missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
           teamsToRequest: rule.teams ? rule.teams : undefined,
           usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
+          missingRank: rule.minFellowsRank,
         },
       ];
     } else {
