@@ -251,14 +251,8 @@ export class ActionRunner {
     const requirements: { users: string[]; requiredApprovals: number }[] = [];
     // We get all the users belonging to each 'and distinct' review condition
     for (const reviewers of rule.reviewers) {
-      let usersToAdd: string[] = reviewers.users ?? [];
-      if (reviewers.teams) {
-        for (const team of reviewers.teams) {
-          const members = await this.teamApi.getTeamMembers(team);
-          usersToAdd = [...new Set([...usersToAdd, ...members])];
-        }
-      }
-      requirements.push({ users: usersToAdd, requiredApprovals: reviewers.min_approvals });
+      const users = await this.fetchAllUsers(reviewers);
+      requirements.push({ users, requiredApprovals: reviewers.min_approvals });
     }
 
     // We count how many reviews are needed in total
