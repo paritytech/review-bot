@@ -2,8 +2,7 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 import { GitHubChecksApi } from "../../../github/check";
 import { PullRequestApi } from "../../../github/pullRequest";
-import { TeamApi } from "../../../github/teams";
-import { ActionLogger } from "../../../github/types";
+import { ActionLogger, TeamApi } from "../../../github/types";
 import { ConfigurationFile, RuleTypes } from "../../../rules/types";
 import { ActionRunner } from "../../../runner";
 
@@ -18,7 +17,7 @@ describe("'Or' rule validation", () => {
     teamsApi.getTeamMembers.calledWith("abc").mockResolvedValue(users);
     api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml"]);
     api.listApprovedReviewsAuthors.mockResolvedValue([]);
-    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
+    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
 
   describe("approvals", () => {

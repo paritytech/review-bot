@@ -5,8 +5,7 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
-import { TeamApi } from "../../github/teams";
-import { ActionLogger } from "../../github/types";
+import { ActionLogger, TeamApi } from "../../github/types";
 import { BasicRule } from "../../rules/types";
 import { ActionRunner } from "../../runner";
 
@@ -16,7 +15,7 @@ describe("Basic rule parsing", () => {
   let teamsApi: MockProxy<TeamApi>;
   beforeEach(() => {
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
+    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`
@@ -84,7 +83,9 @@ describe("Basic rule parsing", () => {
                 - 'example'
             type: basic
         `);
-    await expect(runner.getConfigFile("")).rejects.toThrowError('"value" must contain at least one of [users, teams]');
+    await expect(runner.getConfigFile("")).rejects.toThrowError(
+      '"value" must contain at least one of [users, teams, minFellowsRank]',
+    );
   });
 
   test("should default min_approvals to 1", async () => {

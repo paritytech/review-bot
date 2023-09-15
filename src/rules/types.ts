@@ -5,7 +5,7 @@ export enum RuleTypes {
   AndDistinct = "and-distinct",
 }
 
-export type Reviewers = { users?: string[]; teams?: string[]; min_approvals: number };
+export type Reviewers = { users?: string[]; teams?: string[]; minFellowsRank?: number; min_approvals: number };
 
 export interface Rule {
   name: string;

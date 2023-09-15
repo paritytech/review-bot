@@ -2,8 +2,7 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
-import { TeamApi } from "../../github/teams";
-import { ActionLogger } from "../../github/types";
+import { ActionLogger, TeamApi } from "../../github/types";
 import { ActionRunner } from "../../runner";
 
 describe("evaluateCondition tests", () => {
@@ -13,7 +12,7 @@ describe("evaluateCondition tests", () => {
   beforeEach(() => {
     api = mock<PullRequestApi>();
     teamsApi = mock<TeamApi>();
-    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
+    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
 
   test("should throw if no teams or users were set", async () => {

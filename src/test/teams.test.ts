@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { DeepMockProxy, Matcher, mock, mockDeep, MockProxy } from "jest-mock-extended";
 
-import { GitHubTeamsApi, TeamApi } from "../github/teams";
-import { ActionLogger, GitHubClient } from "../github/types";
+import { GitHubTeamsApi } from "../github/teams";
+import { ActionLogger, GitHubClient, TeamApi } from "../github/types";
 
 describe("Pull Request API Tests", () => {
   let teams: TeamApi;

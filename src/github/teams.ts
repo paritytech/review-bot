@@ -1,13 +1,4 @@
-import { ActionLogger, GitHubClient } from "./types";
-
-/**
- * Interface for the acquisition of members of a team.
- * As we may be using blockchain instead of GitHub teams, let's wrap the functionality inside a interface
- */
-export interface TeamApi {
-  /** Returns all the GitHub account's logins which belong to a given team. */
-  getTeamMembers(teamName: string): Promise<string[]>;
-}
+import { ActionLogger, GitHubClient, TeamApi } from "./types";
 
 /**
  * Implementation of the TeamApi interface using GitHub teams

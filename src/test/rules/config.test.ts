@@ -5,9 +5,8 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
-import { TeamApi } from "../../github/teams";
-import { ActionLogger } from "../../github/types";
-import { RuleTypes } from "../../rules/types";
+import { ActionLogger, TeamApi } from "../../github/types";
+import { BasicRule, RuleTypes } from "../../rules/types";
 import { ActionRunner } from "../../runner";
 
 describe("Config Parsing", () => {
@@ -18,7 +17,7 @@ describe("Config Parsing", () => {
   beforeEach(() => {
     logger = mock<ActionLogger>();
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, mock<GitHubChecksApi>(), logger);
+    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), logger);
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`
@@ -357,6 +356,67 @@ describe("Config Parsing", () => {
         const config = await runner.getConfigFile("");
         expect(config.rules[0].allowedToSkipRule).toBeUndefined();
       });
+    });
+  });
+
+  describe("rank field", () => {
+    it("should get rank as an number", async () => {
+      api.getConfigFile.mockResolvedValue(`
+      rules:
+        - name: Default review
+          condition:
+            include: 
+                - 'example-include-rule-1'
+          type: basic
+          minFellowsRank: 2
+        `);
+      const config = await runner.getConfigFile("");
+      const rule = config.rules[0] as BasicRule;
+      expect(rule.minFellowsRank).toEqual(2);
+    });
+
+    it("should default rank to undefined", async () => {
+      api.getConfigFile.mockResolvedValue(`
+      rules:
+        - name: Default review
+          condition:
+            include: 
+                - 'example-include-rule-1'
+          type: basic
+          teams:
+            - abc
+        `);
+      const config = await runner.getConfigFile("");
+      const rule = config.rules[0] as BasicRule;
+      expect(rule.minFellowsRank).toBeUndefined();
+    });
+
+    it("should throw with an invalid number", async () => {
+      api.getConfigFile.mockResolvedValue(`
+      rules:
+        - name: Default review
+          condition:
+            include: 
+                - 'example-include-rule-1'
+          type: basic
+          minFellowsRank: -9
+        `);
+      await expect(runner.getConfigFile("")).rejects.toThrowError(
+        '"minFellowsRank" must be greater than or equal to 1',
+      );
+    });
+
+    it("should throw with an non number", async () => {
+      api.getConfigFile.mockResolvedValue(`
+      rules:
+        - name: Default review
+          condition:
+            include: 
+                - 'example-include-rule-1'
+          type: basic
+          minFellowsRank: example
+        `);
+      await expect(runner.getConfigFile("")).rejects.toThrowError('"minFellowsRank" must be a number');
     });
   });
 });
