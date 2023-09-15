@@ -131,10 +131,13 @@ export class ActionRunner {
             const lowerAmountOfReviewsNeeded = reports
               .map((r) => r.missingReviews)
               .reduce((a, b) => (a < b ? a : b), 999);
+            // We get the lowest rank required
+            const ranks = getRequiredRanks(reports);
             // We unify the reports
             const finalReport = unifyReport(reports, rule.name);
             // We set the value to the minimum neccesary
             finalReport.missingReviews = lowerAmountOfReviewsNeeded;
+            finalReport.missingRank = ranks ? Math.min(...(ranks as number[])) : undefined;
             this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
             // We unify the reports and push them for handling
             errorReports.push(finalReport);
@@ -280,7 +283,7 @@ export class ActionRunner {
         missingUsers: filterMissingUsers(requirements),
         teamsToRequest: rule.reviewers.flatMap((r) => r.teams ?? []),
         usersToRequest: filterMissingUsers(rule.reviewers),
-        missingRank
+        missingRank,
       };
     };
 
@@ -511,9 +514,18 @@ export class ActionRunner {
   }
 }
 
+const getRequiredRanks = (reports: Pick<ReviewReport, "missingRank">[]): number[] | undefined => {
+  const ranks = reports.map((r) => r.missingRank).filter((rank) => rank !== undefined && rank !== null) as number[];
+  if (ranks.length > 0) {
+    return ranks;
+  } else {
+    return undefined;
+  }
+}
+
 const unifyReport = (reports: ReviewReport[], name: string): RuleReport => {
-  const ranks = reports.map((r) => r.missingRank).filter((rank) => rank !== undefined && rank !== null);
-  const missingRank = ranks.length > 0 ? Math.max(...(ranks as number[])) : undefined;
+  const ranks = getRequiredRanks(reports);
+  const missingRank = ranks ? Math.max(...(ranks as number[])) : undefined;
 
   return {
     missingReviews: reports.reduce((a, b) => a + b.missingReviews, 0),

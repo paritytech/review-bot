@@ -164,6 +164,7 @@ describe("evaluateCondition tests", () => {
       expect(report?.missingUsers).toEqual(["user-1"]);
       expect(report?.teamsToRequest).toBeUndefined();
       expect(report?.usersToRequest).toBeUndefined();
+      expect(report?.missingRank).toBe(3);
     });
 
     test("should pass with required rank users", async () => {
