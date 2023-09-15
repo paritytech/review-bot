@@ -401,7 +401,9 @@ describe("Config Parsing", () => {
           type: basic
           minFellowsRank: -9
         `);
-      await expect(runner.getConfigFile("")).rejects.toThrowError('"minFellowsRank" must be greater than or equal to 1');
+      await expect(runner.getConfigFile("")).rejects.toThrowError(
+        '"minFellowsRank" must be greater than or equal to 1',
+      );
     });
 
     it("should throw with an non number", async () => {
