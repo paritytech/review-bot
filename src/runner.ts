@@ -41,7 +41,7 @@ export class ActionRunner {
     private readonly polkadotApi: TeamApi,
     private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
-  ) { }
+  ) {}
 
   /**
    * Fetches the configuration file, parses it and validates it.
@@ -521,7 +521,7 @@ const getRequiredRanks = (reports: Pick<ReviewReport, "missingRank">[]): number[
   } else {
     return undefined;
   }
-}
+};
 
 const unifyReport = (reports: ReviewReport[], name: string): RuleReport => {
   const ranks = getRequiredRanks(reports);

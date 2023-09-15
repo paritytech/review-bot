@@ -94,7 +94,8 @@ describe("'Or' rule validation", () => {
             ],
           },
         ],
-      }); expect(reports).toHaveLength(0);
+      });
+      expect(reports).toHaveLength(0);
     });
   });
 
