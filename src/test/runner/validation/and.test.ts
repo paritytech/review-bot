@@ -9,15 +9,17 @@ import { ActionRunner } from "../../../runner";
 describe("'And' rule validation", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
+  let fellowsApi: MockProxy<TeamApi>;
   let runner: ActionRunner;
   const users = ["user-1", "user-2", "user-3"];
   beforeEach(() => {
     api = mock<PullRequestApi>();
     teamsApi = mock<TeamApi>();
+    fellowsApi = mock<TeamApi>();
     teamsApi.getTeamMembers.calledWith("abc").mockResolvedValue(users);
     api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml"]);
     api.listApprovedReviewsAuthors.mockResolvedValue([]);
-    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
+    runner = new ActionRunner(api, teamsApi, fellowsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
 
   describe("approvals", () => {
@@ -168,6 +170,74 @@ describe("'And' rule validation", () => {
       expect(result.missingUsers).toEqual(individualUsers);
       expect(result.teamsToRequest).toHaveLength(0);
       expect(result.usersToRequest).toEqual(individualUsers);
+    });
+  });
+
+  describe("rank tests", () => {
+    const config: ConfigurationFile = {
+      rules: [
+        {
+          name: "And rule",
+          type: RuleTypes.And,
+          condition: { include: ["review-bot.yml"] },
+          reviewers: [
+            { minFellowsRank: 1, min_approvals: 1 },
+            { minFellowsRank: 2, min_approvals: 1 },
+          ],
+        },
+      ],
+    };
+
+    test("should request rank equivalent to highest value", async () => {
+      fellowsApi.getTeamMembers.mockResolvedValue([users[2]]);
+      const { reports } = await runner.validatePullRequest(config);
+      const [result] = reports;
+      expect(result.missingReviews).toEqual(2);
+      expect(result.missingUsers).toEqual([users[2]]);
+      expect(result.missingRank).toEqual(2);
+    });
+
+    test("should request rank equivalent to highest value when one is fulfilled", async () => {
+      fellowsApi.getTeamMembers.calledWith("1").mockResolvedValue(users);
+      fellowsApi.getTeamMembers.calledWith("2").mockResolvedValue([users[2]]);
+      api.listApprovedReviewsAuthors.mockResolvedValue([users[1]]);
+      const { reports } = await runner.validatePullRequest(config);
+      const [result] = reports;
+      expect(result.missingReviews).toEqual(1);
+      expect(result.missingUsers).toEqual([users[2]]);
+      expect(result.missingRank).toEqual(2);
+    });
+
+    test("should accept higher rank for both cases", async () => {
+      fellowsApi.getTeamMembers.calledWith("1").mockResolvedValue(users);
+      fellowsApi.getTeamMembers.calledWith("2").mockResolvedValue([users[2]]);
+      api.listApprovedReviewsAuthors.mockResolvedValue([users[2]]);
+      const { reports } = await runner.validatePullRequest(config);
+      expect(reports).toHaveLength(0);
+    });
+
+    test("should request missing rank if highest rank is fulfilled", async () => {
+      fellowsApi.getTeamMembers.calledWith("1").mockResolvedValue(users);
+      fellowsApi.getTeamMembers.calledWith("2").mockResolvedValue([users[2]]);
+      api.listApprovedReviewsAuthors.mockResolvedValue([users[2]]);
+
+      const { reports } = await runner.validatePullRequest({
+        rules: [
+          {
+            name: "And rule",
+            type: RuleTypes.And,
+            condition: { include: ["review-bot.yml"] },
+            reviewers: [
+              { minFellowsRank: 1, min_approvals: 2 },
+              { minFellowsRank: 2, min_approvals: 1 },
+            ],
+          },
+        ],
+      });
+      const [result] = reports;
+      expect(result.missingReviews).toEqual(1);
+      expect(result.missingUsers).toEqual([users[0], users[1]]);
+      expect(result.missingRank).toEqual(1);
     });
   });
 });
