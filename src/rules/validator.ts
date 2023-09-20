@@ -25,7 +25,9 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
   allowedToSkipRule: Joi.object<Omit<Reviewers, "min_approvals">>().keys(reviewersObj).optional().or("users", "teams"),
-  type: Joi.string().valid(RuleTypes.Basic, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDistinct).required(),
+  type: Joi.string()
+    .valid(RuleTypes.Basic, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDistinct, RuleTypes.Fellows)
+    .required(),
 });
 
 /** General Configuration schema.
@@ -55,7 +57,8 @@ export const otherRulesSchema = Joi.object<AndRule>().keys({
 
 export const fellowsRuleSchema = Joi.object<FellowsRule>().keys({
   countAuthor: Joi.boolean().default(false),
-  minRank: Joi.number().optional().min(1).empty(null),
+  minRank: Joi.number().required().min(1).empty(null),
+  min_approvals: Joi.number().min(1).default(1),
 });
 
 /**
