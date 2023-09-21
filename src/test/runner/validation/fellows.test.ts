@@ -39,6 +39,25 @@ describe("'Fellows' rule validation", () => {
     expect(reports).toHaveLength(0);
   });
 
+  test("should count author", async () => {
+    fellowsApi.getTeamMembers.calledWith("1").mockResolvedValue(users);
+    api.listApprovedReviewsAuthors.calledWith(true).mockResolvedValue([users[0], users[1]]);
+    const { reports } = await runner.validatePullRequest({
+      rules: [
+        {
+          name: "Fellows rule",
+          type: RuleTypes.Fellows,
+          condition: { include: ["review-bot.yml"] },
+          minRank: 1,
+          min_approvals: 1,
+          countAuthor: true,
+        },
+      ],
+    });
+    expect(api.listApprovedReviewsAuthors).toBeCalledWith(true);
+    expect(reports).toHaveLength(0);
+  });
+
   describe("errors", () => {
     test("should report users from missing rank", async () => {
       fellowsApi.getTeamMembers.mockResolvedValue([users[2]]);

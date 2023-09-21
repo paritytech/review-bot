@@ -19,23 +19,22 @@ describe("Fellows rule parsing", () => {
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
-          - name: Test review
-            condition:
-              include: 
-                - '.*'
-              exclude: 
-                - 'example'
-            type: fellows
-            minRank: 2
+        - name: Test review
+          condition:
+            include: 
+              - '.*'
+            exclude: 
+              - 'example'
+          type: fellows
+          minRank: 2
         `);
     const config = await runner.getConfigFile("");
     expect(config.rules[0].name).toEqual("Test review");
     expect(config.rules[0].type).toEqual("fellows");
   });
 
-  describe("min rank", () => {
-    test("should set the rank", async () => {
-      api.getConfigFile.mockResolvedValue(`
+  test("should set the rank", async () => {
+    api.getConfigFile.mockResolvedValue(`
           rules:
             - name: Test review
               condition:
@@ -46,14 +45,14 @@ describe("Fellows rule parsing", () => {
               type: fellows
               minRank: 4
           `);
-      const { rules } = await runner.getConfigFile("");
-      expect(rules[0].type).toEqual("fellows");
-      const fellowsRule = rules[0] as FellowsRule;
-      expect(fellowsRule.minRank).toEqual(4);
-    });
+    const { rules } = await runner.getConfigFile("");
+    expect(rules[0].type).toEqual("fellows");
+    const fellowsRule = rules[0] as FellowsRule;
+    expect(fellowsRule.minRank).toEqual(4);
+  });
 
-    test("should fail without rank", async () => {
-      api.getConfigFile.mockResolvedValue(`
+  test("should fail without rank", async () => {
+    api.getConfigFile.mockResolvedValue(`
           rules:
             - name: Test review
               condition:
@@ -63,11 +62,11 @@ describe("Fellows rule parsing", () => {
                   - 'example'
               type: fellows
           `);
-      await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" is required');
-    });
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" is required');
+  });
 
-    test("should fail without negative number", async () => {
-      api.getConfigFile.mockResolvedValue(`
+  test("should fail without negative number", async () => {
+    api.getConfigFile.mockResolvedValue(`
           rules:
             - name: Test review
               condition:
@@ -78,11 +77,11 @@ describe("Fellows rule parsing", () => {
               type: fellows
               minRank: -3
           `);
-      await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" must be greater than or equal to 1');
-    });
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" must be greater than or equal to 1');
+  });
 
-    test("should fail with invalid number", async () => {
-      api.getConfigFile.mockResolvedValue(`
+  test("should fail with invalid number", async () => {
+    api.getConfigFile.mockResolvedValue(`
           rules:
             - name: Test review
               condition:
@@ -93,9 +92,9 @@ describe("Fellows rule parsing", () => {
               type: fellows
               minRank: cuatro
           `);
-      await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" must be a number');
-    });
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" must be a number');
   });
+
 
   test("should default min_approvals to 1", async () => {
     api.getConfigFile.mockResolvedValue(`
