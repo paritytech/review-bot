@@ -244,7 +244,11 @@ export class ActionRunner {
         text = text.addHeading("Missing reviews from teams", 3).addList(report.teamsToRequest);
       }
       if (report.missingRank) {
-        text = text.addHeading(`Missing reviews from Fellows of rank ${report.missingRank} or above`, 3);
+        text = text
+          .addHeading("Missing reviews from Fellows", 3)
+          .addEOL()
+          .addRaw(`Missing reviews from rank \`${report.missingRank}\` or above`)
+          .addEOL();
       }
 
       check.output.text += text.stringify() + "\n";

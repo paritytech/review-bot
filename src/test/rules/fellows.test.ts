@@ -95,7 +95,6 @@ describe("Fellows rule parsing", () => {
     await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" must be a number');
   });
 
-
   test("should default min_approvals to 1", async () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
