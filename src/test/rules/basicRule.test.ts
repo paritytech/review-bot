@@ -83,9 +83,7 @@ describe("Basic rule parsing", () => {
                 - 'example'
             type: basic
         `);
-    await expect(runner.getConfigFile("")).rejects.toThrowError(
-      '"value" must contain at least one of [users, teams, minFellowsRank]',
-    );
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"value" must contain at least one of [users, teams]');
   });
 
   test("should default min_approvals to 1", async () => {
