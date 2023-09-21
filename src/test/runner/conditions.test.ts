@@ -19,20 +19,20 @@ describe("evaluateCondition tests", () => {
   });
 
   test("should throw if no teams or users were set", async () => {
-    await expect(runner.evaluateCondition({ min_approvals: 99 })).rejects.toThrowError(
+    await expect(runner.evaluateCondition({ minApprovals: 99 })).rejects.toThrowError(
       "No users have been found in the required reviewers",
     );
   });
 
   test("should throw if not enough users are available", async () => {
-    await expect(runner.evaluateCondition({ min_approvals: 5, users: ["one-user"] })).rejects.toThrow(
+    await expect(runner.evaluateCondition({ minApprovals: 5, users: ["one-user"] })).rejects.toThrow(
       "The amount of required approvals is smaller than the amount of available users.",
     );
   });
 
   test("should throw if not enough users in teams are available", async () => {
     teamsApi.getTeamMembers.mockResolvedValue(["1", "2", "3"]);
-    await expect(runner.evaluateCondition({ min_approvals: 4, teams: ["etcetera"] })).rejects.toThrow(
+    await expect(runner.evaluateCondition({ minApprovals: 4, teams: ["etcetera"] })).rejects.toThrow(
       "The amount of required approvals is smaller than the amount of available users.",
     );
   });
@@ -40,7 +40,7 @@ describe("evaluateCondition tests", () => {
   test("should throw if not enough users in teams are available and find duplicates", async () => {
     teamsApi.getTeamMembers.calledWith("a").mockResolvedValue(["1", "2", "3"]);
     teamsApi.getTeamMembers.calledWith("b").mockResolvedValue(["2", "3", "4"]);
-    await expect(runner.evaluateCondition({ min_approvals: 5, teams: ["a", "b"] })).rejects.toThrow(
+    await expect(runner.evaluateCondition({ minApprovals: 5, teams: ["a", "b"] })).rejects.toThrow(
       "The amount of required approvals is smaller than the amount of available users.",
     );
   });
@@ -52,18 +52,18 @@ describe("evaluateCondition tests", () => {
     });
 
     test("should pass if required users approved the PR", async () => {
-      const [result] = await runner.evaluateCondition({ min_approvals: 1, users: [users[0]] });
+      const [result] = await runner.evaluateCondition({ minApprovals: 1, users: [users[0]] });
       expect(result).toBeTruthy();
     });
 
     test("should pass if required amount of users approved the PR", async () => {
-      const [result] = await runner.evaluateCondition({ min_approvals: 2, users: [users[0], users[users.length - 1]] });
+      const [result] = await runner.evaluateCondition({ minApprovals: 2, users: [users[0], users[users.length - 1]] });
       expect(result).toBeTruthy();
     });
 
     test("should fail if not all required users approved the PR", async () => {
       const newUser = "missing-user";
-      const [result, missingData] = await runner.evaluateCondition({ min_approvals: 2, users: [users[0], newUser] });
+      const [result, missingData] = await runner.evaluateCondition({ minApprovals: 2, users: [users[0], newUser] });
       expect(result).toBeFalsy();
       expect(missingData?.missingUsers).toContainEqual(newUser);
       expect(missingData?.missingUsers).not.toContainEqual(users[0]);
@@ -82,20 +82,20 @@ describe("evaluateCondition tests", () => {
 
     test("should pass if required users approved the PR", async () => {
       teamsApi.getTeamMembers.mockResolvedValue(users);
-      const [result] = await runner.evaluateCondition({ min_approvals: 1, teams: [team] });
+      const [result] = await runner.evaluateCondition({ minApprovals: 1, teams: [team] });
       expect(result).toBeTruthy();
     });
 
     test("should pass if required amount of users approved the PR", async () => {
       teamsApi.getTeamMembers.mockResolvedValue(users);
-      const [result] = await runner.evaluateCondition({ min_approvals: 2, teams: [team] });
+      const [result] = await runner.evaluateCondition({ minApprovals: 2, teams: [team] });
       expect(result).toBeTruthy();
     });
 
     test("should fail if not enough members of a team approved the PR", async () => {
       api.listApprovedReviewsAuthors.mockResolvedValue([users[0]]);
       teamsApi.getTeamMembers.mockResolvedValue(users);
-      const [result, missingData] = await runner.evaluateCondition({ min_approvals: 2, teams: [team] });
+      const [result, missingData] = await runner.evaluateCondition({ minApprovals: 2, teams: [team] });
       expect(result).toBeFalsy();
       expect(missingData?.missingUsers).toEqual(users.slice(1));
       expect(missingData?.missingUsers).not.toContainEqual(users[0]);
@@ -116,7 +116,7 @@ describe("evaluateCondition tests", () => {
         ]);
         teamsApi.getTeamMembers.calledWith(team1.name).mockResolvedValue(team1.users);
         teamsApi.getTeamMembers.calledWith(team2.name).mockResolvedValue(team2.users);
-        const [result] = await runner.evaluateCondition({ min_approvals: 4, teams: [team1.name, team2.name] });
+        const [result] = await runner.evaluateCondition({ minApprovals: 4, teams: [team1.name, team2.name] });
         expect(result).toBeTruthy();
       });
 
@@ -126,7 +126,7 @@ describe("evaluateCondition tests", () => {
         teamsApi.getTeamMembers.calledWith(team1.name).mockResolvedValue(team1.users);
         teamsApi.getTeamMembers.calledWith(team2.name).mockResolvedValue(team2.users);
         api.listApprovedReviewsAuthors.mockResolvedValue([]);
-        const [result, report] = await runner.evaluateCondition({ min_approvals: 3, teams: [team1.name, team2.name] });
+        const [result, report] = await runner.evaluateCondition({ minApprovals: 3, teams: [team1.name, team2.name] });
         expect(result).toBeFalsy();
         // Should not send required users more than once
         expect(report?.missingUsers).toEqual([...team1.users, team2.users[0]]);
@@ -138,7 +138,7 @@ describe("evaluateCondition tests", () => {
           teamsApi.getTeamMembers.calledWith(team).mockResolvedValue(users);
           api.listApprovedReviewsAuthors.mockResolvedValue([]);
           const [result, report] = await runner.evaluateCondition({
-            min_approvals: 1,
+            minApprovals: 1,
             teams: [team],
             users: [users[0]],
           });

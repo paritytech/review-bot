@@ -30,9 +30,9 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["abc", "def", "fgh", users[0]], min_approvals: 2 },
-          { teams: ["team-abc"], min_approvals: 1 },
-          { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 1 },
+          { users: ["abc", "def", "fgh", users[0]], minApprovals: 2 },
+          { teams: ["team-abc"], minApprovals: 1 },
+          { users: ["abc", "def", users[1], users[2], "hij"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -47,9 +47,9 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["abc", "def", "fgh", users[0]], min_approvals: 2 },
-          { teams: ["team-abc"], min_approvals: 1 },
-          { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 1 },
+          { users: ["abc", "def", "fgh", users[0]], minApprovals: 2 },
+          { teams: ["team-abc"], minApprovals: 1 },
+          { users: ["abc", "def", users[1], users[2], "hij"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -66,9 +66,9 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["abc", "def", "fgh", users[0]], min_approvals: 1 },
-          { teams: ["team-abc"], min_approvals: 1 },
-          { users: ["abc", "def", "hij"], min_approvals: 1 },
+          { users: ["abc", "def", "fgh", users[0]], minApprovals: 1 },
+          { teams: ["team-abc"], minApprovals: 1 },
+          { users: ["abc", "def", "hij"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -85,9 +85,9 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["abc", "def", "fgh"], min_approvals: 1 },
-          { teams: ["team-abc"], min_approvals: 1 },
-          { users: ["abc", "def", "hij"], min_approvals: 1 },
+          { users: ["abc", "def", "fgh"], minApprovals: 1 },
+          { teams: ["team-abc"], minApprovals: 1 },
+          { users: ["abc", "def", "hij"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -104,8 +104,8 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: [users[0], "def"], min_approvals: 2 },
-          { teams: ["team-abc"], min_approvals: 1 },
+          { users: [users[0], "def"], minApprovals: 2 },
+          { teams: ["team-abc"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -122,8 +122,8 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: [users[0], "def"], min_approvals: 2 },
-          { teams: ["team-abc"], min_approvals: 1 },
+          { users: [users[0], "def"], minApprovals: 2 },
+          { teams: ["team-abc"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -140,8 +140,8 @@ describe("'And distinct' rule validation", () => {
         type: RuleTypes.AndDistinct,
         countAuthor: false,
         reviewers: [
-          { users: [users[0], "example", "random"], min_approvals: 2 },
-          { teams: ["team-abc"], min_approvals: 1 },
+          { users: [users[0], "example", "random"], minApprovals: 2 },
+          { teams: ["team-abc"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -158,8 +158,8 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["abc", "def", "fgh"], min_approvals: 1 },
-          { teams: ["team-abc"], min_approvals: 1 },
+          { users: ["abc", "def", "fgh"], minApprovals: 1 },
+          { teams: ["team-abc"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -173,8 +173,8 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["abc", "def", "fgh", users[0]], min_approvals: 1 },
-          { teams: ["team-abc"], min_approvals: 1 },
+          { users: ["abc", "def", "fgh", users[0]], minApprovals: 1 },
+          { teams: ["team-abc"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -188,9 +188,9 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["abc", "def", "fgh", users[0]], min_approvals: 1 },
-          { teams: ["team-abc"], min_approvals: 1 },
-          { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 1 },
+          { users: ["abc", "def", "fgh", users[0]], minApprovals: 1 },
+          { teams: ["team-abc"], minApprovals: 1 },
+          { users: ["abc", "def", users[1], users[2], "hij"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -204,9 +204,9 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["abc", "def", "fgh", users[0]], min_approvals: 2 },
-          { teams: ["team-abc"], min_approvals: 1 },
-          { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 1 },
+          { users: ["abc", "def", "fgh", users[0]], minApprovals: 2 },
+          { teams: ["team-abc"], minApprovals: 1 },
+          { users: ["abc", "def", users[1], users[2], "hij"], minApprovals: 1 },
         ],
         name: "test",
         condition: { include: [] },
@@ -220,9 +220,9 @@ describe("'And distinct' rule validation", () => {
       const rule: AndDistinctRule = {
         type: RuleTypes.AndDistinct,
         reviewers: [
-          { users: ["abc", "def", "fgh", users[0]], min_approvals: 2 },
-          { teams: ["team-abc"], min_approvals: 1 },
-          { users: ["abc", "def", users[1], users[2], "hij"], min_approvals: 2 },
+          { users: ["abc", "def", "fgh", users[0]], minApprovals: 2 },
+          { teams: ["team-abc"], minApprovals: 1 },
+          { users: ["abc", "def", users[1], users[2], "hij"], minApprovals: 2 },
         ],
         name: "test",
         condition: { include: [] },
@@ -237,8 +237,8 @@ describe("'And distinct' rule validation", () => {
         type: RuleTypes.AndDistinct,
         countAuthor: true,
         reviewers: [
-          { users: [users[0], "example"], min_approvals: 1 },
-          { teams: ["team-abc"], min_approvals: 2 },
+          { users: [users[0], "example"], minApprovals: 1 },
+          { teams: ["team-abc"], minApprovals: 2 },
         ],
         name: "test",
         condition: { include: [] },

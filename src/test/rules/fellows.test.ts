@@ -95,7 +95,7 @@ describe("Fellows rule parsing", () => {
     await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" must be a number');
   });
 
-  test("should default min_approvals to 1", async () => {
+  test("should default minApprovals to 1", async () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
           - name: Test review
@@ -110,13 +110,13 @@ describe("Fellows rule parsing", () => {
     const config = await runner.getConfigFile("");
     const [rule] = config.rules;
     if (rule.type === "fellows") {
-      expect(rule.min_approvals).toEqual(1);
+      expect(rule.minApprovals).toEqual(1);
     } else {
       throw new Error(`Rule type ${rule.type} is invalid`);
     }
   });
 
-  test("should fail with min_approvals in negative", async () => {
+  test("should fail with minApprovals in negative", async () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
           - name: Test review
@@ -126,13 +126,13 @@ describe("Fellows rule parsing", () => {
               exclude: 
                 - 'example'
             type: fellows
-            min_approvals: -99
+            minApprovals: -99
             minRank: 4
         `);
-    await expect(runner.getConfigFile("")).rejects.toThrowError('"min_approvals" must be greater than or equal to 1');
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"minApprovals" must be greater than or equal to 1');
   });
 
-  test("should fail with min_approvals in 0", async () => {
+  test("should fail with minApprovals in 0", async () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
           - name: Test review
@@ -142,10 +142,10 @@ describe("Fellows rule parsing", () => {
               exclude: 
                 - 'example'
             type: fellows
-            min_approvals: 0
+            minApprovals: 0
             minRank: 4
         `);
-    await expect(runner.getConfigFile("")).rejects.toThrowError('"min_approvals" must be greater than or equal to 1');
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"minApprovals" must be greater than or equal to 1');
   });
 
   test("should default countAuthor to false", async () => {
