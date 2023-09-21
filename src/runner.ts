@@ -5,7 +5,7 @@ import { Inputs } from ".";
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger, CheckData, TeamApi } from "./github/types";
-import { AndDistinctRule, ConfigurationFile, FellowsRule, Reviewers, Rule } from "./rules/types";
+import { AndDistinctRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleTypes } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
 
@@ -75,7 +75,7 @@ export class ActionRunner {
 
     ruleCheck: for (const rule of rules) {
       try {
-        this.logger.info(`Validating rule '${rule.name}'`);
+        this.logger.info(`Validating rule '${rule.name}' of type '${rule.type}'`);
         // We get all the files that were modified and match the rules condition
         const files = this.listFilesThatMatchRuleCondition(modifiedFiles, rule);
         // We check if there are any matches
@@ -91,67 +91,81 @@ export class ActionRunner {
             continue;
           }
         }
-        if (rule.type === "basic") {
-          const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
-          if (!result) {
-            this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-            errorReports.push({ ...missingData, name: rule.name });
-          }
-        } else if (rule.type === "and") {
-          const reports: ReviewReport[] = [];
-          // We evaluate every individual condition
-          for (const reviewer of rule.reviewers) {
-            const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
+        switch (rule.type) {
+          case RuleTypes.Basic: {
+            const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
             if (!result) {
-              // If one of the conditions failed, we add it to a report
+              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+              errorReports.push({ ...missingData, name: rule.name });
+            }
+
+            break;
+          }
+          case RuleTypes.And: {
+            const reports: ReviewReport[] = [];
+            // We evaluate every individual condition
+            for (const reviewer of rule.reviewers) {
+              const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
+              if (!result) {
+                // If one of the conditions failed, we add it to a report
+                reports.push(missingData);
+              }
+            }
+            if (reports.length > 0) {
+              const finalReport = unifyReport(reports, rule.name);
+              this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
+              errorReports.push(finalReport);
+            }
+            break;
+          }
+          case RuleTypes.Or: {
+            const reports: ReviewReport[] = [];
+            for (const reviewer of rule.reviewers) {
+              const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
+              if (result) {
+                // This is a OR condition, so with ONE positive result
+                // we can continue the loop to check the following rule
+                continue ruleCheck;
+              }
+              // But, until we get a positive case we add all the failed cases
               reports.push(missingData);
             }
-          }
-          if (reports.length > 0) {
-            const finalReport = unifyReport(reports, rule.name);
-            this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
-            errorReports.push(finalReport);
-          }
-        } else if (rule.type === "or") {
-          const reports: ReviewReport[] = [];
-          for (const reviewer of rule.reviewers) {
-            const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
-            if (result) {
-              // This is a OR condition, so with ONE positive result
-              // we can continue the loop to check the following rule
-              continue ruleCheck;
-            }
-            // But, until we get a positive case we add all the failed cases
-            reports.push(missingData);
-          }
 
-          // If the loop was not skipped it means that we have errors
-          if (reports.length > 0) {
-            // We get the lowest amount of reviews needed to fulfill one of the reviews
-            const lowerAmountOfReviewsNeeded = reports
-              .map((r) => r.missingReviews)
-              .reduce((a, b) => (a < b ? a : b), 999);
-            // We get the lowest rank required
-            // We unify the reports
-            const finalReport = unifyReport(reports, rule.name);
-            // We set the value to the minimum neccesary
-            finalReport.missingReviews = lowerAmountOfReviewsNeeded;
-            this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
-            // We unify the reports and push them for handling
-            errorReports.push(finalReport);
+            // If the loop was not skipped it means that we have errors
+            if (reports.length > 0) {
+              // We get the lowest amount of reviews needed to fulfill one of the reviews
+              const lowerAmountOfReviewsNeeded = reports
+                .map((r) => r.missingReviews)
+                .reduce((a, b) => (a < b ? a : b), 999);
+              // We get the lowest rank required
+              // We unify the reports
+              const finalReport = unifyReport(reports, rule.name);
+              // We set the value to the minimum neccesary
+              finalReport.missingReviews = lowerAmountOfReviewsNeeded;
+              this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
+              // We unify the reports and push them for handling
+              errorReports.push(finalReport);
+            }
+            break;
           }
-        } else if (rule.type === "and-distinct") {
-          const [result, missingData] = await this.andDistinctEvaluation(rule);
-          if (!result) {
-            this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-            errorReports.push({ ...missingData, name: rule.name });
+          case RuleTypes.AndDistinct: {
+            const [result, missingData] = await this.andDistinctEvaluation(rule);
+            if (!result) {
+              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+              errorReports.push({ ...missingData, name: rule.name });
+            }
+            break;
           }
-        } else if (rule.type === "fellows") {
-          const [result, missingData] = await this.fellowsCondition(rule);
-          if (!result) {
-            this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-            errorReports.push({ ...missingData, name: rule.name });
+          case RuleTypes.Fellows: {
+            const [result, missingData] = await this.fellowsCondition(rule);
+            if (!result) {
+              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+              errorReports.push({ ...missingData, name: rule.name });
+            }
+            break;
           }
+          default:
+            throw new Error(`Rule type not found!`);
         }
       } catch (error: unknown) {
         // We only throw if there was an unexpected error, not if the check fails
