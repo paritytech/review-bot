@@ -157,7 +157,7 @@ export class ActionRunner {
             break;
           }
           case RuleTypes.Fellows: {
-            const [result, missingData] = await this.fellowsCondition(rule);
+            const [result, missingData] = await this.fellowsEvaluation(rule);
             if (!result) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
               errorReports.push({ ...missingData, name: rule.name });
@@ -454,7 +454,7 @@ export class ActionRunner {
     }
   }
 
-  async fellowsCondition(rule: FellowsRule): Promise<ReviewState> {
+  async fellowsEvaluation(rule: FellowsRule): Promise<ReviewState> {
     // This is a list of all the users that need to approve a PR
     const requiredUsers: string[] = await this.polkadotApi.getTeamMembers(rule.minRank.toString());
 

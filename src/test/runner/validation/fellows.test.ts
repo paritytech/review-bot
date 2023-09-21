@@ -41,7 +41,7 @@ describe("'Fellows' rule validation", () => {
 
   test("should count author", async () => {
     fellowsApi.getTeamMembers.calledWith("1").mockResolvedValue(users);
-    api.listApprovedReviewsAuthors.calledWith(true).mockResolvedValue([users[0], users[1]]);
+    api.listApprovedReviewsAuthors.mockResolvedValue([users[0], users[1]]);
     const { reports } = await runner.validatePullRequest({
       rules: [
         {
@@ -54,8 +54,9 @@ describe("'Fellows' rule validation", () => {
         },
       ],
     });
-    expect(api.listApprovedReviewsAuthors).toBeCalledWith(true);
     expect(reports).toHaveLength(0);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(api.listApprovedReviewsAuthors).toHaveBeenCalledWith(true);
   });
 
   describe("errors", () => {
