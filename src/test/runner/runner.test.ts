@@ -24,8 +24,8 @@ describe("Shared validations", () => {
   test("validatePullRequest should return true if no rule matches any files", async () => {
     const config: ConfigurationFile = {
       rules: [
-        { name: "Rule 1", type: RuleTypes.Basic, condition: { include: ["src"] }, min_approvals: 1 },
-        { name: "Rule 2", type: RuleTypes.Basic, condition: { include: ["README.md"] }, min_approvals: 99 },
+        { name: "Rule 1", type: RuleTypes.Basic, condition: { include: ["src"] }, minApprovals: 1 },
+        { name: "Rule 2", type: RuleTypes.Basic, condition: { include: ["README.md"] }, minApprovals: 99 },
       ],
     };
     api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml", "LICENSE"]);
@@ -40,7 +40,7 @@ describe("Shared validations", () => {
           name: "Rule allowedToSkipRule",
           type: RuleTypes.Basic,
           condition: { include: ["src"] },
-          min_approvals: 1,
+          minApprovals: 1,
           allowedToSkipRule: { teams: ["abc"] },
         },
       ],

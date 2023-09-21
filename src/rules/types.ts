@@ -6,12 +6,12 @@ export enum RuleTypes {
   Fellows = "fellows",
 }
 
-export type Reviewers = { users?: string[]; teams?: string[]; min_approvals: number };
+export type Reviewers = { users?: string[]; teams?: string[]; minApprovals: number };
 
 export interface Rule {
   name: string;
   condition: { include: string[]; exclude?: string[] };
-  allowedToSkipRule?: Omit<Reviewers, "min_approvals">;
+  allowedToSkipRule?: Omit<Reviewers, "minApprovals">;
   countAuthor?: boolean;
 }
 
@@ -37,7 +37,7 @@ export interface AndDistinctRule extends Rule {
 export interface FellowsRule extends Rule {
   type: RuleTypes.Fellows;
   minRank: number;
-  min_approvals: number;
+  minApprovals: number;
 }
 
 export interface ConfigurationFile {

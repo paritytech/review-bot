@@ -114,7 +114,7 @@ describe("'Or' rule parsing", () => {
             reviewers:
               - teams:
                 - team-example
-              - min_approvals: 2
+              - minApprovals: 2
                 users:
                   - abc
                 teams:
@@ -125,13 +125,13 @@ describe("'Or' rule parsing", () => {
       expect(rule.reviewers).toHaveLength(2);
       expect(rule.reviewers[0].teams).toContainEqual("team-example");
       expect(rule.reviewers[0].users).toBeUndefined();
-      expect(rule.reviewers[1].min_approvals).toEqual(2);
+      expect(rule.reviewers[1].minApprovals).toEqual(2);
       expect(rule.reviewers[1].users).toContainEqual("abc");
       expect(rule.reviewers[1].teams).toContainEqual("xyz");
     });
   });
 
-  test("should default min_approvals to 1", async () => {
+  test("should default minApprovals to 1", async () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
           - name: Test review
@@ -150,13 +150,13 @@ describe("'Or' rule parsing", () => {
     const config = await runner.getConfigFile("");
     const [rule] = config.rules;
     if (rule.type === "or") {
-      expect(rule.reviewers[0].min_approvals).toEqual(1);
+      expect(rule.reviewers[0].minApprovals).toEqual(1);
     } else {
       throw new Error(`Rule type ${rule.type} is invalid`);
     }
   });
 
-  test("should fail with min_approvals in negative", async () => {
+  test("should fail with minApprovals in negative", async () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
           - name: Test review
@@ -167,16 +167,16 @@ describe("'Or' rule parsing", () => {
                 - 'example'
             type: or
             reviewers:
-              - min_approvals: -99
+              - minApprovals: -99
                 users:
                 - user-example
         `);
     await expect(runner.getConfigFile("")).rejects.toThrowError(
-      '"reviewers[0].min_approvals" must be greater than or equal to 1',
+      '"reviewers[0].minApprovals" must be greater than or equal to 1',
     );
   });
 
-  test("should fail with min_approvals in 0", async () => {
+  test("should fail with minApprovals in 0", async () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
           - name: Test review
@@ -187,12 +187,12 @@ describe("'Or' rule parsing", () => {
                 - 'example'
             type: or
             reviewers:
-              - min_approvals: 0
+              - minApprovals: 0
                 users:
                   - user-example
         `);
     await expect(runner.getConfigFile("")).rejects.toThrowError(
-      '"reviewers[0].min_approvals" must be greater than or equal to 1',
+      '"reviewers[0].minApprovals" must be greater than or equal to 1',
     );
   });
 

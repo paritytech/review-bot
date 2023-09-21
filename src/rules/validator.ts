@@ -12,7 +12,7 @@ const reviewersObj = {
   teams: Joi.array().items(Joi.string()).optional().empty(null),
 };
 
-const reviewerConditionObj = { ...reviewersObj, min_approvals: Joi.number().min(1).default(1) };
+const reviewerConditionObj = { ...reviewersObj, minApprovals: Joi.number().min(1).default(1) };
 
 /** Base rule condition.
  * This are the minimum requirements that all the rules must have.
@@ -24,7 +24,7 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     include: Joi.array().items(Joi.string()).required(),
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
-  allowedToSkipRule: Joi.object<Omit<Reviewers, "min_approvals">>().keys(reviewersObj).optional().or("users", "teams"),
+  allowedToSkipRule: Joi.object<Omit<Reviewers, "minApprovals">>().keys(reviewersObj).optional().or("users", "teams"),
   type: Joi.string()
     .valid(RuleTypes.Basic, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDistinct, RuleTypes.Fellows)
     .required(),
@@ -40,7 +40,7 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
 });
 
 /** Basic rule schema
- * This rule is quite simple as it only has the min_approvals field and the required reviewers
+ * This rule is quite simple as it only has the minApprovals field and the required reviewers
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
   .keys({ ...reviewerConditionObj, countAuthor: Joi.boolean().default(false) })
@@ -58,7 +58,7 @@ export const otherRulesSchema = Joi.object<AndRule>().keys({
 export const fellowsRuleSchema = Joi.object<FellowsRule>().keys({
   countAuthor: Joi.boolean().default(false),
   minRank: Joi.number().required().min(1).empty(null),
-  min_approvals: Joi.number().min(1).default(1),
+  minApprovals: Joi.number().min(1).default(1),
 });
 
 /**

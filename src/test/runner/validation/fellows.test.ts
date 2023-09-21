@@ -32,7 +32,7 @@ describe("'Fellows' rule validation", () => {
           type: RuleTypes.Fellows,
           condition: { include: ["review-bot.yml"] },
           minRank: 1,
-          min_approvals: 2,
+          minApprovals: 2,
         },
       ],
     });
@@ -49,7 +49,7 @@ describe("'Fellows' rule validation", () => {
           type: RuleTypes.Fellows,
           condition: { include: ["review-bot.yml"] },
           minRank: 1,
-          min_approvals: 1,
+          minApprovals: 1,
           countAuthor: true,
         },
       ],
@@ -70,7 +70,7 @@ describe("'Fellows' rule validation", () => {
             type: RuleTypes.Fellows,
             condition: { include: ["review-bot.yml"] },
             minRank: 4,
-            min_approvals: 1,
+            minApprovals: 1,
           },
         ],
       });
@@ -89,7 +89,7 @@ describe("'Fellows' rule validation", () => {
             type: RuleTypes.Fellows,
             condition: { include: ["review-bot.yml"] },
             minRank: 4,
-            min_approvals: 1,
+            minApprovals: 1,
           },
         ],
       };
@@ -99,7 +99,7 @@ describe("'Fellows' rule validation", () => {
       );
     });
 
-    test("should throw error if not enough fellows of a given rank are found to fulfill min_approvals requirement", async () => {
+    test("should throw error if not enough fellows of a given rank are found to fulfill minApprovals requirement", async () => {
       fellowsApi.getTeamMembers.mockResolvedValue([users[2]]);
       fellowsApi.getTeamMembers.calledWith("4").mockResolvedValue(users);
       const config: ConfigurationFile = {
@@ -109,7 +109,7 @@ describe("'Fellows' rule validation", () => {
             type: RuleTypes.Fellows,
             condition: { include: ["review-bot.yml"] },
             minRank: 4,
-            min_approvals: 5,
+            minApprovals: 5,
           },
         ],
       };

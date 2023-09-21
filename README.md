@@ -230,7 +230,7 @@ rules:
       exclude:
         - '.github/'
     type: basic
-    min_approvals: 2
+    minApprovals: 2
     teams:
       - team-1
       - team-2
@@ -251,7 +251,7 @@ It has the same parameters as a normal rule:
 	- **exclude**: An array of regular expressions pointing to the files that this rule should ignore when deciding if it should evaluate the Pull Request.
 		- **optional**
 - **type**: This must be the string `basic`.
-- **min_approvals**: The number of approvals that are need to fulfill this condition.
+- **minApprovals**: The number of approvals that are need to fulfill this condition.
 	- It can not be lower than 1.
 	- **Optional**: Defaults to 1.
 	- Must be greater than the number of users available (you cannot request 5 approvals from a team of 4 users)
@@ -286,7 +286,7 @@ rules:
         - user-2
       - teams:
         - team-abc
-        min_approvals: 2
+        minApprovals: 2
 ```
 - The **name** and **conditions** fields have the same requirements that the `basic` rule has.
 - **type**: Must be `or`, `and` or `and-distinct`.
@@ -298,7 +298,7 @@ rules:
 	- Must have at least two options.
 		- If you only need 1 option, then use the `basic` rule.
 	- Each of the options have the following fields:
-		- **min_approvals**: The number of approvals that are need to fulfill this condition.
+		- **minApprovals**: The number of approvals that are need to fulfill this condition.
 			- It can not be lower than 1.
 			- **Optional**: Defaults to 1.
 			- Must be greater than the number of users available (you cannot request 5 approvals from a team of 4 users)
@@ -319,7 +319,7 @@ reviewers:
     - user-2
   - teams:
     - team-abc
-    min_approvals: 2
+    minApprovals: 2
 ```
 This rule will be approved with *any of the following* conditions:
 - If a user who belongs to `team-example` or is `user-1` or `user-2` approves the PR.
@@ -339,7 +339,7 @@ reviewers:
     - user-2
   - teams:
     - team-abc
-    min_approvals: 2
+    minApprovals: 2
 ```
 This rule will be approved if *all the following conditions get fulfilled*:
 - *One* user who belongs to `team-example` or is `user-1` or `user-2` approves the PR.
@@ -367,7 +367,7 @@ The fellows rule has a slight difference to all of the rules:
       - 'example'
   type: fellows
   minRank: 2
-  min_approvals: 2
+  minApprovals: 2
 ```
 The biggest difference is that it doesn’t have a reviewers type (it doesn’t have a `teams` or `users` field); instead, it has a `minRank` field.
 

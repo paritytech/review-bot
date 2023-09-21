@@ -282,11 +282,11 @@ export class ActionRunner {
     // We get all the users belonging to each 'and distinct' review condition
     for (const reviewers of rule.reviewers) {
       const users = await this.fetchAllUsers(reviewers);
-      requirements.push({ users, requiredApprovals: reviewers.min_approvals });
+      requirements.push({ users, requiredApprovals: reviewers.minApprovals });
     }
 
     // We count how many reviews are needed in total
-    const requiredAmountOfReviews = rule.reviewers.map((r) => r.min_approvals).reduce((a, b) => a + b, 0);
+    const requiredAmountOfReviews = rule.reviewers.map((r) => r.minApprovals).reduce((a, b) => a + b, 0);
     // We get the list of users that approved the PR
     const approvals = await this.prApi.listApprovedReviewsAuthors(rule.countAuthor ?? false);
 
@@ -393,7 +393,7 @@ export class ActionRunner {
    * @see-also ReviewError
    */
   async evaluateCondition(
-    rule: { min_approvals: number } & Reviewers,
+    rule: { minApprovals: number } & Reviewers,
     countAuthor: boolean = false,
   ): Promise<ReviewState> {
     this.logger.debug(JSON.stringify(rule));
@@ -405,9 +405,9 @@ export class ActionRunner {
       throw new Error("No users have been found in the required reviewers");
     }
 
-    if (requiredUsers.length < rule.min_approvals) {
+    if (requiredUsers.length < rule.minApprovals) {
       this.logger.error(
-        `${rule.min_approvals} approvals are required but only ${requiredUsers.length} user's approval count.`,
+        `${rule.minApprovals} approvals are required but only ${requiredUsers.length} user's approval count.`,
       );
       if (rule.teams) {
         this.logger.error(`Allowed teams: ${JSON.stringify(rule.teams)}`);
@@ -423,7 +423,7 @@ export class ActionRunner {
     this.logger.info(`Found ${approvals.length} approvals.`);
 
     // This is the amount of reviews required. To succeed this should be 0 or lower
-    let missingReviews = rule.min_approvals;
+    let missingReviews = rule.minApprovals;
     for (const requiredUser of requiredUsers) {
       // We check for the approvals, if it is a required reviewer we lower the amount of missing reviews
       if (approvals.indexOf(requiredUser) > -1) {
@@ -462,9 +462,9 @@ export class ActionRunner {
       throw new Error(`No users have been found with the rank ${rule.minRank} or above`);
     }
 
-    if (requiredUsers.length < rule.min_approvals) {
+    if (requiredUsers.length < rule.minApprovals) {
       this.logger.error(
-        `${rule.min_approvals} approvals are required but only ${requiredUsers.length} user's approval count.`,
+        `${rule.minApprovals} approvals are required but only ${requiredUsers.length} user's approval count.`,
       );
       throw new Error("The amount of required approvals is smaller than the amount of available users.");
     }
@@ -474,7 +474,7 @@ export class ActionRunner {
     this.logger.info(`Found ${approvals.length} approvals.`);
 
     // This is the amount of reviews required. To succeed this should be 0 or lower
-    let missingReviews = rule.min_approvals;
+    let missingReviews = rule.minApprovals;
     for (const requiredUser of requiredUsers) {
       // We check for the approvals, if it is a required reviewer we lower the amount of missing reviews
       if (approvals.indexOf(requiredUser) > -1) {
@@ -531,7 +531,7 @@ export class ActionRunner {
    * @param reviewers Object with users or teams to fetch members
    * @returns an array with all the users
    */
-  async fetchAllUsers(reviewers: Omit<Reviewers, "min_approvals">): Promise<string[]> {
+  async fetchAllUsers(reviewers: Omit<Reviewers, "minApprovals">): Promise<string[]> {
     const users: Set<string> = new Set<string>();
     if (reviewers.teams) {
       for (const team of reviewers.teams) {
