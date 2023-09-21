@@ -151,47 +151,6 @@ describe("'And distinct' rule validation", () => {
       const [result] = await runner.andDistinctEvaluation(rule);
       expect(result).toBe(false);
     });
-
-    describe("rank", () => {
-      test("should request highest missing rank", async () => {
-        const rule: AndDistinctRule = {
-          type: RuleTypes.AndDistinct,
-          countAuthor: true,
-          reviewers: [
-            { minFellowsRank: 1, min_approvals: 1 },
-            { minFellowsRank: 3, min_approvals: 1 },
-          ],
-          name: "test",
-          condition: { include: [] },
-        };
-        api.listApprovedReviewsAuthors.mockResolvedValue(users);
-        fellowsApi.getTeamMembers.mockResolvedValue([users[1]]);
-
-        const [result, report] = await runner.andDistinctEvaluation(rule);
-        expect(result).toBeFalsy();
-        expect(report?.missingRank).toEqual(3);
-      });
-
-      test("should request highest missing rank even if lowest rank was fulfilled", async () => {
-        const rule: AndDistinctRule = {
-          type: RuleTypes.AndDistinct,
-          countAuthor: true,
-          reviewers: [
-            { minFellowsRank: 1, min_approvals: 1 },
-            { minFellowsRank: 3, min_approvals: 1 },
-          ],
-          name: "test",
-          condition: { include: [] },
-        };
-        api.listApprovedReviewsAuthors.mockResolvedValue([users[1]]);
-        fellowsApi.getTeamMembers.calledWith("3").mockResolvedValue([users[1]]);
-        fellowsApi.getTeamMembers.calledWith("1").mockResolvedValue(users);
-
-        const [result, report] = await runner.andDistinctEvaluation(rule);
-        expect(result).toBeFalsy();
-        expect(report?.missingRank).toEqual(3);
-      });
-    });
   });
 
   describe("Passing scenarios", () => {

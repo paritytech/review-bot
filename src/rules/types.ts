@@ -3,9 +3,10 @@ export enum RuleTypes {
   And = "and",
   Or = "or",
   AndDistinct = "and-distinct",
+  Fellows = "fellows",
 }
 
-export type Reviewers = { users?: string[]; teams?: string[]; minFellowsRank?: number; min_approvals: number };
+export type Reviewers = { users?: string[]; teams?: string[]; min_approvals: number };
 
 export interface Rule {
   name: string;
@@ -33,11 +34,17 @@ export interface AndDistinctRule extends Rule {
   reviewers: Reviewers[];
 }
 
+export interface FellowsRule extends Rule {
+  type: RuleTypes.Fellows;
+  minRank: number;
+  min_approvals: number;
+}
+
 export interface ConfigurationFile {
   /** Based on the `type` parameter, Typescript converts the object to the correct type
    * @see {@link Rules}
    */
-  rules: (BasicRule | AndRule | OrRule | AndDistinctRule)[];
+  rules: (BasicRule | AndRule | OrRule | AndDistinctRule | FellowsRule)[];
   preventReviewRequests?: {
     teams?: string[];
     users?: string[];

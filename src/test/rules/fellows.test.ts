@@ -6,84 +6,93 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
-import { BasicRule } from "../../rules/types";
+import { FellowsRule } from "../../rules/types";
 import { ActionRunner } from "../../runner";
 
-describe("Basic rule parsing", () => {
+describe("Fellows rule parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
-  let teamsApi: MockProxy<TeamApi>;
   beforeEach(() => {
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
+    runner = new ActionRunner(api, mock<TeamApi>(), mock<TeamApi>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`
         rules:
-          - name: Test review
-            condition:
-              include: 
-                - '.*'
-              exclude: 
-                - 'example'
-            type: basic
-            teams:
-              - team-example
+        - name: Test review
+          condition:
+            include: 
+              - '.*'
+            exclude: 
+              - 'example'
+          type: fellows
+          minRank: 2
         `);
     const config = await runner.getConfigFile("");
     expect(config.rules[0].name).toEqual("Test review");
-    expect(config.rules[0].type).toEqual("basic");
+    expect(config.rules[0].type).toEqual("fellows");
   });
 
-  test("should require teams", async () => {
+  test("should set the rank", async () => {
     api.getConfigFile.mockResolvedValue(`
-        rules:
-          - name: Test review
-            condition:
-              include: 
-                - '.*'
-              exclude: 
-                - 'example'
-            type: basic
-            teams:
-              - team-example
-        `);
-    const config = await runner.getConfigFile("");
-    const rule = config.rules[0] as BasicRule;
-    expect(rule.teams).toContainEqual("team-example");
-    expect(rule.users).toBeUndefined();
-  });
-  test("should require users", async () => {
-    api.getConfigFile.mockResolvedValue(`
-        rules:
-          - name: Test review
-            condition:
-              include: 
-                - '.*'
-              exclude: 
-                - 'example'
-            type: basic
-            users:
-              - user-example
-        `);
-    const config = await runner.getConfigFile("");
-    const rule = config.rules[0] as BasicRule;
-    expect(rule.users).toContainEqual("user-example");
-    expect(rule.teams).toBeUndefined();
+          rules:
+            - name: Test review
+              condition:
+                include: 
+                  - '.*'
+                exclude: 
+                  - 'example'
+              type: fellows
+              minRank: 4
+          `);
+    const { rules } = await runner.getConfigFile("");
+    expect(rules[0].type).toEqual("fellows");
+    const fellowsRule = rules[0] as FellowsRule;
+    expect(fellowsRule.minRank).toEqual(4);
   });
 
-  test("should fail without reviewers", async () => {
+  test("should fail without rank", async () => {
     api.getConfigFile.mockResolvedValue(`
-        rules:
-          - name: Test review
-            condition:
-              include: 
-                - '.*'
-              exclude: 
-                - 'example'
-            type: basic
-        `);
-    await expect(runner.getConfigFile("")).rejects.toThrowError('"value" must contain at least one of [users, teams]');
+          rules:
+            - name: Test review
+              condition:
+                include: 
+                  - '.*'
+                exclude: 
+                  - 'example'
+              type: fellows
+          `);
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" is required');
+  });
+
+  test("should fail without negative number", async () => {
+    api.getConfigFile.mockResolvedValue(`
+          rules:
+            - name: Test review
+              condition:
+                include: 
+                  - '.*'
+                exclude: 
+                  - 'example'
+              type: fellows
+              minRank: -3
+          `);
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" must be greater than or equal to 1');
+  });
+
+  test("should fail with invalid number", async () => {
+    api.getConfigFile.mockResolvedValue(`
+          rules:
+            - name: Test review
+              condition:
+                include: 
+                  - '.*'
+                exclude: 
+                  - 'example'
+              type: fellows
+              minRank: cuatro
+          `);
+    await expect(runner.getConfigFile("")).rejects.toThrowError('"minRank" must be a number');
   });
 
   test("should default min_approvals to 1", async () => {
@@ -95,13 +104,12 @@ describe("Basic rule parsing", () => {
                 - '.*'
               exclude: 
                 - 'example'
-            type: basic
-            users:
-              - user-example
+            type: fellows
+            minRank: 2
         `);
     const config = await runner.getConfigFile("");
     const [rule] = config.rules;
-    if (rule.type === "basic") {
+    if (rule.type === "fellows") {
       expect(rule.min_approvals).toEqual(1);
     } else {
       throw new Error(`Rule type ${rule.type} is invalid`);
@@ -117,10 +125,9 @@ describe("Basic rule parsing", () => {
                 - '.*'
               exclude: 
                 - 'example'
-            type: basic
+            type: fellows
             min_approvals: -99
-            users:
-              - user-example
+            minRank: 4
         `);
     await expect(runner.getConfigFile("")).rejects.toThrowError('"min_approvals" must be greater than or equal to 1');
   });
@@ -134,10 +141,9 @@ describe("Basic rule parsing", () => {
                 - '.*'
               exclude: 
                 - 'example'
-            type: basic
+            type: fellows
             min_approvals: 0
-            users:
-              - user-example
+            minRank: 4
         `);
     await expect(runner.getConfigFile("")).rejects.toThrowError('"min_approvals" must be greater than or equal to 1');
   });
@@ -151,13 +157,12 @@ describe("Basic rule parsing", () => {
                 - '.*'
               exclude: 
                 - 'example'
-            type: basic
-            users:
-              - user-example
+            type: fellows
+            minRank: 4
         `);
     const config = await runner.getConfigFile("");
     const [rule] = config.rules;
-    if (rule.type === "basic") {
+    if (rule.type === "fellows") {
       expect(rule.countAuthor).toBeFalsy();
     } else {
       throw new Error(`Rule type ${rule.type} is invalid`);
@@ -173,9 +178,8 @@ describe("Basic rule parsing", () => {
                 - '.*'
               exclude: 
                 - 'example'
-            type: basic
-            users:
-              - user-example
+            type: fellows
+            minRank: 4
             countAuthor: bla
         `);
     await expect(runner.getConfigFile("")).rejects.toThrowError('"countAuthor" must be a boolean');
@@ -190,14 +194,13 @@ describe("Basic rule parsing", () => {
                 - '.*'
               exclude: 
                 - 'example'
-            type: basic
-            users:
-              - user-example
+            type: fellows
+            minRank: 4
             countAuthor: true
         `);
     const config = await runner.getConfigFile("");
     const [rule] = config.rules;
-    if (rule.type === "basic") {
+    if (rule.type === "fellows") {
       expect(rule.countAuthor).toBeTruthy();
     } else {
       throw new Error(`Rule type ${rule.type} is invalid`);

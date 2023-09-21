@@ -237,7 +237,6 @@ rules:
     users:
       - user-1
       - user-2
-    minFellowsRank: 2
     countAuthor: true
     allowedToSkipRule:
       teams:
@@ -257,13 +256,9 @@ It has the same parameters as a normal rule:
 	- **Optional**: Defaults to 1.
 	- Must be greater than the number of users available (you cannot request 5 approvals from a team of 4 users)
 - **teams**: An array of team *slugs* that need to review this file.
-	- *Optional if **minFellowsRank** or **users** are defined*.
+	- *Optional if **users** is defined*.
 - **users**: An array of the GitHub usernames of the users who need to review this file. 
-	- *Optional if **teams** or **minFellowsRank** are defined*.
-- **minFellowsRank**: A number defining the minimum [minFellowsRank a fellow](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fkusama.api.onfinality.io%2Fpublic-ws#/fellowship) needs to have to approve this PR.
-	-  *Optional if **teams** or **users** are defined*.
-	- If it is set to minFellowsRank 3, it will need the approval of a fellow of minFellowsRank 3 or higher to pass.
-		- The username is fetched [from the additional field](https://github.com/polkadot-fellows/runtimes/issues/7) in the identity of the fellows. If it is null, the fellow’s review won’t count towards the required approval.
+	- *Optional if **teams** is defined*.
 - **countAuthor**: If the pull request author should be considered as an approval.
 	- If the author belongs to the list of approved users (either by team or by users) his approval will be counted (requiring one less approvals in total).
 	- ** Optional**: Defaults to `false`
@@ -308,13 +303,9 @@ rules:
 			- **Optional**: Defaults to 1.
 			- Must be greater than the number of users available (you cannot request 5 approvals from a team of 4 users)
 		- **teams**: An array of team *slugs* that need to review this file.
-			- *Optional if **minFellowsRank** or **users** are defined*.
+			- *Optional if **users** is defined*.
 		- **users**: An array of the GitHub usernames of the users who need to review this file. 
-			- *Optional if **teams** or **minFellowsRank** are defined*.
-		- **minFellowsRank**: A number defining the minimum [minFellowsRank a fellow](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fkusama.api.onfinality.io%2Fpublic-ws#/fellowship) needs to have to approve this PR.
-			-  *Optional if **teams** or **users** are defined*.
-			- If it is set to minFellowsRank 3, it will need the approval of a fellow of minFellowsRank 3 or higher to pass.
-				- The username is fetched [from the additional field](https://github.com/polkadot-fellows/runtimes/issues/7) in the identity of the fellows. If it is null, the fellow’s review won’t count towards the required approval.
+			- *Optional if **teams** is defined*.
 ##### Or rule logic
 This is a rule that has at least two available options of reviewers and needs **at least one group to approve**.
 
@@ -365,7 +356,35 @@ The logic in this rule is the *same as the `and` rule **but** with one exception
 Meaning that if a user belongs to both `team-abc` and `team-example` their approval will count only towards one of the available options *even if they fulfill both needs*.
 
 This rule is useful when you need to make sure that at leasts two sets of eyes of two different teams review a Pull Request.
+#### Fellows rule
+The fellows rule has a slight difference to all of the rules:
+```yaml
+- name: Fellows review
+  condition:
+    include:
+      - '.*'
+    exclude:
+      - 'example'
+  type: fellows
+  minRank: 2
+  min_approvals: 2
+```
+The biggest difference is that it doesn’t have a reviewers type (it doesn’t have a `teams` or `users` field); instead, it has a `minRank` field.
 
+This field receives a number, which will be the lowest rank required to evaluate the PR, and then it fetches [all the fellows from the chain data](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fkusama.api.onfinality.io%2Fpublic-ws#/fellowship), filters only the one to belong to that rank or above and then [looks into their metadata for a field name `github` and the handle there](https://github.com/polkadot-fellows/runtimes/issues/7).
+
+After this is done, the resulting handles will be treated like a normal list of required users.
+
+It also has any other field from the [`basic rule`](#basic-rule) (with the exception of `users` and `teams`):
+- **name** 
+- **conditions**:
+	- **include** is **required**.
+	- **exclude** is **optional**.
+- **type**: Must be `fellows`.
+ - **countAuthor**: If the pull request author should be considered as an approval.
+	- **Optional**: Defaults to `false`.
+- **minRank**: Must be a number.
+	- **Required**
 ### Evaluating config
 
 If you want to evaluate the config file to find problems before merging it, we have a simple `cli` to do so.

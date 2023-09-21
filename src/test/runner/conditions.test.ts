@@ -151,31 +151,4 @@ describe("evaluateCondition tests", () => {
       });
     });
   });
-  describe("rank tests", () => {
-    test("should require rank users", async () => {
-      fellowsApi.getTeamMembers.mockResolvedValue(["user-1"]);
-      api.listApprovedReviewsAuthors.mockResolvedValue([]);
-      const [result, report] = await runner.evaluateCondition({
-        min_approvals: 1,
-        minFellowsRank: 3,
-      });
-
-      expect(result).toBeFalsy();
-      expect(report?.missingUsers).toEqual(["user-1"]);
-      expect(report?.teamsToRequest).toBeUndefined();
-      expect(report?.usersToRequest).toBeUndefined();
-      expect(report?.missingRank).toBe(3);
-    });
-
-    test("should pass with required rank users", async () => {
-      fellowsApi.getTeamMembers.mockResolvedValue(["user-1"]);
-      api.listApprovedReviewsAuthors.mockResolvedValue(["user-1"]);
-      const [result] = await runner.evaluateCondition({
-        min_approvals: 1,
-        minFellowsRank: 3,
-      });
-
-      expect(result).toBeTruthy();
-    });
-  });
 });

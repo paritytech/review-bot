@@ -55,29 +55,6 @@ describe("Shared validations", () => {
     );
   });
 
-  test("validatePullRequest should return true if author belongs to allowedToSkipRule by rank", async () => {
-    const config: ConfigurationFile = {
-      rules: [
-        {
-          name: "Rule allowedToSkipRule",
-          type: RuleTypes.Basic,
-          condition: { include: ["src"] },
-          min_approvals: 1,
-          allowedToSkipRule: { minFellowsRank: 2 },
-          teams: ["abc"],
-        },
-      ],
-    };
-    api.listModifiedFiles.mockResolvedValue(["src/polkadot/init.rs", "LICENSE"]);
-    fellowsApi.getTeamMembers.mockResolvedValue(["user-1"]);
-    api.getAuthor.mockReturnValue("user-1");
-    const evaluation = await runner.validatePullRequest(config);
-    expect(evaluation).toBeTruthy();
-    expect(logger.info).toHaveBeenCalledWith(
-      "Skipping rule Rule allowedToSkipRule as author belong to greenlight rule.",
-    );
-  });
-
   test("fetchAllUsers should not return duplicates", async () => {
     teamsApi.getTeamMembers.mockResolvedValue(["user-1", "user-2", "user-3"]);
     const users = await runner.fetchAllUsers({ teams: ["abc"], users: ["user-1", "user-2", "user-4"] });

@@ -5,7 +5,7 @@ import { Inputs } from ".";
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger, CheckData, TeamApi } from "./github/types";
-import { AndDistinctRule, ConfigurationFile, Reviewers, Rule } from "./rules/types";
+import { AndDistinctRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleTypes } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
 
@@ -75,7 +75,7 @@ export class ActionRunner {
 
     ruleCheck: for (const rule of rules) {
       try {
-        this.logger.info(`Validating rule '${rule.name}'`);
+        this.logger.info(`Validating rule '${rule.name}' of type '${rule.type}'`);
         // We get all the files that were modified and match the rules condition
         const files = this.listFilesThatMatchRuleCondition(modifiedFiles, rule);
         // We check if there are any matches
@@ -91,63 +91,81 @@ export class ActionRunner {
             continue;
           }
         }
-        if (rule.type === "basic") {
-          const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
-          if (!result) {
-            this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-            errorReports.push({ ...missingData, name: rule.name });
-          }
-        } else if (rule.type === "and") {
-          const reports: ReviewReport[] = [];
-          // We evaluate every individual condition
-          for (const reviewer of rule.reviewers) {
-            const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
+        switch (rule.type) {
+          case RuleTypes.Basic: {
+            const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
             if (!result) {
-              // If one of the conditions failed, we add it to a report
+              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+              errorReports.push({ ...missingData, name: rule.name });
+            }
+
+            break;
+          }
+          case RuleTypes.And: {
+            const reports: ReviewReport[] = [];
+            // We evaluate every individual condition
+            for (const reviewer of rule.reviewers) {
+              const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
+              if (!result) {
+                // If one of the conditions failed, we add it to a report
+                reports.push(missingData);
+              }
+            }
+            if (reports.length > 0) {
+              const finalReport = unifyReport(reports, rule.name);
+              this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
+              errorReports.push(finalReport);
+            }
+            break;
+          }
+          case RuleTypes.Or: {
+            const reports: ReviewReport[] = [];
+            for (const reviewer of rule.reviewers) {
+              const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
+              if (result) {
+                // This is a OR condition, so with ONE positive result
+                // we can continue the loop to check the following rule
+                continue ruleCheck;
+              }
+              // But, until we get a positive case we add all the failed cases
               reports.push(missingData);
             }
-          }
-          if (reports.length > 0) {
-            const finalReport = unifyReport(reports, rule.name);
-            this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
-            errorReports.push(finalReport);
-          }
-        } else if (rule.type === "or") {
-          const reports: ReviewReport[] = [];
-          for (const reviewer of rule.reviewers) {
-            const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
-            if (result) {
-              // This is a OR condition, so with ONE positive result
-              // we can continue the loop to check the following rule
-              continue ruleCheck;
-            }
-            // But, until we get a positive case we add all the failed cases
-            reports.push(missingData);
-          }
 
-          // If the loop was not skipped it means that we have errors
-          if (reports.length > 0) {
-            // We get the lowest amount of reviews needed to fulfill one of the reviews
-            const lowerAmountOfReviewsNeeded = reports
-              .map((r) => r.missingReviews)
-              .reduce((a, b) => (a < b ? a : b), 999);
-            // We get the lowest rank required
-            const ranks = getRequiredRanks(reports);
-            // We unify the reports
-            const finalReport = unifyReport(reports, rule.name);
-            // We set the value to the minimum neccesary
-            finalReport.missingReviews = lowerAmountOfReviewsNeeded;
-            finalReport.missingRank = ranks ? Math.min(...(ranks as number[])) : undefined;
-            this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
-            // We unify the reports and push them for handling
-            errorReports.push(finalReport);
+            // If the loop was not skipped it means that we have errors
+            if (reports.length > 0) {
+              // We get the lowest amount of reviews needed to fulfill one of the reviews
+              const lowerAmountOfReviewsNeeded = reports
+                .map((r) => r.missingReviews)
+                .reduce((a, b) => (a < b ? a : b), 999);
+              // We get the lowest rank required
+              // We unify the reports
+              const finalReport = unifyReport(reports, rule.name);
+              // We set the value to the minimum neccesary
+              finalReport.missingReviews = lowerAmountOfReviewsNeeded;
+              this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
+              // We unify the reports and push them for handling
+              errorReports.push(finalReport);
+            }
+            break;
           }
-        } else if (rule.type === "and-distinct") {
-          const [result, missingData] = await this.andDistinctEvaluation(rule);
-          if (!result) {
-            this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-            errorReports.push({ ...missingData, name: rule.name });
+          case RuleTypes.AndDistinct: {
+            const [result, missingData] = await this.andDistinctEvaluation(rule);
+            if (!result) {
+              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+              errorReports.push({ ...missingData, name: rule.name });
+            }
+            break;
           }
+          case RuleTypes.Fellows: {
+            const [result, missingData] = await this.fellowsEvaluation(rule);
+            if (!result) {
+              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
+              errorReports.push({ ...missingData, name: rule.name });
+            }
+            break;
+          }
+          default:
+            throw new Error(`Rule type not found!`);
         }
       } catch (error: unknown) {
         // We only throw if there was an unexpected error, not if the check fails
@@ -240,7 +258,11 @@ export class ActionRunner {
         text = text.addHeading("Missing reviews from teams", 3).addList(report.teamsToRequest);
       }
       if (report.missingRank) {
-        text = text.addHeading(`Missing reviews from Fellows of rank ${report.missingRank} or above`, 3);
+        text = text
+          .addHeading("Missing reviews from Fellows", 3)
+          .addEOL()
+          .addRaw(`Missing reviews from rank \`${report.missingRank}\` or above`)
+          .addEOL();
       }
 
       check.output.text += text.stringify() + "\n";
@@ -273,9 +295,6 @@ export class ActionRunner {
       const filterMissingUsers = (reviewData: { users?: string[] }[]): string[] =>
         Array.from(new Set(reviewData.flatMap((r) => r.users ?? []).filter((u) => approvals.indexOf(u) < 0)));
 
-      const ranks = rule.reviewers.map((r) => r.minFellowsRank).filter((rank) => rank !== undefined && rank !== null);
-      const missingRank = ranks.length > 0 ? Math.max(...(ranks as number[])) : undefined;
-
       // Calculating all the possible combinations to see the missing reviewers is very complicated
       // Instead we request everyone who hasn't reviewed yet
       return {
@@ -283,7 +302,6 @@ export class ActionRunner {
         missingUsers: filterMissingUsers(requirements),
         teamsToRequest: rule.reviewers.flatMap((r) => r.teams ?? []),
         usersToRequest: filterMissingUsers(rule.reviewers),
-        missingRank,
       };
     };
 
@@ -427,7 +445,56 @@ export class ActionRunner {
           missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
           teamsToRequest: rule.teams ? rule.teams : undefined,
           usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
-          missingRank: rule.minFellowsRank,
+        },
+      ];
+    } else {
+      this.logger.info("Rule requirements fulfilled");
+      // If we don't have any missing reviews, we return the succesful case
+      return [true];
+    }
+  }
+
+  async fellowsEvaluation(rule: FellowsRule): Promise<ReviewState> {
+    // This is a list of all the users that need to approve a PR
+    const requiredUsers: string[] = await this.polkadotApi.getTeamMembers(rule.minRank.toString());
+
+    if (requiredUsers.length === 0) {
+      throw new Error(`No users have been found with the rank ${rule.minRank} or above`);
+    }
+
+    if (requiredUsers.length < rule.min_approvals) {
+      this.logger.error(
+        `${rule.min_approvals} approvals are required but only ${requiredUsers.length} user's approval count.`,
+      );
+      throw new Error("The amount of required approvals is smaller than the amount of available users.");
+    }
+
+    // We get the list of users that approved the PR
+    const approvals = await this.prApi.listApprovedReviewsAuthors(rule.countAuthor ?? false);
+    this.logger.info(`Found ${approvals.length} approvals.`);
+
+    // This is the amount of reviews required. To succeed this should be 0 or lower
+    let missingReviews = rule.min_approvals;
+    for (const requiredUser of requiredUsers) {
+      // We check for the approvals, if it is a required reviewer we lower the amount of missing reviews
+      if (approvals.indexOf(requiredUser) > -1) {
+        missingReviews--;
+      }
+    }
+
+    // Now we verify if we have any remaining missing review.
+    if (missingReviews > 0) {
+      const author = this.prApi.getAuthor();
+      this.logger.warn(`${missingReviews} reviews are missing.`);
+      // If we have at least one missing review, we return an object with the list of missing reviewers, and
+      // which users/teams we should request to review
+      return [
+        false,
+        {
+          missingReviews,
+          // Remove all the users who approved the PR + the author (if he belongs to the group)
+          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
+          missingRank: rule.minRank,
         },
       ];
     } else {
@@ -477,12 +544,6 @@ export class ActionRunner {
     if (reviewers.users) {
       for (const user of reviewers.users) {
         users.add(user);
-      }
-    }
-    if (reviewers.minFellowsRank) {
-      const members = await this.polkadotApi.getTeamMembers(reviewers.minFellowsRank.toString());
-      for (const member of members) {
-        users.add(member);
       }
     }
 

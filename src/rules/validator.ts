@@ -2,7 +2,7 @@ import { validate } from "@eng-automation/js";
 import Joi from "joi";
 
 import { ActionLogger } from "../github/types";
-import { AndRule, BasicRule, ConfigurationFile, Reviewers, Rule, RuleTypes } from "./types";
+import { AndRule, BasicRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleTypes } from "./types";
 
 /** For the users or team schema. Will be recycled A LOT
  * Remember to add `.or("users", "teams")` to force at least one of the two to be defined
@@ -10,7 +10,6 @@ import { AndRule, BasicRule, ConfigurationFile, Reviewers, Rule, RuleTypes } fro
 const reviewersObj = {
   users: Joi.array().items(Joi.string()).optional().empty(null),
   teams: Joi.array().items(Joi.string()).optional().empty(null),
-  minFellowsRank: Joi.number().optional().min(1).empty(null),
 };
 
 const reviewerConditionObj = { ...reviewersObj, min_approvals: Joi.number().min(1).default(1) };
@@ -26,7 +25,9 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     exclude: Joi.array().items(Joi.string()).optional().allow(null),
   }),
   allowedToSkipRule: Joi.object<Omit<Reviewers, "min_approvals">>().keys(reviewersObj).optional().or("users", "teams"),
-  type: Joi.string().valid(RuleTypes.Basic, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDistinct).required(),
+  type: Joi.string()
+    .valid(RuleTypes.Basic, RuleTypes.And, RuleTypes.Or, RuleTypes.AndDistinct, RuleTypes.Fellows)
+    .required(),
 });
 
 /** General Configuration schema.
@@ -35,7 +36,7 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
  */
 export const generalSchema = Joi.object<ConfigurationFile>().keys({
   rules: Joi.array<ConfigurationFile["rules"]>().items(ruleSchema).unique("name").required(),
-  preventReviewRequests: Joi.object().keys(reviewersObj).optional().or("users", "teams", "minFellowsRank"),
+  preventReviewRequests: Joi.object().keys(reviewersObj).optional().or("users", "teams"),
 });
 
 /** Basic rule schema
@@ -43,15 +44,21 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
  */
 export const basicRuleSchema = Joi.object<BasicRule>()
   .keys({ ...reviewerConditionObj, countAuthor: Joi.boolean().default(false) })
-  .or("users", "teams", "minFellowsRank");
+  .or("users", "teams");
 
 /** As, with the exception of basic, every other schema has the same structure, we can recycle this */
 export const otherRulesSchema = Joi.object<AndRule>().keys({
   reviewers: Joi.array<AndRule["reviewers"]>()
-    .items(Joi.object<Reviewers>().keys(reviewerConditionObj).or("users", "teams", "minFellowsRank"))
+    .items(Joi.object<Reviewers>().keys(reviewerConditionObj).or("users", "teams"))
     .min(2)
     .required(),
   countAuthor: Joi.boolean().default(false),
+});
+
+export const fellowsRuleSchema = Joi.object<FellowsRule>().keys({
+  countAuthor: Joi.boolean().default(false),
+  minRank: Joi.number().required().min(1).empty(null),
+  min_approvals: Joi.number().min(1).default(1),
 });
 
 /**
@@ -77,6 +84,9 @@ export const validateConfig = (config: ConfigurationFile): ConfigurationFile | n
       // Aside from the type, every other field in this rules is identical so we can
       // use any of these rules to validate the other fields.
       validatedConfig.rules[i] = validate<AndRule>(rule, otherRulesSchema, { message });
+    } else if (type === "fellows") {
+      // Fellows have a specific config that uses ranks instead of usernames
+      validatedConfig.rules[i] = validate<FellowsRule>(rule, fellowsRuleSchema, { message });
     } else {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`Rule ${name} has an invalid type: ${type}`);
