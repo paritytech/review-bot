@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 import { existsSync, openSync, readFileSync, unlinkSync } from "fs";
-import { DeepMockProxy, Matcher, mock, mockDeep, MockProxy } from "jest-mock-extended";
+import { DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
 import { join } from "path";
 
 import { GitHubChecksApi } from "../github/check";
@@ -89,16 +89,15 @@ describe("Integration testing", () => {
     client.rest.repos.getContent.mockResolvedValue({ data: { content: Buffer.from(config, "utf-8") } });
     mockReviews([]);
     for (const [teamName, members] of teamsMembers) {
-      client.rest.teams.listMembersInOrg
-        // @ts-ignore as the error is related to the matcher type
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
-        .calledWith(new Matcher<{ team_slug: string }>((value) => value.team_slug === teamName, "Different team name"))
-        .mockResolvedValue({
+      client.paginate
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        .calledWith(client.rest.teams.listMembersInOrg, expect.objectContaining({ team_slug: teamName }))
+        .mockResolvedValue(
           // @ts-ignore as we don't need the full type
-          data: members.map((m) => {
+          members.map((m) => {
             return { login: m };
           }),
-        });
+        );
     }
 
     // @ts-ignore missing more of the required types

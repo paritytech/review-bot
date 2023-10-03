@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { DeepMockProxy, Matcher, mock, mockDeep, MockProxy } from "jest-mock-extended";
+import { DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
 
 import { GitHubTeamsApi } from "../github/teams";
 import { ActionLogger, GitHubClient, TeamApi } from "../github/types";
@@ -17,41 +18,43 @@ describe("Pull Request API Tests", () => {
 
   test("should call team", async () => {
     // @ts-ignore
-    client.rest.teams.listMembersInOrg.mockResolvedValue({ data: [] });
+    client.paginate.mockResolvedValue([]);
     await teams.getTeamMembers("example");
-    expect(client.rest.teams.listMembersInOrg).toHaveBeenCalledWith({ org: "org", team_slug: "example" });
+    expect(client.paginate).toHaveBeenCalledWith(client.rest.teams.listMembersInOrg, {
+      org: "org",
+      team_slug: "example",
+    });
   });
 
   test("should return team members", async () => {
     // @ts-ignore
-    client.rest.teams.listMembersInOrg.mockResolvedValue({ data: [{ login: "abc" }, { login: "bcd" }] });
+    client.paginate.mockResolvedValue([{ login: "abc" }, { login: "bcd" }]);
     const members = await teams.getTeamMembers("example");
     expect(members).toEqual(["abc", "bcd"]);
   });
 
   test("should cache team members call", async () => {
     // @ts-ignore
-    client.rest.teams.listMembersInOrg.mockResolvedValue({ data: [{ login: "abc" }, { login: "bcd" }] });
+    client.paginate.mockResolvedValue([{ login: "abc" }, { login: "bcd" }]);
     for (let i = 0; i < 10; i++) {
       const members = await teams.getTeamMembers("example");
       expect(members).toEqual(["abc", "bcd"]);
     }
-    expect(client.rest.teams.listMembersInOrg).toHaveBeenCalledTimes(1);
+    expect(client.paginate).toHaveBeenCalledTimes(1);
   });
 
   /**
    * Helper class that evades the compiler errors
    */
   const mockTeamMembers = (teamName: string, members: string[]) => {
-    client.rest.teams.listMembersInOrg
-      // @ts-ignore as the error is related to the matcher type
-      .calledWith(new Matcher<{ team_slug: string }>((value) => value.team_slug === teamName, "Different team name"))
-      .mockResolvedValue({
+    client.paginate
+      .calledWith(client.rest.teams.listMembersInOrg, expect.objectContaining({ team_slug: teamName }))
+      .mockResolvedValue(
         // @ts-ignore as we don't need the full type
-        data: members.map((m) => {
+        members.map((m) => {
           return { login: m };
         }),
-      });
+      );
   };
 
   test("should call different teams", async () => {
@@ -76,6 +79,6 @@ describe("Pull Request API Tests", () => {
       expect(team3).toEqual(["qwerty", "dvorak"]);
     }
 
-    expect(client.rest.teams.listMembersInOrg).toHaveBeenCalledTimes(3);
+    expect(client.paginate).toHaveBeenCalledTimes(3);
   });
 });
