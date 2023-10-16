@@ -48,10 +48,6 @@ const repo = getRepo(context);
 
 setOutput("repo", `${repo.owner}/${repo.repo}`);
 
-if (!context.payload.pull_request) {
-  throw new Error("No pull request event");
-}
-
 debug("Got payload:" + JSON.stringify(context.payload.pull_request));
 
 const runAction = async (): Promise<Pick<CheckData, "conclusion">> => {
