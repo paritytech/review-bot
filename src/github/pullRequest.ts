@@ -11,7 +11,6 @@ export class PullRequestApi {
     private readonly api: GitHubClient,
     private readonly pr: PullRequest,
     private readonly logger: ActionLogger,
-    private readonly detailsUrl: string,
   ) {
     this.number = pr.number;
     this.repoInfo = { owner: this.pr.base.repo.owner.login, repo: this.pr.base.repo.name };

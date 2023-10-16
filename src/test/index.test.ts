@@ -80,7 +80,7 @@ describe("Integration testing", () => {
     pr.number = 99;
     pr.base.repo.owner.login = "org";
 
-    api = new PullRequestApi(client, pr, logger, "");
+    api = new PullRequestApi(client, pr, logger);
     teams = new GitHubTeamsApi(client, "org", logger);
     checks = new GitHubChecksApi(client, pr, logger, "example");
     runner = new ActionRunner(api, teams, mock<TeamApi>(), checks, logger);
