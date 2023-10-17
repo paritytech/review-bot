@@ -27,7 +27,7 @@ If one user belongs to both teams, their review will satisfy both requirements.
 With the `and-distinct` rule, you can request that *two distinct users must review that file*.
 
 ## Installation
-The installation requires two files for it to work, we first need to create a file (`.github/review-bot.yml` by default).
+The installation requires three files for it to work, we first need to create a file (`.github/review-bot.yml` by default).
 ```yaml
 rules:
   - name: General
@@ -39,10 +39,11 @@ rules:
       - your-team-name-here
 ```
 
-And then we must create a second file. This will be `.github/workflows/review-bot.yml`.
+The second file is the triggering file. This will be `.github/workflows/review-trigger.yml`:
 ```yaml
-name: Review Bot
-on:
+name: Review-Trigger
+
+on: 
   pull_request_target:
     types:
       - opened
@@ -53,6 +54,36 @@ on:
       - ready_for_review
   pull_request_review:
 
+jobs:
+  trigger-review-bot:
+    runs-on: ubuntu-latest
+    name: trigger review bot
+    steps:
+      - name: Get PR number
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Saving PR number: $PR_NUMBER"
+          mkdir -p ./pr
+          echo $PR_NUMBER > ./pr/pr_number
+      - uses: actions/upload-artifact@v3
+        name: Save PR number
+        with:
+          name: pr_number
+          path: pr/
+          retention-days: 5
+```
+
+And then we must create a final file. This will be `.github/workflows/review-bot.yml`.
+```yaml
+name: Review Bot
+on:
+  workflow_run:
+    workflows:
+      - Review-Trigger
+    types:
+      - completed
+
 permissions:
   contents: read
   checks: write
@@ -61,13 +92,18 @@ jobs:
   review-approvals:
     runs-on: ubuntu-latest
     steps:
+      - name: Extract content of artifact
+        id: number
+        uses: Bullrich/extract-text-from-artifact@main
+        with:
+          artifact-name: pr_number
       - name: "Evaluates PR reviews"
         uses: paritytech/review-bot@main
         with:
           repo-token: ${{ github.token }}
           team-token: ${{ secrets.TEAM_TOKEN }}
           checks-token: ${{ secrets.CHECKS_TOKEN }}
-
+          pr-number: ${{ steps.number.outputs.content }}
 ```
 Create a new PR and see if it is working.
 
@@ -84,6 +120,10 @@ After this, go to your branch protection rules and make sure that you have the f
 ### Important
 Use [`pull_request_target`](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target) for the event, not `pull_request`.
 - This is a security measure so that an attacker doesn’t have access to our secrets.
+
+We use [`worflow_run`](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_run) to let the action be triggered at all times (If we don’t use this, GitHub will stop it if it comes from a fork).
+
+By chaining events we are able to safely execute our action without jeopardizing our secrets. You can even use [`environment`](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment) in the final file if you want to have it extra secure.
 ## Workflow Configuration
 Review bot has multiple configurations available. It has available inputs and outputs. It also has rule configurations, but you can find that in the [Rule Configuration](#rule-configuration-file) section.
 
@@ -136,8 +176,10 @@ Because this project is intended to be used with a token, we need to do an extra
           repo-token: ${{ github.token }}
           # The previous step generates a token which is used as the input for this action
           team-token: ${{ steps.generate_token.outputs.token }
-          checks-token: ${{ steps.generate_token.outputs.token }
+          checks-token: ${{ steps.generate_token.outputs.token }}
+          pr-number: ${{ steps.number.outputs.content }}
 ```
+
 ### Outputs
 Outputs are needed for your chained actions. If you want to use this information, remember to set an `id` field in the step, so you can access it.
 

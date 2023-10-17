@@ -16,7 +16,7 @@ describe("Pull Request API Tests", () => {
     pr.number = 99;
     pr.base.repo.owner.login = "org";
 
-    api = new PullRequestApi(client, pr, logger, "");
+    api = new PullRequestApi(client, pr, logger);
   });
 
   describe("Approvals", () => {
