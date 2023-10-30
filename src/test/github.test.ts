@@ -147,4 +147,15 @@ describe("Pull Request API Tests", () => {
       expect(client.rest.pulls.listFiles).toHaveBeenCalledTimes(1);
     });
   });
+
+  test("Request reviewers", async () => {
+    await api.requestReview({ users: ["abc"], teams: ["team-abc"] });
+    expect(client.rest.pulls.requestReviewers).toHaveBeenCalledWith({
+      pull_number: 99,
+      owner: "org",
+      repo: pr.base.repo.name,
+      reviewers: ["abc"],
+      team_reviewers: ["team-abc"],
+    });
+  });
 });

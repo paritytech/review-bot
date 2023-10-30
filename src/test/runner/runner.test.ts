@@ -102,30 +102,27 @@ describe("Shared validations", () => {
       usersToRequest: ["user-1"],
     };
 
-    test("should request reviewers if object is not defined", () => {
-      runner.requestReviewers([exampleReport], undefined);
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
+    test("should request reviewers if object is not defined", async () => {
+      await runner.requestReviewers([exampleReport], undefined);
+      expect(api.requestReview).toHaveBeenCalledWith({ users: ["user-1"], teams: ["team-1"] });
     });
 
-    test("should not request user if he is defined", () => {
-      runner.requestReviewers([exampleReport], { users: ["user-1"] });
+    test("should not request user if he is defined", async () => {
+      await runner.requestReviewers([exampleReport], { users: ["user-1"] });
+
       expect(logger.info).toHaveBeenCalledWith("Filtering users to request a review from.");
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
-      expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
+      expect(api.requestReview).toHaveBeenCalledWith({ teams: ["team-1"], users: [] });
     });
 
-    test("should not request team if it is defined", () => {
-      runner.requestReviewers([exampleReport], { teams: ["team-1"] });
+    test("should not request team if it is defined", async () => {
+      await runner.requestReviewers([exampleReport], { teams: ["team-1"] });
       expect(logger.info).toHaveBeenCalledWith("Filtering teams to request a review from.");
-      expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
+      expect(api.requestReview).toHaveBeenCalledWith({ teams: [], users: ["user-1"] });
     });
 
-    test("should request reviewers if the team and user are not the same", () => {
-      runner.requestReviewers([exampleReport], { users: ["user-pi"], teams: ["team-alpha"] });
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["team-1"])));
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(JSON.stringify(["user-1"])));
+    test("should request reviewers if the team and user are not the same", async () => {
+      await runner.requestReviewers([exampleReport], { users: ["user-pi"], teams: ["team-alpha"] });
+      expect(api.requestReview).toHaveBeenCalledWith({ users: ["user-1"], teams: ["team-1"] });
     });
   });
 });
