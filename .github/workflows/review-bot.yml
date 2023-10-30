@@ -31,7 +31,7 @@ jobs:
       - name: "Evaluates PR reviews and assigns reviewers"
         uses: paritytech/review-bot@bullrich/request-reviewers
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ steps.team_token.outputs.token }}
           team-token: ${{ steps.team_token.outputs.token }}
           checks-token: ${{ steps.team_token.outputs.token }}
           pr-number: ${{ steps.number.outputs.content }}
