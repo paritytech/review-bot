@@ -564,7 +564,7 @@ export class ActionRunner {
     if (inputs.requestReviewers) {
       await this.requestReviewers(reports, config.preventReviewRequests);
     } else {
-      this.logger.info("'requestReviewers' is disabled. Skipping the request.");
+      this.logger.info("'request-reviewers' is disabled. Skipping the request.");
     }
 
     setOutput("report", JSON.stringify(prValidation));
