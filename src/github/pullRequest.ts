@@ -2,8 +2,12 @@ import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 
 import { caseInsensitiveEqual } from "../util";
 import { ActionLogger, GitHubClient } from "./types";
+import { Reviewers } from "../rules/types";
 
-/** API class that uses the default token to access the data from the pull request and the repository */
+/** API class that uses the default token to access the data from the pull request and the repository
+ * If we are using the assign reviewers features with teams, it requires a GitHub app
+ * (Action token doesn't have permission to assign teams)
+ */
 export class PullRequestApi {
   private readonly number: number;
   private readonly repoInfo: { repo: string; owner: string };
@@ -107,7 +111,7 @@ export class PullRequestApi {
     return approvals;
   }
 
-  async requestReview({ users, teams }: Omit<Reviewers, "min_approvals">): Promise<void> {
+  async requestReview({ users, teams }: Pick<Reviewers, "users" | "teams">): Promise<void> {
     if (users || teams) {
       const validArray = (array: string[] | undefined): boolean => !!array && array.length > 0;
       const reviewersLog = [

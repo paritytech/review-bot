@@ -178,7 +178,7 @@ export class ActionRunner {
   }
 
   /** WIP - Class that will assign the requests for review */
-  requestReviewers(reports: RuleReport[], preventReviewRequests: ConfigurationFile["preventReviewRequests"]): void {
+  async requestReviewers(reports: RuleReport[], preventReviewRequests: ConfigurationFile["preventReviewRequests"]): Promise<void> {
     if (reports.length === 0) {
       return;
     }
@@ -214,13 +214,7 @@ export class ActionRunner {
       }
     }
 
-    const validArray = (array: string[] | undefined): boolean => !!array && array.length > 0;
-    const reviewersLog = [
-      validArray(teamsToRequest) ? `Teams: ${JSON.stringify(teamsToRequest)}` : "",
-      validArray(usersToRequest) ? `Users: ${JSON.stringify(usersToRequest)}` : "",
-    ].join(" - ");
-
-    this.logger.info(`Need to request reviews from ${reviewersLog}`);
+    await this.prApi.requestReview({ users: usersToRequest, teams: teamsToRequest });
   }
 
   /** Aggregates all the reports and generate a status report
@@ -556,7 +550,7 @@ export class ActionRunner {
    * 3. It generates a status check in the Pull Request
    * 4. WIP - It assigns the required reviewers to review the PR
    */
-  async runAction(inputs: Pick<Inputs, "configLocation">): Promise<Pick<CheckData, "conclusion"> & PullRequestReport> {
+  async runAction(inputs: Pick<Inputs, "configLocation" | "requestReviewers">): Promise<Pick<CheckData, "conclusion"> & PullRequestReport> {
     const config = await this.getConfigFile(inputs.configLocation);
 
     const prValidation = await this.validatePullRequest(config);
@@ -567,7 +561,11 @@ export class ActionRunner {
     const checkRunData = this.generateCheckRunData(reports);
     await this.checks.generateCheckRun(checkRunData);
 
-    this.requestReviewers(reports, config.preventReviewRequests);
+    if (inputs.requestReviewers) {
+      await this.requestReviewers(reports, config.preventReviewRequests);
+    } else {
+      this.logger.info("'requestReviewers' is disabled. Skipping the request.");
+    }
 
     setOutput("report", JSON.stringify(prValidation));
 
