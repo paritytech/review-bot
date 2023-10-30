@@ -1,4 +1,4 @@
-import { debug, getBooleanInput, getInput, info, setFailed, setOutput } from "@actions/core";
+import { debug, getInput, info, setFailed, setOutput } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 import { Context } from "@actions/github/lib/context";
 import { PullRequest } from "@octokit/webhooks-types";

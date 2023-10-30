@@ -1,8 +1,8 @@
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 
+import { Reviewers } from "../rules/types";
 import { caseInsensitiveEqual } from "../util";
 import { ActionLogger, GitHubClient } from "./types";
-import { Reviewers } from "../rules/types";
 
 /** API class that uses the default token to access the data from the pull request and the repository
  * If we are using the assign reviewers features with teams, it requires a GitHub app

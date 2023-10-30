@@ -41,7 +41,7 @@ export class ActionRunner {
     private readonly polkadotApi: TeamApi,
     private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
-  ) { }
+  ) {}
 
   /**
    * Fetches the configuration file, parses it and validates it.
@@ -178,7 +178,10 @@ export class ActionRunner {
   }
 
   /** WIP - Class that will assign the requests for review */
-  async requestReviewers(reports: RuleReport[], preventReviewRequests: ConfigurationFile["preventReviewRequests"]): Promise<void> {
+  async requestReviewers(
+    reports: RuleReport[],
+    preventReviewRequests: ConfigurationFile["preventReviewRequests"],
+  ): Promise<void> {
     if (reports.length === 0) {
       return;
     }
@@ -552,7 +555,9 @@ export class ActionRunner {
    * 3. It generates a status check in the Pull Request
    * 4. WIP - It assigns the required reviewers to review the PR
    */
-  async runAction(inputs: Pick<Inputs, "configLocation" | "requestReviewers">): Promise<Pick<CheckData, "conclusion"> & PullRequestReport> {
+  async runAction(
+    inputs: Pick<Inputs, "configLocation" | "requestReviewers">,
+  ): Promise<Pick<CheckData, "conclusion"> & PullRequestReport> {
     const config = await this.getConfigFile(inputs.configLocation);
 
     const prValidation = await this.validatePullRequest(config);
