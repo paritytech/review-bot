@@ -13,6 +13,7 @@ permissions:
 jobs:
   review-approvals:
     runs-on: ubuntu-latest
+    environment: TESTING
     steps:
       - name: Extract content of artifact
         id: number
