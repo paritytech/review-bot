@@ -40,7 +40,7 @@ const getRepo = (ctx: Context) => {
 const getInputs = (): Inputs => {
   const configLocation = getInput("config-file");
   const repoToken = getInput("repo-token", { required: true });
-  const requestReviewers = getBooleanInput("request-reviewers", { required: false });
+  const requestReviewers = !!getInput("request-reviewers", { required: false });
   const teamApiToken = getInput("team-token", { required: true });
   const prNumber = getInput("pr-number");
 
