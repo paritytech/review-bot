@@ -153,7 +153,7 @@ You can find all the inputs in [the action file](./action.yml), but let's walk t
 	- **default**: `.github/review-bot.yml`
 - `request-reviewers`: If the system should automatically request the required reviewers.
 	- **default**: false.
-	- If enabled, when there are missing reviews, the system will request the appropriate users and/or team to review.
+	- If enabled, when there are missing reviews, the system will request the appropriate users and/or team to review. (Note: It won't assign fellowship members as reviewers)
 	- If enabled, and using teams, this requires a GitHub action with `write` permission for `pull request`.
 
 #### Using a GitHub app instead of a PAT
