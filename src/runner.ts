@@ -41,7 +41,7 @@ export class ActionRunner {
     private readonly polkadotApi: TeamApi,
     private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
-  ) {}
+  ) { }
 
   /**
    * Fetches the configuration file, parses it and validates it.
@@ -190,6 +190,8 @@ export class ActionRunner {
       finalReport.teamsToRequest = concatArraysUniquely(finalReport.teamsToRequest, report.teamsToRequest);
       finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, report.usersToRequest);
     }
+
+    this.logger.debug(`Request data: ${JSON.stringify(finalReport)}`);
 
     let { teamsToRequest, usersToRequest } = finalReport;
 
