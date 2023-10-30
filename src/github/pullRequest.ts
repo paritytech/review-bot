@@ -107,6 +107,25 @@ export class PullRequestApi {
     return approvals;
   }
 
+  async requestReview({ users, teams }: Omit<Reviewers, "min_approvals">): Promise<void> {
+    if (users || teams) {
+      const validArray = (array: string[] | undefined): boolean => !!array && array.length > 0;
+      const reviewersLog = [
+        validArray(users) ? `Teams: ${JSON.stringify(users)}` : "",
+        validArray(teams) ? `Users: ${JSON.stringify(teams)}` : "",
+      ].join(" - ");
+
+      this.logger.info(`Requesting reviews from ${reviewersLog}`);
+
+      await this.api.rest.pulls.requestReviewers({
+        ...this.repoInfo,
+        pull_number: this.number,
+        reviewers: users,
+        team_reviewers: teams,
+      });
+    }
+  }
+
   /** Returns the login of the PR's author */
   getAuthor(): string {
     return this.pr.user.login;
