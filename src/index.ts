@@ -15,6 +15,8 @@ export interface Inputs {
   configLocation: string;
   /** GitHub's action default secret */
   repoToken: string;
+  /** Should automatically request missing reviewers */
+  requestReviewers?: boolean;
   /** A custom access token with the read:org access */
   teamApiToken: string;
   /** Number of the PR to analyze. Optional when it is triggered by `pull_request` event */
@@ -38,10 +40,11 @@ const getRepo = (ctx: Context) => {
 const getInputs = (): Inputs => {
   const configLocation = getInput("config-file");
   const repoToken = getInput("repo-token", { required: true });
+  const requestReviewers = !!getInput("request-reviewers", { required: false });
   const teamApiToken = getInput("team-token", { required: true });
   const prNumber = getInput("pr-number");
 
-  return { configLocation, repoToken, teamApiToken, prNumber: prNumber ? parseInt(prNumber) : null };
+  return { configLocation, requestReviewers, repoToken, teamApiToken, prNumber: prNumber ? parseInt(prNumber) : null };
 };
 
 const repo = getRepo(context);

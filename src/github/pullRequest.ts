@@ -1,9 +1,13 @@
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 
+import { Reviewers } from "../rules/types";
 import { caseInsensitiveEqual } from "../util";
 import { ActionLogger, GitHubClient } from "./types";
 
-/** API class that uses the default token to access the data from the pull request and the repository */
+/** API class that uses the default token to access the data from the pull request and the repository
+ * If we are using the assign reviewers features with teams, it requires a GitHub app
+ * (Action token doesn't have permission to assign teams)
+ */
 export class PullRequestApi {
   private readonly number: number;
   private readonly repoInfo: { repo: string; owner: string };
@@ -105,6 +109,27 @@ export class PullRequestApi {
     this.logger.debug(`PR approvals are ${JSON.stringify(approvals)}`);
 
     return approvals;
+  }
+
+  async requestReview({ users, teams }: Pick<Reviewers, "users" | "teams">): Promise<void> {
+    if (users || teams) {
+      const validArray = (array: string[] | undefined): boolean => !!array && array.length > 0;
+      const reviewersLog = [
+        validArray(users) ? `Users: ${JSON.stringify(users)}` : undefined,
+        validArray(teams) ? `Teams: ${JSON.stringify(teams)}` : undefined,
+      ]
+        .filter((e) => !!e)
+        .join(" - ");
+
+      this.logger.info(`Requesting reviews from ${reviewersLog}`);
+
+      await this.api.rest.pulls.requestReviewers({
+        ...this.repoInfo,
+        pull_number: this.number,
+        reviewers: users,
+        team_reviewers: teams,
+      });
+    }
   }
 
   /** Returns the login of the PR's author */
