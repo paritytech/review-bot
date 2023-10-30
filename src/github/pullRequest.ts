@@ -115,8 +115,8 @@ export class PullRequestApi {
     if (users || teams) {
       const validArray = (array: string[] | undefined): boolean => !!array && array.length > 0;
       const reviewersLog = [
-        validArray(users) ? `Teams: ${JSON.stringify(users)}` : undefined,
-        validArray(teams) ? `Users: ${JSON.stringify(teams)}` : undefined,
+        validArray(users) ? `Users: ${JSON.stringify(users)}` : undefined,
+        validArray(teams) ? `Teams: ${JSON.stringify(teams)}` : undefined,
       ]
         .filter((e) => !!e)
         .join(" - ");
