@@ -21,6 +21,9 @@ inputs:
   pr-number:
     description: 'The number of the pull request to review. Required if event is `workflow_run`'
     required: false
+  request-reviewers:
+    description: If the system should automatically request the required reviewers.
+    required: false
 outputs:
   repo:
     description: 'The name of the repo in owner/repo pattern'
