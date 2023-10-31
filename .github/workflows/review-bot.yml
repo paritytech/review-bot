@@ -30,3 +30,4 @@ jobs:
           team-token: ${{ steps.team_token.outputs.token }}
           checks-token: ${{ steps.team_token.outputs.token }}
           pr-number: ${{ steps.number.outputs.content }}
+          request-reviewers: true
