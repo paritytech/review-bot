@@ -138,8 +138,12 @@ You can find all the inputs in [the action file](./action.yml), but let's walk t
 	- It is already in the installation section, but you need to give the following [permissions](https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs#defining-access-for-the-github_token-scopes) to the action:
 		- `contents`: read
 		- `checks`: write
+		- `pull-requests`: write
+	- **Imporant**: if `request-reviewers` is enabled and you are using _teams_, this needs to be a [GitHub Personal Access](https://github.com/settings/tokens/new) token with `repo` and `read:org` scopes.
+		- This is because GitHub actions does not have access to the teams, and it can not assign teams as reviewers.
 - `team-token`: Token to read the team members.
-	- **required**.
+	- **required** if you are using _teams_.
+		- If you are only using individual users, you can use `{{ github.token }}` instead.
 	- This needs to be a [GitHub Personal Access](https://github.com/settings/tokens/new) token with `read:org` permission.
 	- It is used to extract the members of teams.
 - `checks-token`: Token to write the status checks.
@@ -153,8 +157,8 @@ You can find all the inputs in [the action file](./action.yml), but let's walk t
 	- **default**: `.github/review-bot.yml`
 - `request-reviewers`: If the system should automatically request the required reviewers.
 	- **default**: false.
-	- If enabled, when there are missing reviews, the system will request the appropriate users and/or team to review. (Note: It won't assign fellowship members as reviewers)
-	- If enabled, and using teams, this requires a GitHub action with `write` permission for `pull request`.
+	- If enabled, when there are missing reviews, the system will request the appropriate users and/or team to review.
+	- If enabled, and using teams, this requires a GitHub app with `write` permission for `pull request`.
 
 #### Using a GitHub app instead of a PAT
 In some cases, specially in big organizations, it is more organized to use a GitHub app to authenticate, as it allows us to give it permissions per repository, and we can fine-grain them even better. If you wish to do that, you need to create a GitHub app with the following permissions:
@@ -163,6 +167,8 @@ In some cases, specially in big organizations, it is more organized to use a Git
 		- [x] Read
 - Repository permissions:
 	- Checks
+		- [x] Write
+	- Pull Request
 		- [x] Write
 
 Because this project is intended to be used with a token, we need to do an extra step to generate one from the GitHub app:
@@ -179,9 +185,9 @@ Because this project is intended to be used with a token, we need to do an extra
       - name: "Evaluates PR reviews"
         uses: paritytech/review-bot@main
         with:
-          repo-token: ${{ github.token }}
           # The previous step generates a token which is used as the input for this action
-          team-token: ${{ steps.generate_token.outputs.token }
+          repo-token: ${{ steps.generate_token.outputs.token }}
+          team-token: ${{ steps.generate_token.outputs.token }}
           checks-token: ${{ steps.generate_token.outputs.token }}
           pr-number: ${{ steps.number.outputs.content }}
 ```
@@ -433,6 +439,10 @@ It also has any other field from the [`basic rule`](#basic-rule) (with the excep
 	- **Optional**: Defaults to `false`.
 - **minRank**: Must be a number.
 	- **Required**
+
+##### Note
+The fellows rule will never request reviewers, even if `request-reviewers` rule is enabled.
+
 ### Evaluating config
 
 If you want to evaluate the config file to find problems before merging it, we have a simple `cli` to do so.
