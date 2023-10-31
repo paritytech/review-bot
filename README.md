@@ -441,7 +441,9 @@ It also has any other field from the [`basic rule`](#basic-rule) (with the excep
 	- **Required**
 
 ##### Note
-The fellows rule will never request reviewers, even if `request-reviewers` rule is enabled.
+The fellows rule will never request reviewers, even if `request-reviewers` rule is enabled. 
+
+This is because there are ~50 fellows and GitHub’s PR request limit is 20 users, so, if a low rank is required, the system wouldn’t allow to assign them.
 
 ### Evaluating config
 
