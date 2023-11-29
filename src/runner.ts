@@ -20,6 +20,8 @@ type ReviewReport = {
   usersToRequest?: string[];
   /** If applicable, the missing minimum fellows rank required to review */
   missingRank?: number;
+  /** If applicable, reviews that count towards this rule */
+  countingReviews: string[]
 };
 
 export type RuleReport = { name: string } & ReviewReport;
@@ -41,7 +43,7 @@ export class ActionRunner {
     private readonly polkadotApi: TeamApi,
     private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
-  ) {}
+  ) { }
 
   /**
    * Fetches the configuration file, parses it and validates it.
@@ -177,7 +179,6 @@ export class ActionRunner {
     return { files: modifiedFiles, reports: errorReports };
   }
 
-  /** WIP - Class that will assign the requests for review */
   async requestReviewers(
     reports: RuleReport[],
     preventReviewRequests: ConfigurationFile["preventReviewRequests"],
@@ -185,13 +186,14 @@ export class ActionRunner {
     if (reports.length === 0) {
       return;
     }
-    const finalReport: ReviewReport = { missingReviews: 0, missingUsers: [], teamsToRequest: [], usersToRequest: [] };
+    const finalReport: ReviewReport = { missingReviews: 0, missingUsers: [], teamsToRequest: [], usersToRequest: [], countingReviews: [] };
 
     for (const report of reports) {
       finalReport.missingReviews += report.missingReviews;
       finalReport.missingUsers = concatArraysUniquely(finalReport.missingUsers, report.missingUsers);
       finalReport.teamsToRequest = concatArraysUniquely(finalReport.teamsToRequest, report.teamsToRequest);
       finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, report.usersToRequest);
+      finalReport.countingReviews = concatArraysUniquely(finalReport.countingReviews, report.countingReviews);
     }
 
     this.logger.debug(`Request data: ${JSON.stringify(finalReport)}`);
@@ -263,6 +265,13 @@ export class ActionRunner {
           .addRaw(`Missing reviews from rank \`${report.missingRank}\` or above`)
           .addEOL();
       }
+      if (report.countingReviews.length > 0) {
+        text = text
+          .addHeading("Users approvals that counted towards this rule", 3)
+          .addEOL()
+          .addList(report.countingReviews)
+          .addEOL();
+      }
 
       check.output.text += text.stringify() + "\n";
     }
@@ -289,6 +298,8 @@ export class ActionRunner {
     // We get the list of users that approved the PR
     const approvals = await this.prApi.listApprovedReviewsAuthors(rule.countAuthor ?? false);
 
+    let countingReviews: string[] = [];
+
     // Utility method used to generate error
     const generateErrorReport = (): ReviewReport => {
       const filterMissingUsers = (reviewData: { users?: string[] }[]): string[] =>
@@ -301,6 +312,7 @@ export class ActionRunner {
         missingUsers: filterMissingUsers(requirements),
         teamsToRequest: rule.reviewers.flatMap((r) => r.teams ?? []),
         usersToRequest: filterMissingUsers(rule.reviewers),
+        countingReviews
       };
     };
 
@@ -326,6 +338,8 @@ export class ActionRunner {
       conditionApprovals.push({ matchingUsers: ruleApprovals, requiredUsers: users, requiredApprovals });
     }
     this.logger.debug(`Matching approvals: ${JSON.stringify(conditionApprovals)}`);
+
+    countingReviews = [...new Set(conditionApprovals.flatMap(({ matchingUsers }) => matchingUsers))];
 
     // If one of the rules doesn't have the required approval we fail the evaluation
     if (conditionApprovals.some((cond) => cond.matchingUsers.length === 0)) {
@@ -421,12 +435,16 @@ export class ActionRunner {
     const approvals = await this.prApi.listApprovedReviewsAuthors(countAuthor ?? false);
     this.logger.info(`Found ${approvals.length} approvals.`);
 
+    // List of user reviews which fulfill this rule
+    const countingReviews: string[] = [];
+
     // This is the amount of reviews required. To succeed this should be 0 or lower
     let missingReviews = rule.minApprovals;
     for (const requiredUser of requiredUsers) {
       // We check for the approvals, if it is a required reviewer we lower the amount of missing reviews
       if (approvals.indexOf(requiredUser) > -1) {
         missingReviews--;
+        countingReviews.push(requiredUser);
       }
     }
 
@@ -444,6 +462,7 @@ export class ActionRunner {
           missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
           teamsToRequest: rule.teams ? rule.teams : undefined,
           usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
+          countingReviews
         },
       ];
     } else {
@@ -472,12 +491,16 @@ export class ActionRunner {
     const approvals = await this.prApi.listApprovedReviewsAuthors(rule.countAuthor ?? false);
     this.logger.info(`Found ${approvals.length} approvals.`);
 
+    // List of user reviews which fulfill this rule
+    const countingReviews: string[] = [];
+
     // This is the amount of reviews required. To succeed this should be 0 or lower
     let missingReviews = rule.minApprovals;
     for (const requiredUser of requiredUsers) {
       // We check for the approvals, if it is a required reviewer we lower the amount of missing reviews
       if (approvals.indexOf(requiredUser) > -1) {
         missingReviews--;
+        countingReviews.push(requiredUser);
       }
     }
 
@@ -494,6 +517,7 @@ export class ActionRunner {
           // Remove all the users who approved the PR + the author (if he belongs to the group)
           missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
           missingRank: rule.minRank,
+          countingReviews
         },
       ];
     } else {
@@ -600,5 +624,6 @@ const unifyReport = (reports: ReviewReport[], name: string): RuleReport => {
     usersToRequest: [...new Set(reports.flatMap((r) => r.usersToRequest ?? []))],
     name,
     missingRank,
+    countingReviews: [...new Set(reports.flatMap((r) => r.countingReviews))],
   };
 };
