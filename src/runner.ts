@@ -277,11 +277,11 @@ export class ActionRunner {
         .emptyBuffer()
         .addHeading(report.name, 2)
         .addHeading(`Missing ${report.missingReviews} review${report.missingReviews > 1 ? "s" : ""}`, 4)
-        .addHeading("Rule explanation", 5)
-        .addRaw(ruleExplanation(report.type))
-        .addEOL()
-        .addRaw(
-          "For more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)",
+        .addDetails(
+          "Rule explanation",
+          `${ruleExplanation(
+            report.type,
+          )}\n\nFor more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)`,
         );
       if (report.usersToRequest && report.usersToRequest.length > 0) {
         text = text
