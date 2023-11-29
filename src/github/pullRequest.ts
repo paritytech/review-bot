@@ -58,8 +58,10 @@ export class PullRequestApi {
   /** List all the approved reviews in a PR */
   async listApprovedReviewsAuthors(countAuthor: boolean): Promise<string[]> {
     if (!this.usersThatApprovedThePr) {
-      const request = await this.api.rest.pulls.listReviews({ ...this.repoInfo, pull_number: this.number });
-      const reviews = request.data as PullRequestReview[];
+      const reviews = await this.api.paginate(this.api.rest.pulls.listReviews, {
+        ...this.repoInfo,
+        pull_number: this.number,
+      });
       this.logger.debug(`List of reviews: ${JSON.stringify(reviews)}`);
 
       const latestReviewsMap = new Map<number, PullRequestReview>();
@@ -82,7 +84,7 @@ export class PullRequestApi {
           prevReview.id < review.id
         ) {
           // if the review is more modern (and not a comment) we replace the one in our map
-          latestReviewsMap.set(review.user.id, review);
+          latestReviewsMap.set(review.user.id, review as PullRequestReview);
         }
       }
 
