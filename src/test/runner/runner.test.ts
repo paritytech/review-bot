@@ -5,7 +5,7 @@ import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
 import { ConfigurationFile, Rule, RuleTypes } from "../../rules/types";
-import { ActionRunner } from "../../runner";
+import { ActionRunner, RuleReport } from "../../runner";
 
 describe("Shared validations", () => {
   let api: MockProxy<PullRequestApi>;
@@ -94,12 +94,14 @@ describe("Shared validations", () => {
   });
 
   describe("Validation in requestReviewers", () => {
-    const exampleReport = {
+    const exampleReport: RuleReport = {
       name: "Example",
       missingUsers: ["user-1", "user-2", "user-3"],
       missingReviews: 2,
       teamsToRequest: ["team-1"],
       usersToRequest: ["user-1"],
+      type: RuleTypes.Basic,
+      countingReviews: [],
     };
 
     test("should request reviewers if object is not defined", async () => {

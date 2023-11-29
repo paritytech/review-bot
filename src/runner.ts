@@ -20,9 +20,11 @@ type ReviewReport = {
   usersToRequest?: string[];
   /** If applicable, the missing minimum fellows rank required to review */
   missingRank?: number;
+  /** If applicable, reviews that count towards this rule */
+  countingReviews: string[];
 };
 
-export type RuleReport = { name: string } & ReviewReport;
+export type RuleReport = { name: string; type: RuleTypes } & ReviewReport;
 
 type ReviewState = [true] | [false, ReviewReport];
 
@@ -96,7 +98,7 @@ export class ActionRunner {
             const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
             if (!result) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push({ ...missingData, name: rule.name });
+              errorReports.push({ ...missingData, name: rule.name, type: rule.type });
             }
 
             break;
@@ -112,7 +114,7 @@ export class ActionRunner {
               }
             }
             if (reports.length > 0) {
-              const finalReport = unifyReport(reports, rule.name);
+              const finalReport = unifyReport(reports, rule.name, rule.type);
               this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
               errorReports.push(finalReport);
             }
@@ -139,7 +141,7 @@ export class ActionRunner {
                 .reduce((a, b) => (a < b ? a : b), 999);
               // We get the lowest rank required
               // We unify the reports
-              const finalReport = unifyReport(reports, rule.name);
+              const finalReport = unifyReport(reports, rule.name, rule.type);
               // We set the value to the minimum neccesary
               finalReport.missingReviews = lowerAmountOfReviewsNeeded;
               this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
@@ -152,7 +154,7 @@ export class ActionRunner {
             const [result, missingData] = await this.andDistinctEvaluation(rule);
             if (!result) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push({ ...missingData, name: rule.name });
+              errorReports.push({ ...missingData, name: rule.name, type: rule.type });
             }
             break;
           }
@@ -160,7 +162,7 @@ export class ActionRunner {
             const [result, missingData] = await this.fellowsEvaluation(rule);
             if (!result) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push({ ...missingData, name: rule.name });
+              errorReports.push({ ...missingData, name: rule.name, type: rule.type });
             }
             break;
           }
@@ -177,7 +179,6 @@ export class ActionRunner {
     return { files: modifiedFiles, reports: errorReports };
   }
 
-  /** WIP - Class that will assign the requests for review */
   async requestReviewers(
     reports: RuleReport[],
     preventReviewRequests: ConfigurationFile["preventReviewRequests"],
@@ -185,13 +186,20 @@ export class ActionRunner {
     if (reports.length === 0) {
       return;
     }
-    const finalReport: ReviewReport = { missingReviews: 0, missingUsers: [], teamsToRequest: [], usersToRequest: [] };
+    const finalReport: ReviewReport = {
+      missingReviews: 0,
+      missingUsers: [],
+      teamsToRequest: [],
+      usersToRequest: [],
+      countingReviews: [],
+    };
 
     for (const report of reports) {
       finalReport.missingReviews += report.missingReviews;
       finalReport.missingUsers = concatArraysUniquely(finalReport.missingUsers, report.missingUsers);
       finalReport.teamsToRequest = concatArraysUniquely(finalReport.teamsToRequest, report.teamsToRequest);
       finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, report.usersToRequest);
+      finalReport.countingReviews = concatArraysUniquely(finalReport.countingReviews, report.countingReviews);
     }
 
     this.logger.debug(`Request data: ${JSON.stringify(finalReport)}`);
@@ -243,11 +251,38 @@ export class ActionRunner {
     }
 
     for (const report of reports) {
+      const ruleExplanation = (type: RuleTypes) => {
+        switch (type) {
+          case RuleTypes.Basic:
+            return "Rule 'Basic' requires a given amount of reviews from users/teams";
+          case RuleTypes.And:
+            return "Rule 'And' has many required reviewers/teams and requires all of them to be fulfilled.";
+          case RuleTypes.Or:
+            return "Rule 'Or' has many required reviewers/teams and requires at least one of them to be fulfilled.";
+          case RuleTypes.AndDistinct:
+            return (
+              "Rule 'And Distinct' has many required reviewers/teams and requires all of them to be fulfilled **by different users**.\n\n" +
+              "The approval of one user that belongs to _two teams_ will count only towards one team."
+            );
+          case RuleTypes.Fellows:
+            return "Rule 'Fellows' requires a given amount of reviews from users whose Fellowship ranking is the required rank or great.";
+          default:
+            console.error("Out of range for rule type", type);
+            return "Unhandled rule";
+        }
+      };
+
       check.output.summary += `- **${report.name}**\n`;
       let text = summary
         .emptyBuffer()
         .addHeading(report.name, 2)
-        .addHeading(`Missing ${report.missingReviews} review${report.missingReviews > 1 ? "s" : ""}`, 4);
+        .addHeading(`Missing ${report.missingReviews} review${report.missingReviews > 1 ? "s" : ""}`, 4)
+        .addDetails(
+          "Rule explanation",
+          `${ruleExplanation(
+            report.type,
+          )}\n\nFor more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)`,
+        );
       if (report.usersToRequest && report.usersToRequest.length > 0) {
         text = text
           .addHeading("Missing users", 3)
@@ -261,6 +296,13 @@ export class ActionRunner {
           .addHeading("Missing reviews from Fellows", 3)
           .addEOL()
           .addRaw(`Missing reviews from rank \`${report.missingRank}\` or above`)
+          .addEOL();
+      }
+      if (report.countingReviews.length > 0) {
+        text = text
+          .addHeading("Users approvals that counted towards this rule", 3)
+          .addEOL()
+          .addList(report.countingReviews)
           .addEOL();
       }
 
@@ -289,6 +331,8 @@ export class ActionRunner {
     // We get the list of users that approved the PR
     const approvals = await this.prApi.listApprovedReviewsAuthors(rule.countAuthor ?? false);
 
+    let countingReviews: string[] = [];
+
     // Utility method used to generate error
     const generateErrorReport = (): ReviewReport => {
       const filterMissingUsers = (reviewData: { users?: string[] }[]): string[] =>
@@ -301,6 +345,7 @@ export class ActionRunner {
         missingUsers: filterMissingUsers(requirements),
         teamsToRequest: rule.reviewers.flatMap((r) => r.teams ?? []),
         usersToRequest: filterMissingUsers(rule.reviewers),
+        countingReviews,
       };
     };
 
@@ -326,6 +371,8 @@ export class ActionRunner {
       conditionApprovals.push({ matchingUsers: ruleApprovals, requiredUsers: users, requiredApprovals });
     }
     this.logger.debug(`Matching approvals: ${JSON.stringify(conditionApprovals)}`);
+
+    countingReviews = [...new Set(conditionApprovals.flatMap(({ matchingUsers }) => matchingUsers))];
 
     // If one of the rules doesn't have the required approval we fail the evaluation
     if (conditionApprovals.some((cond) => cond.matchingUsers.length === 0)) {
@@ -421,12 +468,16 @@ export class ActionRunner {
     const approvals = await this.prApi.listApprovedReviewsAuthors(countAuthor ?? false);
     this.logger.info(`Found ${approvals.length} approvals.`);
 
+    // List of user reviews which fulfill this rule
+    const countingReviews: string[] = [];
+
     // This is the amount of reviews required. To succeed this should be 0 or lower
     let missingReviews = rule.minApprovals;
     for (const requiredUser of requiredUsers) {
       // We check for the approvals, if it is a required reviewer we lower the amount of missing reviews
       if (approvals.indexOf(requiredUser) > -1) {
         missingReviews--;
+        countingReviews.push(requiredUser);
       }
     }
 
@@ -444,6 +495,7 @@ export class ActionRunner {
           missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
           teamsToRequest: rule.teams ? rule.teams : undefined,
           usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
+          countingReviews,
         },
       ];
     } else {
@@ -472,12 +524,16 @@ export class ActionRunner {
     const approvals = await this.prApi.listApprovedReviewsAuthors(rule.countAuthor ?? false);
     this.logger.info(`Found ${approvals.length} approvals.`);
 
+    // List of user reviews which fulfill this rule
+    const countingReviews: string[] = [];
+
     // This is the amount of reviews required. To succeed this should be 0 or lower
     let missingReviews = rule.minApprovals;
     for (const requiredUser of requiredUsers) {
       // We check for the approvals, if it is a required reviewer we lower the amount of missing reviews
       if (approvals.indexOf(requiredUser) > -1) {
         missingReviews--;
+        countingReviews.push(requiredUser);
       }
     }
 
@@ -494,6 +550,7 @@ export class ActionRunner {
           // Remove all the users who approved the PR + the author (if he belongs to the group)
           missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
           missingRank: rule.minRank,
+          countingReviews,
         },
       ];
     } else {
@@ -589,7 +646,7 @@ const getRequiredRanks = (reports: Pick<ReviewReport, "missingRank">[]): number[
   }
 };
 
-const unifyReport = (reports: ReviewReport[], name: string): RuleReport => {
+const unifyReport = (reports: ReviewReport[], name: string, type: RuleTypes): RuleReport => {
   const ranks = getRequiredRanks(reports);
   const missingRank = ranks ? Math.max(...(ranks as number[])) : undefined;
 
@@ -599,6 +656,8 @@ const unifyReport = (reports: ReviewReport[], name: string): RuleReport => {
     teamsToRequest: [...new Set(reports.flatMap((r) => r.teamsToRequest ?? []))],
     usersToRequest: [...new Set(reports.flatMap((r) => r.usersToRequest ?? []))],
     name,
+    type,
     missingRank,
+    countingReviews: [...new Set(reports.flatMap((r) => r.countingReviews))],
   };
 };
