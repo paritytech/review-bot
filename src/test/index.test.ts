@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 import { existsSync, openSync, readFileSync, unlinkSync } from "fs";
-import { DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
+import { any, DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
 import { join } from "path";
 
 import { GitHubChecksApi } from "../github/check";
@@ -67,8 +67,7 @@ describe("Integration testing", () => {
       return { state, id, user: { login, id: getHash(login) } };
     });
 
-    // @ts-ignore because the official type and the library type do not match
-    client.rest.pulls.listReviews.mockResolvedValue({ data });
+    client.paginate.calledWith(client.rest.pulls.listReviews, any()).mockResolvedValue(data);
   };
 
   const summaryTestFile = "./summary-test.html";

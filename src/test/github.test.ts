@@ -1,5 +1,5 @@
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
-import { DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
+import { any, DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
 
 import { PullRequestApi } from "../github/pullRequest";
 import { ActionLogger, GitHubClient } from "../github/types";
@@ -25,9 +25,7 @@ describe("Pull Request API Tests", () => {
     let reviews: PullRequestReview[];
     beforeEach(() => {
       reviews = [];
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore because the official type and the library type do not match
-      client.rest.pulls.listReviews.mockResolvedValue({ data: reviews as unknown });
+      client.paginate.calledWith(client.rest.pulls.listReviews, any()).mockResolvedValue(reviews as unknown);
     });
 
     test("Should return approval", async () => {
@@ -51,7 +49,7 @@ describe("Pull Request API Tests", () => {
         expect(approvals).toEqual(["yes-user"]);
       }
 
-      expect(client.rest.pulls.listReviews).toHaveBeenCalledTimes(1);
+      expect(client.paginate).toHaveBeenCalledTimes(1);
     });
 
     test("Should return approvals and ignore other reviews", async () => {
