@@ -44,14 +44,23 @@ export class PolkadotFellows implements TeamApi {
           | Record<string, unknown>
           | undefined;
 
-        // If the identity is null, we ignore it.
+        // If the identity is null, we check if there is a super identity.
         if (!fellowData) {
-          this.logger.debug("Identity is null. Skipping");
+          this.logger.debug("Identity is null. Checking for super identity");
+          const superIdentity = (await api.query.identity.superOf(fellow.address)).toHuman() as
+            | [string, { Raw: string }]
+            | undefined;
+          if (superIdentity && superIdentity[0]) {
+            this.logger.debug(`${fellow.address} has a super identity: ${superIdentity[0]}. Adding it to the array`);
+            fellows.push({ address: superIdentity[0], rank: fellow.rank });
+          } else {
+            this.logger.debug("No super identity found. Skipping");
+          }
           continue;
         }
 
         // @ts-ignore
-        const additional = fellowData.info.additional as [{ Raw: string }, { Raw: string }][] | undefined;
+        const additional = fellowData.info?.additional as [{ Raw: string }, { Raw: string }][] | undefined;
 
         // If it does not have additional data (GitHub handle goes here) we ignore it
         if (!additional || additional.length < 1) {
