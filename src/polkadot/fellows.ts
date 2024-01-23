@@ -8,7 +8,7 @@ type FellowData = { address: string; rank: number };
 export class PolkadotFellows implements TeamApi {
   private fellowsCache: Map<string, number> = new Map<string, number>();
 
-  constructor(private readonly logger: ActionLogger) {}
+  constructor(private readonly logger: ActionLogger) { }
 
   async fetchAllFellows(): Promise<Map<string, number>> {
     let api: ApiPromise;
@@ -89,6 +89,16 @@ export class PolkadotFellows implements TeamApi {
     } finally {
       await api.disconnect();
     }
+  }
+  async listFellows(): Promise<IterableIterator<[string, number]>> {
+    this.logger.info("Fetching all fellows with their ranks");
+
+    if (this.fellowsCache.size < 1) {
+      this.logger.debug("Cache not found. Fetching fellows.");
+      this.fellowsCache = await this.fetchAllFellows();
+    }
+
+    return this.fellowsCache.entries();
   }
 
   async getTeamMembers(ranking: string): Promise<string[]> {
