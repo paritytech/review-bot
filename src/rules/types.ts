@@ -40,6 +40,18 @@ export interface FellowsRule extends Rule {
   minApprovals: number;
 }
 
+export interface FellowsScore {
+  dan1: number;
+  dan2: number;
+  dan3: number;
+  dan4: number;
+  dan5: number;
+  dan6: number;
+  dan7: number;
+  dan8: number;
+  dan9: number;
+}
+
 export interface ConfigurationFile {
   /** Based on the `type` parameter, Typescript converts the object to the correct type
    * @see {@link Rules}
@@ -49,4 +61,5 @@ export interface ConfigurationFile {
     teams?: string[];
     users?: string[];
   };
+  score?: Record<number, number>;
 }

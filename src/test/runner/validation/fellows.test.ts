@@ -1,10 +1,12 @@
+import { validate } from "@eng-automation/js";
 import { mock, MockProxy } from "jest-mock-extended";
 
 import { FellowMissingRankFailure } from "../../../failures";
 import { GitHubChecksApi } from "../../../github/check";
 import { PullRequestApi } from "../../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../../github/types";
-import { ConfigurationFile, RuleTypes } from "../../../rules/types";
+import { ConfigurationFile, FellowsScore, RuleTypes } from "../../../rules/types";
+import { fellowScoreSchema } from "../../../rules/validator";
 import { ActionRunner } from "../../../runner";
 
 describe("'Fellows' rule validation", () => {
@@ -118,6 +120,33 @@ describe("'Fellows' rule validation", () => {
       await expect(runner.validatePullRequest(config)).rejects.toThrow(
         "The amount of required approvals is smaller than the amount of available users.",
       );
+    });
+  });
+
+  // TODO: Add more details to these rules
+  describe("Score Validation", () => {
+    test("should not report errors with a valid schema", () => {
+      const score = {};
+      validate(score, fellowScoreSchema);
+    });
+
+    test("should assign correct values", () => {
+      const score = { dan1: 3, dan3: 5 };
+      const validation: FellowsScore = validate(score, fellowScoreSchema);
+      expect(validation.dan1).toBe(3);
+      expect(validation.dan3).toBe(5);
+    });
+
+    test("should default unassigned values as 0", () => {
+      const score = { dan1: 3 };
+      const validation: FellowsScore = validate(score, fellowScoreSchema);
+      expect(validation.dan2).toBe(0);
+      expect(validation.dan5).toBe(0);
+    });
+
+    test("should fail when a score is not a number", () => {
+      const score = { dan1: "one" };
+      expect(() => validate(score, fellowScoreSchema)).toThrowError('"dan1" must be a number');
     });
   });
 });
