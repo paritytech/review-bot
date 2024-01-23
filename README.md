@@ -454,7 +454,7 @@ yarn run cli ".github/review-bot.yml" # set the parameter as the location of the
 ```
 It will inform you if you have any types of errors.
 ## Developing
-We use `yarn` package manager and `node 18`.
+We use `yarn` package manager and `node 20`.
 - Use `yarn install` to install the dependencies.
 - Use `yarn build` to build the project.
 - Use `yarn test` to run tests on all the `*.test.ts` files.
