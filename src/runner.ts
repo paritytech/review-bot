@@ -13,9 +13,9 @@ import {
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger, CheckData, TeamApi } from "./github/types";
-import { AndDistinctRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleTypes } from "./rules/types";
+import { AndDistinctRule, ConfigurationFile, FellowsRule, FellowsScore, Reviewers, Rule, RuleTypes } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
-import { concatArraysUniquely } from "./util";
+import { concatArraysUniquely, rankToScore } from "./util";
 
 type BaseRuleReport = RuleFailedReport & RequiredReviewersData;
 
@@ -440,7 +440,7 @@ export class ActionRunner {
     }
   }
 
-  async fellowsEvaluation(rule: FellowsRule): Promise<ReviewFailure | null> {
+  async fellowsEvaluation(rule: FellowsRule, scores?: FellowsScore): Promise<ReviewFailure | null> {
     // This is a list of all the users that need to approve a PR
     const requiredUsers: string[] = await this.polkadotApi.getTeamMembers(rule.minRank.toString());
 
@@ -487,11 +487,27 @@ export class ActionRunner {
         },
         rule.minRank,
       );
-    } else {
-      this.logger.info("Rule requirements fulfilled");
-      // If we don't have any missing reviews, we return no error
-      return null;
+      // Then we verify if we need to have a minimum score
+    } else if (rule.minScore && scores) {
+      const fellows = await this.polkadotApi.listFellows();
+      let score = 0;
+
+      // We iterate over all the approvals and convert their rank to their score
+      for (const [handle, rank] of fellows) {
+        if (approvals.indexOf(handle) > -1) {
+          score += rankToScore(rank, scores);
+        }
+      }
+
+      return [
+        false,
+        
+      ]
     }
+    this.logger.info("Rule requirements fulfilled");
+    // If we don't have any missing reviews, we return no error
+    return null;
+
   }
 
   /** Using the include and exclude condition, it returns a list of all the files in a PR that matches the criteria */
