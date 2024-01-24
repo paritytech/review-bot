@@ -7,30 +7,39 @@ type RuleInfo = { type: RuleTypes; name: string };
 type MissingReviewData = {
   missingReviews: number;
   countingReviews: string[];
-  teamsToRequest?: string[];
-  usersToRequest?: string[];
 };
+
+export type ReviewReport = {
+  /** The amount of missing reviews to fulfill the requirements */
+  missingReviews: number;
+  /** The users who would qualify to complete those reviews */
+  missingUsers: string[];
+  /** If applicable, the teams that should be requested to review */
+  teamsToRequest?: string[];
+  /** If applicable, the users that should be requested to review */
+  usersToRequest?: string[];
+  /** If applicable, reviews that count towards this rule */
+  countingReviews: string[];
+};
+
+export type RuleReport = RuleInfo & ReviewReport;
 
 const toHandle = (handle: string): string => `@${handle}`;
 
-export class ReviewFailure {
+export abstract class ReviewFailure {
+  public readonly ruleName: string;
+  public readonly type: RuleTypes;
   /** The amount of missing reviews */
   public readonly missingReviews: number;
 
-  /** Reviews that counted towards fixing this problem */
+  /** Approvals that counted towards this rule */
   public readonly countingReviews: string[];
 
-  public readonly teamsToRequest?: string[];
-  public readonly usersToRequest?: string[];
-
-  constructor(
-    public readonly ruleInfo: RuleInfo,
-    missingReviewData: MissingReviewData,
-  ) {
-    this.missingReviews = missingReviewData.missingReviews;
-    this.countingReviews = missingReviewData.countingReviews;
-    this.teamsToRequest = missingReviewData.teamsToRequest;
-    this.usersToRequest = missingReviewData.usersToRequest;
+  constructor(ruleInfo: RuleInfo & MissingReviewData) {
+    this.ruleName = ruleInfo.name;
+    this.type = ruleInfo.type;
+    this.missingReviews = ruleInfo.missingReviews;
+    this.countingReviews = ruleInfo.countingReviews;
   }
 
   ruleExplanation(type: RuleTypes): string {
@@ -57,29 +66,37 @@ export class ReviewFailure {
   generateSummary(): typeof summary {
     return summary
       .emptyBuffer()
-      .addHeading(this.ruleInfo.name, 2)
+      .addHeading(this.ruleName, 2)
       .addHeading(`Missing ${this.missingReviews} review${this.missingReviews > 1 ? "s" : ""}`, 4)
       .addDetails(
         "Rule explanation",
-        this.ruleExplanation(this.ruleInfo.type) +
-          "\n\n" +
-          "For more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)",
+        this.ruleExplanation(this.type) +
+        "\n\n" +
+        "For more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)",
       );
   }
+
+  /** Get the users/teams whose review should be requested */
+  abstract getRequestLogins(): { users: string[]; teams: string[] };
 }
 
 export class DefaultRuleFailure extends ReviewFailure {
-  constructor(ruleInfo: RuleInfo, missingReviewData: MissingReviewData) {
-    super(ruleInfo, missingReviewData);
+  public readonly usersToRequest: string[];
+  public readonly teamsToRequest: string[];
+
+  constructor(report: RuleReport) {
+    super(report);
+    this.usersToRequest = report.usersToRequest ?? [];
+    this.teamsToRequest = report.teamsToRequest ?? [];
   }
 
   generateSummary(): typeof summary {
     let text = super.generateSummary();
 
-    if (this.usersToRequest && this.usersToRequest.length > 0) {
+    if (this.usersToRequest.length > 0) {
       text = text.addHeading("Missing users", 3).addList(this.usersToRequest);
     }
-    if (this.teamsToRequest && this.teamsToRequest.length > 0) {
+    if (this.teamsToRequest.length > 0) {
       text = text.addHeading("Missing reviews from teams", 3).addList(this.teamsToRequest);
     }
 
@@ -93,21 +110,20 @@ export class DefaultRuleFailure extends ReviewFailure {
 
     return text;
   }
+
+  getRequestLogins(): { users: string[]; teams: string[] } {
+    return { users: this.usersToRequest, teams: this.teamsToRequest };
+  }
 }
 
 export class FellowMissingRankFailure extends ReviewFailure {
-  constructor(
-    ruleInfo: RuleInfo,
+  constructor(ruleInfo: RuleInfo & MissingReviewData,
     missingReviews: number,
     private readonly missingRank: number,
-    missingUsers: string[],
+    private readonly missingUsers: string[],
     countingReviews: string[],
   ) {
-    super(ruleInfo, {
-      missingReviews,
-      countingReviews: countingReviews,
-      usersToRequest: missingUsers,
-    });
+    super(ruleInfo);
   }
 
   generateSummary(): typeof summary {
@@ -118,10 +134,10 @@ export class FellowMissingRankFailure extends ReviewFailure {
       .addEOL()
       .addRaw(`Missing reviews from rank \`${this.missingRank}\` or above`)
       .addEOL();
-    if (this.usersToRequest && this.usersToRequest.length > 0)
+    if (this.missingUsers && this.missingUsers.length > 0)
       text = text.addDetails(
         "GitHub users whose approval counts",
-        `This is a list of all the GitHub users who are rank ${this.missingRank} or above:\n\n - ${this.usersToRequest
+        `This is a list of all the GitHub users who are rank ${this.missingRank} or above:\n\n - ${this.missingUsers
           .map(toHandle)
           .join("\n -")}`,
       );
@@ -135,5 +151,9 @@ export class FellowMissingRankFailure extends ReviewFailure {
     }
 
     return text;
+  }
+
+  getRequestLogins(): { users: string[]; teams: string[] } {
+    return { users: [], teams: [] };
   }
 }

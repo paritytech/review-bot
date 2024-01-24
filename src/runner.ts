@@ -1,30 +1,14 @@
-import { setOutput, summary } from "@actions/core";
+import { setOutput } from "@actions/core";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
+import { DefaultRuleFailure, FellowMissingRankFailure, ReviewFailure, ReviewReport, RuleReport } from "./fails";
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger, CheckData, TeamApi } from "./github/types";
 import { AndDistinctRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleTypes } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
-import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
-
-type ReviewReport = {
-  /** The amount of missing reviews to fulfill the requirements */
-  missingReviews: number;
-  /** The users who would qualify to complete those reviews */
-  missingUsers: string[];
-  /** If applicable, the teams that should be requested to review */
-  teamsToRequest?: string[];
-  /** If applicable, the users that should be requested to review */
-  usersToRequest?: string[];
-  /** If applicable, the missing minimum fellows rank required to review */
-  missingRank?: number;
-  /** If applicable, reviews that count towards this rule */
-  countingReviews: string[];
-};
-
-export type RuleReport = { name: string; type: RuleTypes } & ReviewReport;
+import { concatArraysUniquely } from "./util";
 
 type ReviewState = [true] | [false, ReviewReport];
 
@@ -32,7 +16,7 @@ type PullRequestReport = {
   /** List of files that were modified by the PR */
   files: string[];
   /** List of all the failed review requirements */
-  reports: RuleReport[];
+  reports: ReviewFailure[];
 };
 
 /** Action in charge of running the GitHub action */
@@ -73,7 +57,7 @@ export class ActionRunner {
   async validatePullRequest({ rules }: ConfigurationFile): Promise<PullRequestReport> {
     const modifiedFiles = await this.prApi.listModifiedFiles();
 
-    const errorReports: RuleReport[] = [];
+    const errorReports: ReviewFailure[] = [];
 
     ruleCheck: for (const rule of rules) {
       try {
@@ -98,7 +82,7 @@ export class ActionRunner {
             const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
             if (!result) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push({ ...missingData, name: rule.name, type: rule.type });
+              errorReports.push(new DefaultRuleFailure({ ...rule, ...missingData }));
             }
 
             break;
@@ -116,7 +100,7 @@ export class ActionRunner {
             if (reports.length > 0) {
               const finalReport = unifyReport(reports, rule.name, rule.type);
               this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
-              errorReports.push(finalReport);
+              errorReports.push(new DefaultRuleFailure(finalReport));
             }
             break;
           }
@@ -146,7 +130,7 @@ export class ActionRunner {
               finalReport.missingReviews = lowerAmountOfReviewsNeeded;
               this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
               // We unify the reports and push them for handling
-              errorReports.push(finalReport);
+              errorReports.push(new DefaultRuleFailure(finalReport));
             }
             break;
           }
@@ -154,7 +138,7 @@ export class ActionRunner {
             const [result, missingData] = await this.andDistinctEvaluation(rule);
             if (!result) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push({ ...missingData, name: rule.name, type: rule.type });
+              errorReports.push(new DefaultRuleFailure({ ...missingData, name: rule.name, type: rule.type }));
             }
             break;
           }
@@ -180,7 +164,7 @@ export class ActionRunner {
   }
 
   async requestReviewers(
-    reports: RuleReport[],
+    reports: ReviewFailure[],
     preventReviewRequests: ConfigurationFile["preventReviewRequests"],
   ): Promise<void> {
     if (reports.length === 0) {
@@ -584,8 +568,6 @@ const getRequiredRanks = (reports: Pick<ReviewReport, "missingRank">[]): number[
 };
 
 const unifyReport = (reports: ReviewReport[], name: string, type: RuleTypes): RuleReport => {
-  const ranks = getRequiredRanks(reports);
-  const missingRank = ranks ? Math.max(...(ranks as number[])) : undefined;
 
   return {
     missingReviews: reports.reduce((a, b) => a + b.missingReviews, 0),
@@ -594,7 +576,6 @@ const unifyReport = (reports: ReviewReport[], name: string, type: RuleTypes): Ru
     usersToRequest: [...new Set(reports.flatMap((r) => r.usersToRequest ?? []))],
     name,
     type,
-    missingRank,
     countingReviews: [...new Set(reports.flatMap((r) => r.countingReviews))],
   };
 };
