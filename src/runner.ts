@@ -451,7 +451,7 @@ export class ActionRunner {
     }
   }
 
-  async fellowsEvaluation(rule: FellowsRule): Promise<ReviewState> {
+  async fellowsEvaluation(rule: FellowsRule): Promise<ReviewFailure | null> {
     // This is a list of all the users that need to approve a PR
     const requiredUsers: string[] = await this.polkadotApi.getTeamMembers(rule.minRank.toString());
 
@@ -489,20 +489,11 @@ export class ActionRunner {
       this.logger.warn(`${missingReviews} reviews are missing.`);
       // If we have at least one missing review, we return an object with the list of missing reviewers, and
       // which users/teams we should request to review
-      return [
-        false,
-        {
-          missingReviews,
-          // Remove all the users who approved the PR + the author (if he belongs to the group)
-          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
-          missingRank: rule.minRank,
-          countingReviews,
-        },
-      ];
+      return new FellowMissingRankFailure(rule, missingReviews, rule.minRank, requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author), countingReviews);
     } else {
       this.logger.info("Rule requirements fulfilled");
-      // If we don't have any missing reviews, we return the succesful case
-      return [true];
+      // If we don't have any missing reviews, we return no error
+      return null;
     }
   }
 
