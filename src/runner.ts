@@ -18,6 +18,7 @@ import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { concatArraysUniquely } from "./util";
 
 type ReviewState = [true] | [false, FailureReport & RequestData];
+type BaseRuleReport = FailureReport & RequestData;
 
 type PullRequestReport = {
   /** List of files that were modified by the PR */
@@ -257,7 +258,7 @@ export class ActionRunner {
    * It splits all the required reviews into individual cases and applies a sudoku solving algorithm
    * Until it finds a perfect match or ran out of possible matches
    */
-  async andDistinctEvaluation(rule: AndDistinctRule): Promise<ReviewState> {
+  async andDistinctEvaluation(rule: AndDistinctRule): Promise<BaseRuleReport | null> {
     const requirements: { users: string[]; requiredApprovals: number }[] = [];
     // We get all the users belonging to each 'and distinct' review condition
     for (const reviewers of rule.reviewers) {
@@ -273,7 +274,7 @@ export class ActionRunner {
     let countingReviews: string[] = [];
 
     // Utility method used to generate error
-    const generateErrorReport = (): ReviewReport => {
+    const generateErrorReport = (): BaseRuleReport => {
       const filterMissingUsers = (reviewData: { users?: string[] }[]): string[] =>
         Array.from(new Set(reviewData.flatMap((r) => r.users ?? []).filter((u) => approvals.indexOf(u) < 0)));
 
@@ -292,7 +293,7 @@ export class ActionRunner {
     if (approvals.length < requiredAmountOfReviews) {
       this.logger.warn(`Not enough approvals. Need at least ${requiredAmountOfReviews} and got ${approvals.length}`);
       // We return an error and request reviewers
-      return [false, generateErrorReport()];
+      return  generateErrorReport();
     }
 
     this.logger.debug(`Required users to review: ${JSON.stringify(requirements)}`);
@@ -316,10 +317,10 @@ export class ActionRunner {
     // If one of the rules doesn't have the required approval we fail the evaluation
     if (conditionApprovals.some((cond) => cond.matchingUsers.length === 0)) {
       this.logger.warn("One of the groups does not have any approvals");
-      return [false, generateErrorReport()];
+      return generateErrorReport();
     } else if (conditionApprovals.some((cond) => cond.matchingUsers.length < cond.requiredApprovals)) {
       this.logger.warn("Not enough positive reviews to match a subcondition");
-      return [false, generateErrorReport()];
+      return generateErrorReport();
     }
 
     /**
@@ -363,13 +364,13 @@ export class ActionRunner {
       // We check by the end of this iteration if all the approvals could be assigned
       // and we have ran out of elements in the array
       if (workingArray.length === 0) {
-        return [true];
+        return null;
       }
     }
 
     this.logger.warn("Didn't find any matches to match all the rules requirements");
     // If, by the end of all the loops, there are still matches, we didn't find a solution so we fail the rule
-    return [false, generateErrorReport()];
+    return generateErrorReport();
   }
 
   /** Evaluates if the required reviews for a condition have been meet
