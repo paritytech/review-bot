@@ -17,7 +17,6 @@ import { AndDistinctRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleT
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { concatArraysUniquely } from "./util";
 
-type ReviewState = [true] | [false, FailureReport & RequestData];
 type BaseRuleReport = FailureReport & RequestData;
 
 type PullRequestReport = {
@@ -87,10 +86,10 @@ export class ActionRunner {
         }
         switch (rule.type) {
           case RuleTypes.Basic: {
-            const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
-            if (!result) {
-              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push(new DefaultRuleFailure({ ...rule, ...missingData }));
+            const ruleError = await this.evaluateCondition(rule, rule.countAuthor);
+            if (ruleError) {
+              this.logger.error(`Missing the reviews from ${JSON.stringify(ruleError.missingUsers)}`);
+              errorReports.push(new DefaultRuleFailure({ ...rule, ...ruleError }));
             }
 
             break;
@@ -99,10 +98,10 @@ export class ActionRunner {
             const reports: FailureReport[] = [];
             // We evaluate every individual condition
             for (const reviewer of rule.reviewers) {
-              const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
-              if (!result) {
+              const ruleError = await this.evaluateCondition(reviewer, rule.countAuthor);
+              if (ruleError) {
                 // If one of the conditions failed, we add it to a report
-                reports.push(missingData);
+                reports.push(ruleError);
               }
             }
             if (reports.length > 0) {
@@ -115,14 +114,14 @@ export class ActionRunner {
           case RuleTypes.Or: {
             const reports: FailureReport[] = [];
             for (const reviewer of rule.reviewers) {
-              const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
-              if (result) {
-                // This is a OR condition, so with ONE positive result
+              const ruleError = await this.evaluateCondition(reviewer, rule.countAuthor);
+              if (!ruleError) {
+                // This is an OR condition, so if we have one iteration without an error
                 // we can continue the loop to check the following rule
                 continue ruleCheck;
               }
               // But, until we get a positive case we add all the failed cases
-              reports.push(missingData);
+              reports.push(ruleError);
             }
 
             // If the loop was not skipped it means that we have errors
@@ -143,10 +142,10 @@ export class ActionRunner {
             break;
           }
           case RuleTypes.AndDistinct: {
-            const [result, missingData] = await this.andDistinctEvaluation(rule);
-            if (!result) {
-              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push(new DefaultRuleFailure({ ...missingData, name: rule.name, type: rule.type }));
+            const ruleFailure = await this.andDistinctEvaluation(rule);
+            if (ruleFailure) {
+              this.logger.error(`Missing the reviews from ${JSON.stringify(ruleFailure.missingUsers)}`);
+              errorReports.push(new DefaultRuleFailure({ ...rule, ...ruleFailure }));
             }
             break;
           }
@@ -293,7 +292,7 @@ export class ActionRunner {
     if (approvals.length < requiredAmountOfReviews) {
       this.logger.warn(`Not enough approvals. Need at least ${requiredAmountOfReviews} and got ${approvals.length}`);
       // We return an error and request reviewers
-      return  generateErrorReport();
+      return generateErrorReport();
     }
 
     this.logger.debug(`Required users to review: ${JSON.stringify(requirements)}`);
@@ -375,13 +374,12 @@ export class ActionRunner {
 
   /** Evaluates if the required reviews for a condition have been meet
    * @param rule Every rule check has this values which consist on the min required approvals and the reviewers.
-   * @returns a [bool, error data] tuple which evaluates if the condition (not the rule itself) has fulfilled the requirements
-   * @see-also ReviewError
+   * @returns an object with the error report if the rule failed, or a null object if the rule passed
    */
   async evaluateCondition(
     rule: { minApprovals: number } & Reviewers,
     countAuthor: boolean = false,
-  ): Promise<ReviewState> {
+  ): Promise<BaseRuleReport | null> {
     this.logger.debug(JSON.stringify(rule));
 
     // This is a list of all the users that need to approve a PR
@@ -427,21 +425,18 @@ export class ActionRunner {
       this.logger.warn(`${missingReviews} reviews are missing.`);
       // If we have at least one missing review, we return an object with the list of missing reviewers, and
       // which users/teams we should request to review
-      return [
-        false,
-        {
-          missingReviews,
-          // Remove all the users who approved the PR + the author (if he belongs to the group)
-          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
-          teamsToRequest: rule.teams ? rule.teams : undefined,
-          usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
-          countingReviews,
-        },
-      ];
+      return {
+        missingReviews,
+        // Remove all the users who approved the PR + the author (if he belongs to the group)
+        missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
+        teamsToRequest: rule.teams ? rule.teams : undefined,
+        usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
+        countingReviews,
+      };
     } else {
       this.logger.info("Rule requirements fulfilled");
       // If we don't have any missing reviews, we return the succesful case
-      return [true];
+      return null;
     }
   }
 
