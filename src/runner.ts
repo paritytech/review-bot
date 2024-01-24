@@ -233,7 +233,7 @@ export class ActionRunner {
   /** Aggregates all the reports and generate a status report
    * This also filters the author of the PR if he belongs to the group of users
    */
-  generateCheckRunData(reports: RuleReport[]): CheckData {
+  generateCheckRunData(reports: ReviewFailure[]): CheckData {
     // Count how many reviews are missing
     const missingReviews = reports.reduce((a, b) => a + b.missingReviews, 0);
     const failed = missingReviews > 0;
@@ -251,62 +251,8 @@ export class ActionRunner {
     }
 
     for (const report of reports) {
-      const ruleExplanation = (type: RuleTypes) => {
-        switch (type) {
-          case RuleTypes.Basic:
-            return "Rule 'Basic' requires a given amount of reviews from users/teams";
-          case RuleTypes.And:
-            return "Rule 'And' has many required reviewers/teams and requires all of them to be fulfilled.";
-          case RuleTypes.Or:
-            return "Rule 'Or' has many required reviewers/teams and requires at least one of them to be fulfilled.";
-          case RuleTypes.AndDistinct:
-            return (
-              "Rule 'And Distinct' has many required reviewers/teams and requires all of them to be fulfilled **by different users**.\n\n" +
-              "The approval of one user that belongs to _two teams_ will count only towards one team."
-            );
-          case RuleTypes.Fellows:
-            return "Rule 'Fellows' requires a given amount of reviews from users whose Fellowship ranking is the required rank or great.";
-          default:
-            console.error("Out of range for rule type", type);
-            return "Unhandled rule";
-        }
-      };
-
-      check.output.summary += `- **${report.name}**\n`;
-      let text = summary
-        .emptyBuffer()
-        .addHeading(report.name, 2)
-        .addHeading(`Missing ${report.missingReviews} review${report.missingReviews > 1 ? "s" : ""}`, 4)
-        .addDetails(
-          "Rule explanation",
-          `${ruleExplanation(
-            report.type,
-          )}\n\nFor more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)`,
-        );
-      if (report.usersToRequest && report.usersToRequest.length > 0) {
-        text = text
-          .addHeading("Missing users", 3)
-          .addList(report.usersToRequest.filter((u) => !caseInsensitiveEqual(u, this.prApi.getAuthor())));
-      }
-      if (report.teamsToRequest && report.teamsToRequest.length > 0) {
-        text = text.addHeading("Missing reviews from teams", 3).addList(report.teamsToRequest);
-      }
-      if (report.missingRank) {
-        text = text
-          .addHeading("Missing reviews from Fellows", 3)
-          .addEOL()
-          .addRaw(`Missing reviews from rank \`${report.missingRank}\` or above`)
-          .addEOL();
-      }
-      if (report.countingReviews.length > 0) {
-        text = text
-          .addHeading("Users approvals that counted towards this rule", 3)
-          .addEOL()
-          .addList(report.countingReviews)
-          .addEOL();
-      }
-
-      check.output.text += text.stringify() + "\n";
+      check.output.summary += `- **${report.ruleInfo.name}**\n`;
+      check.output.text += report.generateSummary().stringify() + "\n";
     }
 
     return check;
