@@ -49,6 +49,7 @@ export class GitHubChecksApi {
         this.logger.debug(`Found match: ${JSON.stringify(check)}`);
         await this.api.rest.checks.update({ ...checkData, check_run_id: check.id });
         this.logger.debug("Updated check data");
+        await this.writeSummary(checkData, check.html_url ?? "");
         return;
       }
     }
@@ -57,16 +58,20 @@ export class GitHubChecksApi {
 
     const check = await this.api.rest.checks.create(checkData);
 
+    await this.writeSummary(checkData, check.data.html_url ?? "");
+
+    this.logger.debug(JSON.stringify(check.data));
+  }
+
+  private async writeSummary(checkResult: CheckData, resultUrl: string) {
     // We publish it in the action summary
     await summary
       .emptyBuffer()
       .addHeading(checkResult.output.title)
       // We redirect to the check as it can changed if it is triggered again
-      .addLink("Find the result here", check.data.html_url ?? "")
+      .addLink("Find the result here", resultUrl)
       .addBreak()
       .addRaw(checkResult.output.text)
       .write();
-
-    this.logger.debug(JSON.stringify(check.data));
   }
 }
