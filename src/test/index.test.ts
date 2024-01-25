@@ -4,11 +4,12 @@ import { existsSync, openSync, readFileSync, unlinkSync } from "fs";
 import { any, DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
 import { join } from "path";
 
+import { ReviewFailure } from "../failures";
 import { GitHubChecksApi } from "../github/check";
 import { PullRequestApi } from "../github/pullRequest";
 import { GitHubTeamsApi } from "../github/teams";
 import { ActionLogger, GitHubClient, TeamApi } from "../github/types";
-import { ActionRunner, RuleReport } from "../runner";
+import { ActionRunner } from "../runner";
 
 type ReportName =
   | "CI files"
@@ -19,7 +20,7 @@ type ReportName =
   | "FRAME coders substrate";
 
 /** Utility method to get a particular report from a list */
-const getReport = (reports: RuleReport[], name: ReportName): RuleReport => {
+const getReport = (reports: ReviewFailure[], name: ReportName): ReviewFailure => {
   for (const report of reports) {
     if (report.name === name) {
       return report;

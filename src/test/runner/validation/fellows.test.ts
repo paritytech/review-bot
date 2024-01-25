@@ -1,5 +1,6 @@
 import { mock, MockProxy } from "jest-mock-extended";
 
+import { FellowMissingRankFailure } from "../../../failures";
 import { GitHubChecksApi } from "../../../github/check";
 import { PullRequestApi } from "../../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../../github/types";
@@ -77,7 +78,7 @@ describe("'Fellows' rule validation", () => {
       const [result] = reports;
       expect(result.missingReviews).toEqual(1);
       expect(result.missingUsers).toEqual([users[2]]);
-      expect(result.missingRank).toEqual(4);
+      expect((result as FellowMissingRankFailure).missingRank).toEqual(4);
     });
 
     test("should throw error if no fellows of a given rank are found", async () => {

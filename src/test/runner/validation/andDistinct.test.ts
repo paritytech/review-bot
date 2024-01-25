@@ -37,8 +37,7 @@ describe("'And distinct' rule validation", () => {
         name: "test",
         condition: { include: [] },
       };
-      const [result, error] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
+      const error = await runner.andDistinctEvaluation(rule);
       expect(error?.missingReviews).toBe(4);
       expect(logger.warn).toHaveBeenCalledWith("Not enough approvals. Need at least 4 and got 0");
     });
@@ -56,8 +55,7 @@ describe("'And distinct' rule validation", () => {
       };
 
       api.listApprovedReviewsAuthors.mockResolvedValue([users[0]]);
-      const [result, error] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
+      const error = await runner.andDistinctEvaluation(rule);
       expect(error?.missingReviews).toBe(4);
       expect(logger.warn).toHaveBeenCalledWith("Not enough approvals. Need at least 4 and got 1");
     });
@@ -75,8 +73,7 @@ describe("'And distinct' rule validation", () => {
       };
 
       api.listApprovedReviewsAuthors.mockResolvedValue(users);
-      const [result, error] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
+      const error = await runner.andDistinctEvaluation(rule);
       expect(error?.missingReviews).toBe(3);
       expect(logger.warn).toHaveBeenCalledWith("One of the groups does not have any approvals");
     });
@@ -94,8 +91,7 @@ describe("'And distinct' rule validation", () => {
       };
 
       api.listApprovedReviewsAuthors.mockResolvedValue([users[1], users[2], "abc"]);
-      const [result, error] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
+      const error = await runner.andDistinctEvaluation(rule);
       expect(error?.missingReviews).toBe(3);
       expect(logger.warn).toHaveBeenCalledWith("Didn't find any matches to match all the rules requirements");
     });
@@ -112,8 +108,7 @@ describe("'And distinct' rule validation", () => {
       };
 
       api.listApprovedReviewsAuthors.mockResolvedValue(users);
-      const [result, error] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
+      const error = await runner.andDistinctEvaluation(rule);
       expect(error?.missingReviews).toBe(3);
       expect(logger.warn).toHaveBeenCalledWith("Not enough positive reviews to match a subcondition");
     });
@@ -129,8 +124,7 @@ describe("'And distinct' rule validation", () => {
         condition: { include: [] },
       };
 
-      const [result, error] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
+      const error = await runner.andDistinctEvaluation(rule);
       const hasDuplicates = <T>(arr: T[]) => arr.some((item, index) => arr.indexOf(item) !== index);
       expect(hasDuplicates(error?.missingUsers as string[])).toBeFalsy();
     });
@@ -148,8 +142,8 @@ describe("'And distinct' rule validation", () => {
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([...users]);
       api.getAuthor.mockReturnValue("random");
-      const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(false);
+      const result = await runner.andDistinctEvaluation(rule);
+      expect(result).not.toBeNull();
     });
   });
 
@@ -165,8 +159,8 @@ describe("'And distinct' rule validation", () => {
         condition: { include: [] },
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc"]);
-      const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(true);
+      const result = await runner.andDistinctEvaluation(rule);
+      expect(result).toBeNull();
     });
 
     test("should pass with a valid combination of matches", async () => {
@@ -180,8 +174,8 @@ describe("'And distinct' rule validation", () => {
         condition: { include: [] },
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc"]);
-      const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(true);
+      const result = await runner.andDistinctEvaluation(rule);
+      expect(result).toBeNull();
     });
 
     test("should pass with a valid complicate combination of matches", async () => {
@@ -196,8 +190,8 @@ describe("'And distinct' rule validation", () => {
         condition: { include: [] },
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc", "def"]);
-      const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(true);
+      const result = await runner.andDistinctEvaluation(rule);
+      expect(result).toBeNull();
     });
 
     test("should pass with a valid complicate combination of matches and more than one min approval in a rule", async () => {
@@ -212,8 +206,8 @@ describe("'And distinct' rule validation", () => {
         condition: { include: [] },
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([users[0], "abc", "def", "fgh"]);
-      const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(true);
+      const result = await runner.andDistinctEvaluation(rule);
+      expect(result).toBeNull();
     });
 
     test("should pass with a valid very complicate combination of matches", async () => {
@@ -228,8 +222,8 @@ describe("'And distinct' rule validation", () => {
         condition: { include: [] },
       };
       api.listApprovedReviewsAuthors.mockResolvedValue([...users, "abc", "def"]);
-      const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(true);
+      const result = await runner.andDistinctEvaluation(rule);
+      expect(result).toBeNull();
     });
 
     test("should call listApprovedReviewsAuthors with true", async () => {
@@ -244,8 +238,8 @@ describe("'And distinct' rule validation", () => {
         condition: { include: [] },
       };
       api.listApprovedReviewsAuthors.mockResolvedValue(users);
-      const [result] = await runner.andDistinctEvaluation(rule);
-      expect(result).toBe(true);
+      const result = await runner.andDistinctEvaluation(rule);
+      expect(result).toBeNull();
       expect(api.listApprovedReviewsAuthors).lastCalledWith(true);
     });
   });

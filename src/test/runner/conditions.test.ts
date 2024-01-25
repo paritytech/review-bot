@@ -52,19 +52,18 @@ describe("evaluateCondition tests", () => {
     });
 
     test("should pass if required users approved the PR", async () => {
-      const [result] = await runner.evaluateCondition({ minApprovals: 1, users: [users[0]] });
-      expect(result).toBeTruthy();
+      const result = await runner.evaluateCondition({ minApprovals: 1, users: [users[0]] });
+      expect(result).toBeNull();
     });
 
     test("should pass if required amount of users approved the PR", async () => {
-      const [result] = await runner.evaluateCondition({ minApprovals: 2, users: [users[0], users[users.length - 1]] });
-      expect(result).toBeTruthy();
+      const result = await runner.evaluateCondition({ minApprovals: 2, users: [users[0], users[users.length - 1]] });
+      expect(result).toBeNull();
     });
 
     test("should fail if not all required users approved the PR", async () => {
       const newUser = "missing-user";
-      const [result, missingData] = await runner.evaluateCondition({ minApprovals: 2, users: [users[0], newUser] });
-      expect(result).toBeFalsy();
+      const missingData = await runner.evaluateCondition({ minApprovals: 2, users: [users[0], newUser] });
       expect(missingData?.missingUsers).toContainEqual(newUser);
       expect(missingData?.missingUsers).not.toContainEqual(users[0]);
       expect(missingData?.usersToRequest).toContainEqual(newUser);
@@ -82,21 +81,20 @@ describe("evaluateCondition tests", () => {
 
     test("should pass if required users approved the PR", async () => {
       teamsApi.getTeamMembers.mockResolvedValue(users);
-      const [result] = await runner.evaluateCondition({ minApprovals: 1, teams: [team] });
-      expect(result).toBeTruthy();
+      const result = await runner.evaluateCondition({ minApprovals: 1, teams: [team] });
+      expect(result).toBeNull();
     });
 
     test("should pass if required amount of users approved the PR", async () => {
       teamsApi.getTeamMembers.mockResolvedValue(users);
-      const [result] = await runner.evaluateCondition({ minApprovals: 2, teams: [team] });
-      expect(result).toBeTruthy();
+      const result = await runner.evaluateCondition({ minApprovals: 2, teams: [team] });
+      expect(result).toBeNull();
     });
 
     test("should fail if not enough members of a team approved the PR", async () => {
       api.listApprovedReviewsAuthors.mockResolvedValue([users[0]]);
       teamsApi.getTeamMembers.mockResolvedValue(users);
-      const [result, missingData] = await runner.evaluateCondition({ minApprovals: 2, teams: [team] });
-      expect(result).toBeFalsy();
+      const missingData = await runner.evaluateCondition({ minApprovals: 2, teams: [team] });
       expect(missingData?.missingUsers).toEqual(users.slice(1));
       expect(missingData?.missingUsers).not.toContainEqual(users[0]);
       expect(missingData?.usersToRequest).toBeUndefined();
@@ -116,8 +114,8 @@ describe("evaluateCondition tests", () => {
         ]);
         teamsApi.getTeamMembers.calledWith(team1.name).mockResolvedValue(team1.users);
         teamsApi.getTeamMembers.calledWith(team2.name).mockResolvedValue(team2.users);
-        const [result] = await runner.evaluateCondition({ minApprovals: 4, teams: [team1.name, team2.name] });
-        expect(result).toBeTruthy();
+        const result = await runner.evaluateCondition({ minApprovals: 4, teams: [team1.name, team2.name] });
+        expect(result).toBeNull();
       });
 
       test("should not duplicate user if they belong to more than one team", async () => {
@@ -126,8 +124,7 @@ describe("evaluateCondition tests", () => {
         teamsApi.getTeamMembers.calledWith(team1.name).mockResolvedValue(team1.users);
         teamsApi.getTeamMembers.calledWith(team2.name).mockResolvedValue(team2.users);
         api.listApprovedReviewsAuthors.mockResolvedValue([]);
-        const [result, report] = await runner.evaluateCondition({ minApprovals: 3, teams: [team1.name, team2.name] });
-        expect(result).toBeFalsy();
+        const report = await runner.evaluateCondition({ minApprovals: 3, teams: [team1.name, team2.name] });
         // Should not send required users more than once
         expect(report?.missingUsers).toEqual([...team1.users, team2.users[0]]);
         expect(report?.teamsToRequest).toEqual([team1.name, team2.name]);
@@ -137,12 +134,11 @@ describe("evaluateCondition tests", () => {
         test("should not duplicate users if they belong to team and user list", async () => {
           teamsApi.getTeamMembers.calledWith(team).mockResolvedValue(users);
           api.listApprovedReviewsAuthors.mockResolvedValue([]);
-          const [result, report] = await runner.evaluateCondition({
+          const report = await runner.evaluateCondition({
             minApprovals: 1,
             teams: [team],
             users: [users[0]],
           });
-          expect(result).toBeFalsy();
           // Should not send required users more than once
           expect(report?.missingUsers).toEqual(users);
           expect(report?.teamsToRequest).toEqual([team]);

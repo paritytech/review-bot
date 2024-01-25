@@ -77,8 +77,9 @@ describe("'And' rule validation", () => {
       const [result] = reports;
       expect(result.missingReviews).toEqual(2);
       expect(result.missingUsers).toEqual(users);
-      expect(result.teamsToRequest).toContainEqual("abc");
-      expect(result.usersToRequest).toContainEqual(users[0]);
+      const toRequest = result.getRequestLogins();
+      expect(toRequest.teams).toContainEqual("abc");
+      expect(toRequest.users).toContainEqual(users[0]);
     });
 
     test("should report the agregated amount of missing reviews", async () => {
@@ -143,8 +144,9 @@ describe("'And' rule validation", () => {
       const [result] = reports;
       expect(result.missingReviews).toEqual(1);
       expect(result.missingUsers).toEqual(teamCba);
-      expect(result.teamsToRequest).toEqual(["cba"]);
-      expect(result.usersToRequest).toHaveLength(0);
+      const toRequest = result.getRequestLogins();
+      expect(toRequest.teams).toEqual(["cba"]);
+      expect(toRequest.users).toHaveLength(0);
     });
 
     test("should report missing individual user if one of the rules have not been met", async () => {
@@ -168,8 +170,9 @@ describe("'And' rule validation", () => {
       const [result] = reports;
       expect(result.missingReviews).toEqual(2);
       expect(result.missingUsers).toEqual(individualUsers);
-      expect(result.teamsToRequest).toHaveLength(0);
-      expect(result.usersToRequest).toEqual(individualUsers);
+      const toRequest = result.getRequestLogins();
+      expect(toRequest.teams).toHaveLength(0);
+      expect(toRequest.users).toEqual(individualUsers);
     });
   });
 });

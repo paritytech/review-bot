@@ -1,38 +1,29 @@
-import { setOutput, summary } from "@actions/core";
+import { setOutput } from "@actions/core";
 import { parse } from "yaml";
 
 import { Inputs } from ".";
+import {
+  CommonRuleFailure,
+  FellowMissingRankFailure,
+  RequiredReviewersData,
+  ReviewFailure,
+  RuleFailedReport,
+  RuleFailedSummary,
+} from "./failures";
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger, CheckData, TeamApi } from "./github/types";
 import { AndDistinctRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleTypes } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
-import { caseInsensitiveEqual, concatArraysUniquely } from "./util";
+import { concatArraysUniquely } from "./util";
 
-type ReviewReport = {
-  /** The amount of missing reviews to fulfill the requirements */
-  missingReviews: number;
-  /** The users who would qualify to complete those reviews */
-  missingUsers: string[];
-  /** If applicable, the teams that should be requested to review */
-  teamsToRequest?: string[];
-  /** If applicable, the users that should be requested to review */
-  usersToRequest?: string[];
-  /** If applicable, the missing minimum fellows rank required to review */
-  missingRank?: number;
-  /** If applicable, reviews that count towards this rule */
-  countingReviews: string[];
-};
-
-export type RuleReport = { name: string; type: RuleTypes } & ReviewReport;
-
-type ReviewState = [true] | [false, ReviewReport];
+type BaseRuleReport = RuleFailedReport & RequiredReviewersData;
 
 type PullRequestReport = {
   /** List of files that were modified by the PR */
   files: string[];
   /** List of all the failed review requirements */
-  reports: RuleReport[];
+  reports: ReviewFailure[];
 };
 
 /** Action in charge of running the GitHub action */
@@ -73,7 +64,7 @@ export class ActionRunner {
   async validatePullRequest({ rules }: ConfigurationFile): Promise<PullRequestReport> {
     const modifiedFiles = await this.prApi.listModifiedFiles();
 
-    const errorReports: RuleReport[] = [];
+    const errorReports: ReviewFailure[] = [];
 
     ruleCheck: for (const rule of rules) {
       try {
@@ -95,42 +86,42 @@ export class ActionRunner {
         }
         switch (rule.type) {
           case RuleTypes.Basic: {
-            const [result, missingData] = await this.evaluateCondition(rule, rule.countAuthor);
-            if (!result) {
-              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push({ ...missingData, name: rule.name, type: rule.type });
+            const ruleError = await this.evaluateCondition(rule, rule.countAuthor);
+            if (ruleError) {
+              this.logger.error(`Missing the reviews from ${JSON.stringify(ruleError.missingUsers)}`);
+              errorReports.push(new CommonRuleFailure({ ...rule, ...ruleError }));
             }
 
             break;
           }
           case RuleTypes.And: {
-            const reports: ReviewReport[] = [];
+            const reports: RuleFailedReport[] = [];
             // We evaluate every individual condition
             for (const reviewer of rule.reviewers) {
-              const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
-              if (!result) {
+              const ruleError = await this.evaluateCondition(reviewer, rule.countAuthor);
+              if (ruleError) {
                 // If one of the conditions failed, we add it to a report
-                reports.push(missingData);
+                reports.push(ruleError);
               }
             }
             if (reports.length > 0) {
               const finalReport = unifyReport(reports, rule.name, rule.type);
               this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
-              errorReports.push(finalReport);
+              errorReports.push(new CommonRuleFailure(finalReport));
             }
             break;
           }
           case RuleTypes.Or: {
-            const reports: ReviewReport[] = [];
+            const reports: RuleFailedReport[] = [];
             for (const reviewer of rule.reviewers) {
-              const [result, missingData] = await this.evaluateCondition(reviewer, rule.countAuthor);
-              if (result) {
-                // This is a OR condition, so with ONE positive result
+              const ruleError = await this.evaluateCondition(reviewer, rule.countAuthor);
+              if (!ruleError) {
+                // This is an OR condition, so if we have one iteration without an error
                 // we can continue the loop to check the following rule
                 continue ruleCheck;
               }
               // But, until we get a positive case we add all the failed cases
-              reports.push(missingData);
+              reports.push(ruleError);
             }
 
             // If the loop was not skipped it means that we have errors
@@ -146,23 +137,24 @@ export class ActionRunner {
               finalReport.missingReviews = lowerAmountOfReviewsNeeded;
               this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
               // We unify the reports and push them for handling
-              errorReports.push(finalReport);
+              errorReports.push(new CommonRuleFailure(finalReport));
             }
             break;
           }
           case RuleTypes.AndDistinct: {
-            const [result, missingData] = await this.andDistinctEvaluation(rule);
-            if (!result) {
-              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push({ ...missingData, name: rule.name, type: rule.type });
+            const ruleFailure = await this.andDistinctEvaluation(rule);
+            if (ruleFailure) {
+              this.logger.error(`Missing the reviews from ${JSON.stringify(ruleFailure.missingUsers)}`);
+              errorReports.push(new CommonRuleFailure({ ...rule, ...ruleFailure }));
             }
             break;
           }
           case RuleTypes.Fellows: {
-            const [result, missingData] = await this.fellowsEvaluation(rule);
-            if (!result) {
-              this.logger.error(`Missing the reviews from ${JSON.stringify(missingData.missingUsers)}`);
-              errorReports.push({ ...missingData, name: rule.name, type: rule.type });
+            const fellowReviewError = await this.fellowsEvaluation(rule);
+            if (fellowReviewError) {
+              this.logger.error(`Missing the reviews from ${JSON.stringify(fellowReviewError.missingReviews)}`);
+              // errorReports.push({ ...missingData, name: rule.name, type: rule.type });
+              errorReports.push(fellowReviewError);
             }
             break;
           }
@@ -180,13 +172,13 @@ export class ActionRunner {
   }
 
   async requestReviewers(
-    reports: RuleReport[],
+    reports: ReviewFailure[],
     preventReviewRequests: ConfigurationFile["preventReviewRequests"],
   ): Promise<void> {
     if (reports.length === 0) {
       return;
     }
-    const finalReport: ReviewReport = {
+    const finalReport: RuleFailedReport & RequiredReviewersData = {
       missingReviews: 0,
       missingUsers: [],
       teamsToRequest: [],
@@ -195,10 +187,11 @@ export class ActionRunner {
     };
 
     for (const report of reports) {
+      const { teams, users } = report.getRequestLogins();
       finalReport.missingReviews += report.missingReviews;
       finalReport.missingUsers = concatArraysUniquely(finalReport.missingUsers, report.missingUsers);
-      finalReport.teamsToRequest = concatArraysUniquely(finalReport.teamsToRequest, report.teamsToRequest);
-      finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, report.usersToRequest);
+      finalReport.teamsToRequest = concatArraysUniquely(finalReport.teamsToRequest, teams);
+      finalReport.usersToRequest = concatArraysUniquely(finalReport.usersToRequest, users);
       finalReport.countingReviews = concatArraysUniquely(finalReport.countingReviews, report.countingReviews);
     }
 
@@ -233,7 +226,7 @@ export class ActionRunner {
   /** Aggregates all the reports and generate a status report
    * This also filters the author of the PR if he belongs to the group of users
    */
-  generateCheckRunData(reports: RuleReport[]): CheckData {
+  generateCheckRunData(reports: ReviewFailure[]): CheckData {
     // Count how many reviews are missing
     const missingReviews = reports.reduce((a, b) => a + b.missingReviews, 0);
     const failed = missingReviews > 0;
@@ -251,62 +244,8 @@ export class ActionRunner {
     }
 
     for (const report of reports) {
-      const ruleExplanation = (type: RuleTypes) => {
-        switch (type) {
-          case RuleTypes.Basic:
-            return "Rule 'Basic' requires a given amount of reviews from users/teams";
-          case RuleTypes.And:
-            return "Rule 'And' has many required reviewers/teams and requires all of them to be fulfilled.";
-          case RuleTypes.Or:
-            return "Rule 'Or' has many required reviewers/teams and requires at least one of them to be fulfilled.";
-          case RuleTypes.AndDistinct:
-            return (
-              "Rule 'And Distinct' has many required reviewers/teams and requires all of them to be fulfilled **by different users**.\n\n" +
-              "The approval of one user that belongs to _two teams_ will count only towards one team."
-            );
-          case RuleTypes.Fellows:
-            return "Rule 'Fellows' requires a given amount of reviews from users whose Fellowship ranking is the required rank or great.";
-          default:
-            console.error("Out of range for rule type", type);
-            return "Unhandled rule";
-        }
-      };
-
       check.output.summary += `- **${report.name}**\n`;
-      let text = summary
-        .emptyBuffer()
-        .addHeading(report.name, 2)
-        .addHeading(`Missing ${report.missingReviews} review${report.missingReviews > 1 ? "s" : ""}`, 4)
-        .addDetails(
-          "Rule explanation",
-          `${ruleExplanation(
-            report.type,
-          )}\n\nFor more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)`,
-        );
-      if (report.usersToRequest && report.usersToRequest.length > 0) {
-        text = text
-          .addHeading("Missing users", 3)
-          .addList(report.usersToRequest.filter((u) => !caseInsensitiveEqual(u, this.prApi.getAuthor())));
-      }
-      if (report.teamsToRequest && report.teamsToRequest.length > 0) {
-        text = text.addHeading("Missing reviews from teams", 3).addList(report.teamsToRequest);
-      }
-      if (report.missingRank) {
-        text = text
-          .addHeading("Missing reviews from Fellows", 3)
-          .addEOL()
-          .addRaw(`Missing reviews from rank \`${report.missingRank}\` or above`)
-          .addEOL();
-      }
-      if (report.countingReviews.length > 0) {
-        text = text
-          .addHeading("Users approvals that counted towards this rule", 3)
-          .addEOL()
-          .addList(report.countingReviews)
-          .addEOL();
-      }
-
-      check.output.text += text.stringify() + "\n";
+      check.output.text += report.generateSummary().stringify() + "\n";
     }
 
     return check;
@@ -318,7 +257,7 @@ export class ActionRunner {
    * It splits all the required reviews into individual cases and applies a sudoku solving algorithm
    * Until it finds a perfect match or ran out of possible matches
    */
-  async andDistinctEvaluation(rule: AndDistinctRule): Promise<ReviewState> {
+  async andDistinctEvaluation(rule: AndDistinctRule): Promise<BaseRuleReport | null> {
     const requirements: { users: string[]; requiredApprovals: number }[] = [];
     // We get all the users belonging to each 'and distinct' review condition
     for (const reviewers of rule.reviewers) {
@@ -334,7 +273,7 @@ export class ActionRunner {
     let countingReviews: string[] = [];
 
     // Utility method used to generate error
-    const generateErrorReport = (): ReviewReport => {
+    const generateErrorReport = (): BaseRuleReport => {
       const filterMissingUsers = (reviewData: { users?: string[] }[]): string[] =>
         Array.from(new Set(reviewData.flatMap((r) => r.users ?? []).filter((u) => approvals.indexOf(u) < 0)));
 
@@ -353,7 +292,7 @@ export class ActionRunner {
     if (approvals.length < requiredAmountOfReviews) {
       this.logger.warn(`Not enough approvals. Need at least ${requiredAmountOfReviews} and got ${approvals.length}`);
       // We return an error and request reviewers
-      return [false, generateErrorReport()];
+      return generateErrorReport();
     }
 
     this.logger.debug(`Required users to review: ${JSON.stringify(requirements)}`);
@@ -377,10 +316,10 @@ export class ActionRunner {
     // If one of the rules doesn't have the required approval we fail the evaluation
     if (conditionApprovals.some((cond) => cond.matchingUsers.length === 0)) {
       this.logger.warn("One of the groups does not have any approvals");
-      return [false, generateErrorReport()];
+      return generateErrorReport();
     } else if (conditionApprovals.some((cond) => cond.matchingUsers.length < cond.requiredApprovals)) {
       this.logger.warn("Not enough positive reviews to match a subcondition");
-      return [false, generateErrorReport()];
+      return generateErrorReport();
     }
 
     /**
@@ -424,24 +363,23 @@ export class ActionRunner {
       // We check by the end of this iteration if all the approvals could be assigned
       // and we have ran out of elements in the array
       if (workingArray.length === 0) {
-        return [true];
+        return null;
       }
     }
 
     this.logger.warn("Didn't find any matches to match all the rules requirements");
     // If, by the end of all the loops, there are still matches, we didn't find a solution so we fail the rule
-    return [false, generateErrorReport()];
+    return generateErrorReport();
   }
 
   /** Evaluates if the required reviews for a condition have been meet
    * @param rule Every rule check has this values which consist on the min required approvals and the reviewers.
-   * @returns a [bool, error data] tuple which evaluates if the condition (not the rule itself) has fulfilled the requirements
-   * @see-also ReviewError
+   * @returns an object with the error report if the rule failed, or a null object if the rule passed
    */
   async evaluateCondition(
     rule: { minApprovals: number } & Reviewers,
     countAuthor: boolean = false,
-  ): Promise<ReviewState> {
+  ): Promise<BaseRuleReport | null> {
     this.logger.debug(JSON.stringify(rule));
 
     // This is a list of all the users that need to approve a PR
@@ -487,25 +425,22 @@ export class ActionRunner {
       this.logger.warn(`${missingReviews} reviews are missing.`);
       // If we have at least one missing review, we return an object with the list of missing reviewers, and
       // which users/teams we should request to review
-      return [
-        false,
-        {
-          missingReviews,
-          // Remove all the users who approved the PR + the author (if he belongs to the group)
-          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
-          teamsToRequest: rule.teams ? rule.teams : undefined,
-          usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
-          countingReviews,
-        },
-      ];
+      return {
+        missingReviews,
+        // Remove all the users who approved the PR + the author (if he belongs to the group)
+        missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
+        teamsToRequest: rule.teams ? rule.teams : undefined,
+        usersToRequest: rule.users ? rule.users.filter((u) => approvals.indexOf(u)) : undefined,
+        countingReviews,
+      };
     } else {
       this.logger.info("Rule requirements fulfilled");
       // If we don't have any missing reviews, we return the succesful case
-      return [true];
+      return null;
     }
   }
 
-  async fellowsEvaluation(rule: FellowsRule): Promise<ReviewState> {
+  async fellowsEvaluation(rule: FellowsRule): Promise<ReviewFailure | null> {
     // This is a list of all the users that need to approve a PR
     const requiredUsers: string[] = await this.polkadotApi.getTeamMembers(rule.minRank.toString());
 
@@ -543,20 +478,19 @@ export class ActionRunner {
       this.logger.warn(`${missingReviews} reviews are missing.`);
       // If we have at least one missing review, we return an object with the list of missing reviewers, and
       // which users/teams we should request to review
-      return [
-        false,
+      return new FellowMissingRankFailure(
         {
+          ...rule,
           missingReviews,
-          // Remove all the users who approved the PR + the author (if he belongs to the group)
-          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
-          missingRank: rule.minRank,
           countingReviews,
+          missingUsers: requiredUsers.filter((u) => approvals.indexOf(u) < 0).filter((u) => u !== author),
         },
-      ];
+        rule.minRank,
+      );
     } else {
       this.logger.info("Rule requirements fulfilled");
-      // If we don't have any missing reviews, we return the succesful case
-      return [true];
+      // If we don't have any missing reviews, we return no error
+      return null;
     }
   }
 
@@ -637,19 +571,11 @@ export class ActionRunner {
   }
 }
 
-const getRequiredRanks = (reports: Pick<ReviewReport, "missingRank">[]): number[] | undefined => {
-  const ranks = reports.map((r) => r.missingRank).filter((rank) => rank !== undefined && rank !== null) as number[];
-  if (ranks.length > 0) {
-    return ranks;
-  } else {
-    return undefined;
-  }
-};
-
-const unifyReport = (reports: ReviewReport[], name: string, type: RuleTypes): RuleReport => {
-  const ranks = getRequiredRanks(reports);
-  const missingRank = ranks ? Math.max(...(ranks as number[])) : undefined;
-
+const unifyReport = (
+  reports: (RuleFailedReport & RequiredReviewersData)[],
+  name: string,
+  type: RuleTypes,
+): RuleFailedSummary & RequiredReviewersData => {
   return {
     missingReviews: reports.reduce((a, b) => a + b.missingReviews, 0),
     missingUsers: [...new Set(reports.flatMap((r) => r.missingUsers))],
@@ -657,7 +583,6 @@ const unifyReport = (reports: ReviewReport[], name: string, type: RuleTypes): Ru
     usersToRequest: [...new Set(reports.flatMap((r) => r.usersToRequest ?? []))],
     name,
     type,
-    missingRank,
     countingReviews: [...new Set(reports.flatMap((r) => r.countingReviews))],
   };
 };

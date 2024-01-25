@@ -20,3 +20,9 @@ export function concatArraysUniquely<T>(arr1?: T[], arr2?: T[]): T[] {
 export function caseInsensitiveEqual<T extends string>(a: T, b: T): boolean {
   return a.localeCompare(b, undefined, { sensitivity: "accent" }) === 0;
 }
+
+/**
+ * Converts a username to it's handle (adds the '@' at the beggining)
+ * @param handle The username
+ */
+export const toHandle = (handle: string): string => `@${handle}`;

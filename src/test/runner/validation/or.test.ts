@@ -100,8 +100,9 @@ describe("'Or' rule validation", () => {
         const [result] = reports;
         expect(result.missingReviews).toEqual(1);
         expect(result.missingUsers).toEqual(users);
-        expect(result.teamsToRequest).toContainEqual("abc");
-        expect(result.usersToRequest).toEqual(individualUsers);
+        const toRequest = result.getRequestLogins();
+        expect(toRequest.teams).toContainEqual("abc");
+        expect(toRequest.users).toEqual(individualUsers);
       });
 
       test("should show the lowest amount of reviews needed to fulfill the rule", async () => {
