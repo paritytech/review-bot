@@ -31,6 +31,14 @@ export class CommonRuleFailure extends ReviewFailure {
         .addEOL();
     }
 
+    if (this.missingUsers.length > 0)
+      text = text.addDetails(
+        "GitHub users whose approval counts",
+        `This is a list of all the GitHub users whose approval would count towards fulfilling this rule:\n\n - ${this.missingUsers
+          .map(toHandle)
+          .join("\n - ")}`,
+      );
+
     return text;
   }
 

@@ -24,7 +24,7 @@ export class FellowMissingRankFailure extends ReviewFailure {
         "GitHub users whose approval counts",
         `This is a list of all the GitHub users who are rank ${this.missingRank} or above:\n\n - ${this.missingUsers
           .map(toHandle)
-          .join("\n -")}`,
+          .join("\n - ")}`,
       );
 
     if (this.countingReviews.length > 0) {
