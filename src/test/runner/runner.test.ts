@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { mock, MockProxy } from "jest-mock-extended";
 
+import { ReviewFailure } from "../../failures";
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
 import { ConfigurationFile, Rule, RuleTypes } from "../../rules/types";
-import { ActionRunner, RuleReport } from "../../runner";
+import { ActionRunner } from "../../runner";
 
 describe("Shared validations", () => {
   let api: MockProxy<PullRequestApi>;
@@ -94,36 +95,29 @@ describe("Shared validations", () => {
   });
 
   describe("Validation in requestReviewers", () => {
-    const exampleReport: RuleReport = {
-      name: "Example",
-      missingUsers: ["user-1", "user-2", "user-3"],
-      missingReviews: 2,
-      teamsToRequest: ["team-1"],
-      usersToRequest: ["user-1"],
-      type: RuleTypes.Basic,
-      countingReviews: [],
-    };
+    const exampleFailure = mock<ReviewFailure>();
+    exampleFailure.getRequestLogins.mockReturnValue({ users: ["user-1"], teams: ["team-1"] });
 
     test("should request reviewers if object is not defined", async () => {
-      await runner.requestReviewers([exampleReport], undefined);
+      await runner.requestReviewers([exampleFailure], undefined);
       expect(api.requestReview).toHaveBeenCalledWith({ users: ["user-1"], teams: ["team-1"] });
     });
 
     test("should not request user if he is defined", async () => {
-      await runner.requestReviewers([exampleReport], { users: ["user-1"] });
+      await runner.requestReviewers([exampleFailure], { users: ["user-1"] });
 
       expect(logger.info).toHaveBeenCalledWith("Filtering users to request a review from.");
       expect(api.requestReview).toHaveBeenCalledWith({ teams: ["team-1"], users: [] });
     });
 
     test("should not request team if it is defined", async () => {
-      await runner.requestReviewers([exampleReport], { teams: ["team-1"] });
+      await runner.requestReviewers([exampleFailure], { teams: ["team-1"] });
       expect(logger.info).toHaveBeenCalledWith("Filtering teams to request a review from.");
       expect(api.requestReview).toHaveBeenCalledWith({ teams: [], users: ["user-1"] });
     });
 
     test("should request reviewers if the team and user are not the same", async () => {
-      await runner.requestReviewers([exampleReport], { users: ["user-pi"], teams: ["team-alpha"] });
+      await runner.requestReviewers([exampleFailure], { users: ["user-pi"], teams: ["team-alpha"] });
       expect(api.requestReview).toHaveBeenCalledWith({ users: ["user-1"], teams: ["team-1"] });
     });
   });

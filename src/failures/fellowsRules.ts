@@ -6,7 +6,7 @@ import { ReviewFailure, RuleSummary } from "./types";
 export class FellowMissingRankFailure extends ReviewFailure {
   constructor(
     ruleInfo: RuleSummary,
-    private readonly missingRank: number,
+    public readonly missingRank: number,
   ) {
     super(ruleInfo);
   }

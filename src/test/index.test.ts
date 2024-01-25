@@ -4,11 +4,12 @@ import { existsSync, openSync, readFileSync, unlinkSync } from "fs";
 import { any, DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
 import { join } from "path";
 
+import { ReviewFailure } from "../failures";
 import { GitHubChecksApi } from "../github/check";
 import { PullRequestApi } from "../github/pullRequest";
 import { GitHubTeamsApi } from "../github/teams";
 import { ActionLogger, GitHubClient, TeamApi } from "../github/types";
-import { ActionRunner, RuleReport } from "../runner";
+import { ActionRunner } from "../runner";
 
 type ReportName =
   | "CI files"
@@ -19,13 +20,13 @@ type ReportName =
   | "FRAME coders substrate";
 
 /** Utility method to get a particular report from a list */
-const getReport = (reports: RuleReport[], name: ReportName): RuleReport => {
+const getReport = (reports: ReviewFailure[], name: ReportName): ReviewFailure => {
   for (const report of reports) {
-    if (report.name === name) {
+    if (report.ruleName === name) {
       return report;
     }
   }
-  throw new Error(`Report ${name} not found. Available reports are: ${reports.map((r) => r.name).join(". ")}`);
+  throw new Error(`Report ${name} not found. Available reports are: ${reports.map((r) => r.ruleName).join(". ")}`);
 };
 
 describe("Integration testing", () => {
@@ -230,11 +231,11 @@ describe("Integration testing", () => {
     client.rest.pulls.listFiles.mockResolvedValue({ data: [{ filename: "polkadot/primitives/src/transfer.rs" }] });
     const result = await runner.runAction({ configLocation: "abc" });
     expect(result.reports).toHaveLength(2);
-    expect(result.reports.map((r) => r.name)).toContainEqual("Audit rules");
+    expect(result.reports.map((r) => r.ruleName)).toContainEqual("Audit rules");
     pr.user.login = "gavofyork";
     const newResult = await runner.runAction({ configLocation: "abc" });
     expect(newResult.reports).toHaveLength(1);
-    expect(newResult.reports.map((r) => r.name)).not.toContainEqual("Audit rules");
+    expect(newResult.reports.map((r) => r.ruleName)).not.toContainEqual("Audit rules");
   });
 
   describe("Combinations", () => {
