@@ -27,7 +27,7 @@ export type RequestData = {
 };
 
 export abstract class ReviewFailure {
-  public readonly ruleName: string;
+  public readonly name: string;
   public readonly type: RuleTypes;
   /** The amount of missing reviews */
   public readonly missingReviews: number;
@@ -39,7 +39,7 @@ export abstract class ReviewFailure {
   public readonly missingUsers: string[];
 
   constructor(ruleInfo: RuleSummary) {
-    this.ruleName = ruleInfo.name;
+    this.name = ruleInfo.name;
     this.type = ruleInfo.type;
     this.missingReviews = ruleInfo.missingReviews;
     this.countingReviews = ruleInfo.countingReviews;
@@ -70,7 +70,7 @@ export abstract class ReviewFailure {
   generateSummary(): typeof summary {
     return summary
       .emptyBuffer()
-      .addHeading(this.ruleName, 2)
+      .addHeading(this.name, 2)
       .addHeading(`Missing ${this.missingReviews} review${this.missingReviews > 1 ? "s" : ""}`, 4)
       .addDetails(
         "Rule explanation",

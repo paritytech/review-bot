@@ -22,11 +22,11 @@ type ReportName =
 /** Utility method to get a particular report from a list */
 const getReport = (reports: ReviewFailure[], name: ReportName): ReviewFailure => {
   for (const report of reports) {
-    if (report.ruleName === name) {
+    if (report.name === name) {
       return report;
     }
   }
-  throw new Error(`Report ${name} not found. Available reports are: ${reports.map((r) => r.ruleName).join(". ")}`);
+  throw new Error(`Report ${name} not found. Available reports are: ${reports.map((r) => r.name).join(". ")}`);
 };
 
 describe("Integration testing", () => {
@@ -231,11 +231,11 @@ describe("Integration testing", () => {
     client.rest.pulls.listFiles.mockResolvedValue({ data: [{ filename: "polkadot/primitives/src/transfer.rs" }] });
     const result = await runner.runAction({ configLocation: "abc" });
     expect(result.reports).toHaveLength(2);
-    expect(result.reports.map((r) => r.ruleName)).toContainEqual("Audit rules");
+    expect(result.reports.map((r) => r.name)).toContainEqual("Audit rules");
     pr.user.login = "gavofyork";
     const newResult = await runner.runAction({ configLocation: "abc" });
     expect(newResult.reports).toHaveLength(1);
-    expect(newResult.reports.map((r) => r.ruleName)).not.toContainEqual("Audit rules");
+    expect(newResult.reports.map((r) => r.name)).not.toContainEqual("Audit rules");
   });
 
   describe("Combinations", () => {

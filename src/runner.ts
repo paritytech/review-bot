@@ -244,7 +244,7 @@ export class ActionRunner {
     }
 
     for (const report of reports) {
-      check.output.summary += `- **${report.ruleName}**\n`;
+      check.output.summary += `- **${report.name}**\n`;
       check.output.text += report.generateSummary().stringify() + "\n";
     }
 
