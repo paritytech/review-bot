@@ -1,13 +1,13 @@
 import { summary } from "@actions/core";
 
 import { toHandle } from "../util";
-import { RequestData, ReviewFailure, RuleSummary } from "./types";
+import { RequiredReviewersData, ReviewFailure, RuleFailedSummary } from "./types";
 
-export class DefaultRuleFailure extends ReviewFailure {
+export class CommonRuleFailure extends ReviewFailure {
   public readonly usersToRequest: string[];
   public readonly teamsToRequest: string[];
 
-  constructor(report: RuleSummary & RequestData) {
+  constructor(report: RuleFailedSummary & RequiredReviewersData) {
     super(report);
     this.usersToRequest = report.usersToRequest ?? [];
     this.teamsToRequest = report.teamsToRequest ?? [];

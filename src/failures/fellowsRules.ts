@@ -1,11 +1,11 @@
 import { summary } from "@actions/core";
 
 import { toHandle } from "../util";
-import { ReviewFailure, RuleSummary } from "./types";
+import { ReviewFailure, RuleFailedSummary } from "./types";
 
 export class FellowMissingRankFailure extends ReviewFailure {
   constructor(
-    ruleInfo: RuleSummary,
+    ruleInfo: RuleFailedSummary,
     public readonly missingRank: number,
   ) {
     super(ruleInfo);

@@ -3,12 +3,12 @@ import { parse } from "yaml";
 
 import { Inputs } from ".";
 import {
-  DefaultRuleFailure,
-  FailureReport,
+  CommonRuleFailure,
   FellowMissingRankFailure,
-  RequestData,
+  RequiredReviewersData,
   ReviewFailure,
-  RuleSummary,
+  RuleFailedReport,
+  RuleFailedSummary,
 } from "./failures";
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
@@ -17,7 +17,7 @@ import { AndDistinctRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleT
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { concatArraysUniquely } from "./util";
 
-type BaseRuleReport = FailureReport & RequestData;
+type BaseRuleReport = RuleFailedReport & RequiredReviewersData;
 
 type PullRequestReport = {
   /** List of files that were modified by the PR */
@@ -89,13 +89,13 @@ export class ActionRunner {
             const ruleError = await this.evaluateCondition(rule, rule.countAuthor);
             if (ruleError) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(ruleError.missingUsers)}`);
-              errorReports.push(new DefaultRuleFailure({ ...rule, ...ruleError }));
+              errorReports.push(new CommonRuleFailure({ ...rule, ...ruleError }));
             }
 
             break;
           }
           case RuleTypes.And: {
-            const reports: FailureReport[] = [];
+            const reports: RuleFailedReport[] = [];
             // We evaluate every individual condition
             for (const reviewer of rule.reviewers) {
               const ruleError = await this.evaluateCondition(reviewer, rule.countAuthor);
@@ -107,12 +107,12 @@ export class ActionRunner {
             if (reports.length > 0) {
               const finalReport = unifyReport(reports, rule.name, rule.type);
               this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
-              errorReports.push(new DefaultRuleFailure(finalReport));
+              errorReports.push(new CommonRuleFailure(finalReport));
             }
             break;
           }
           case RuleTypes.Or: {
-            const reports: FailureReport[] = [];
+            const reports: RuleFailedReport[] = [];
             for (const reviewer of rule.reviewers) {
               const ruleError = await this.evaluateCondition(reviewer, rule.countAuthor);
               if (!ruleError) {
@@ -137,7 +137,7 @@ export class ActionRunner {
               finalReport.missingReviews = lowerAmountOfReviewsNeeded;
               this.logger.error(`Missing the reviews from ${JSON.stringify(finalReport.missingUsers)}`);
               // We unify the reports and push them for handling
-              errorReports.push(new DefaultRuleFailure(finalReport));
+              errorReports.push(new CommonRuleFailure(finalReport));
             }
             break;
           }
@@ -145,7 +145,7 @@ export class ActionRunner {
             const ruleFailure = await this.andDistinctEvaluation(rule);
             if (ruleFailure) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(ruleFailure.missingUsers)}`);
-              errorReports.push(new DefaultRuleFailure({ ...rule, ...ruleFailure }));
+              errorReports.push(new CommonRuleFailure({ ...rule, ...ruleFailure }));
             }
             break;
           }
@@ -178,7 +178,7 @@ export class ActionRunner {
     if (reports.length === 0) {
       return;
     }
-    const finalReport: FailureReport & RequestData = {
+    const finalReport: RuleFailedReport & RequiredReviewersData = {
       missingReviews: 0,
       missingUsers: [],
       teamsToRequest: [],
@@ -572,10 +572,10 @@ export class ActionRunner {
 }
 
 const unifyReport = (
-  reports: (FailureReport & RequestData)[],
+  reports: (RuleFailedReport & RequiredReviewersData)[],
   name: string,
   type: RuleTypes,
-): RuleSummary & RequestData => {
+): RuleFailedSummary & RequiredReviewersData => {
   return {
     missingReviews: reports.reduce((a, b) => a + b.missingReviews, 0),
     missingUsers: [...new Set(reports.flatMap((r) => r.missingUsers))],

@@ -2,13 +2,8 @@ import { summary } from "@actions/core";
 
 import { RuleTypes } from "../rules/types";
 
-export type RuleData = {
-  type: RuleTypes;
-  name: string;
-};
-
 /** Object containing the report on why a rule failed */
-export type FailureReport = {
+export type RuleFailedReport = {
   /** The amount of missing reviews to fulfill the requirements */
   missingReviews: number;
   /** The users who would qualify to complete those reviews */
@@ -17,15 +12,21 @@ export type FailureReport = {
   countingReviews: string[];
 };
 
-export type RuleSummary = RuleData & FailureReport;
+export type RuleFailedSummary = {
+  type: RuleTypes;
+  name: string;
+} & RuleFailedReport;
 
-export type RequestData = {
+export type RequiredReviewersData = {
   /** If applicable, the teams that should be requested to review */
   teamsToRequest?: string[];
   /** If applicable, the users that should be requested to review */
   usersToRequest?: string[];
 };
 
+/** Class which contains the reports of a failed rule
+ * Here you can find details on why a rule failed and what requirements it has
+ */
 export abstract class ReviewFailure {
   public readonly name: string;
   public readonly type: RuleTypes;
@@ -38,7 +39,7 @@ export abstract class ReviewFailure {
   /** List of users who would classify to approve this rule */
   public readonly missingUsers: string[];
 
-  constructor(ruleInfo: RuleSummary) {
+  constructor(ruleInfo: RuleFailedSummary) {
     this.name = ruleInfo.name;
     this.type = ruleInfo.type;
     this.missingReviews = ruleInfo.missingReviews;
