@@ -56,7 +56,7 @@ export class FellowMissingScoreFailure extends ReviewFailure {
       ...ruleInfo,
       countingReviews: approvalsWithScores.map(unifyFellowWithScore),
       missingUsers: missingFellowsWithScore.map(unifyFellowWithScore),
-      missingReviews: 1
+      missingReviews: 1,
     });
 
     this.currentScore = approvalsWithScores.reduce((n, [_, score]) => n + score, 0);
@@ -70,8 +70,8 @@ export class FellowMissingScoreFailure extends ReviewFailure {
       .addDetails(
         "Rule explanation",
         "Rule 'Fellows' gives every fellow a score based on their rank, and required that the sum of all the scores is greater than the required score." +
-        "\n\n" +
-        "For more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)",
+          "\n\n" +
+          "For more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)",
       );
 
     text = text
