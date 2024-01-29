@@ -411,21 +411,37 @@ Meaning that if a user belongs to both `team-abc` and `team-example` their appro
 
 This rule is useful when you need to make sure that at leasts two sets of eyes of two different teams review a Pull Request.
 #### Fellows rule
-The fellows rule has a slight difference to all of the rules:
+The fellows rule requires an extra collection to be added to the configuration and distinguishes itself from the other rules with some new fields:
 ```yaml
-- name: Fellows review
-  condition:
-    include:
-      - '.*'
-    exclude:
-      - 'example'
-  type: fellows
-  minRank: 2
-  minApprovals: 2
+rules:
+  - name: Fellows review
+    condition:
+      include:
+        - '.*'
+      exclude:
+        - 'example'
+    type: fellows
+    minRank: 2
+    minApprovals: 2
+    minTotalScore: 4
+scores:
+  dan1: 1
+  dan2: 2
+  dan3: 4
+  dan4: 8
+  dan5: 12
+  dan6: 15
+  dan7: 20
+  dan8: 25
+  dan9: 30
 ```
-The biggest difference is that it doesn’t have a reviewers type (it doesn’t have a `teams` or `users` field); instead, it has a `minRank` field.
+The biggest difference in the rule configuration is that it doesn’t have a reviewers type (it doesn’t have a `teams` or `users` field); instead, it has a `minRank` field and `minTotalScore` field.
 
-This field receives a number, which will be the lowest rank required to evaluate the PR, and then it fetches [all the fellows from the chain data](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fkusama.api.onfinality.io%2Fpublic-ws#/fellowship), filters only the one to belong to that rank or above and then [looks into their metadata for a field name `github` and the handle there](https://github.com/polkadot-fellows/runtimes/issues/7).
+The `minRank` field receives a number, which will be the lowest rank required to evaluate the PR, and then it fetches [all the fellows from the chain data](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fkusama.api.onfinality.io%2Fpublic-ws#/fellowship), filters only the one to belong to that rank or above and then [looks into their metadata for a field name `github` and the handle there](https://github.com/polkadot-fellows/runtimes/issues/7).
+
+The `minTotalScore` field relies on the `scores` collection. In this collection, each rank (dan) receives a score, so, in the example, a fellow dan 3 will have a score of 4. If the field `minTotalScore` is enabled, the conditions to approve a pull request, aside from requiring a given amount of reviews from a given rank, will be that _the total sum of all the scores from the fellows that have approved the pull request are equal or greater to the `minTotalScore` field_. This field is optional.
+
+For *every dan that has not been attributed a score, their score will default to 0*.
 
 After this is done, the resulting handles will be treated like a normal list of required users.
 
@@ -439,6 +455,8 @@ It also has any other field from the [`basic rule`](#basic-rule) (with the excep
 	- **Optional**: Defaults to `false`.
 - **minRank**: Must be a number.
 	- **Required**
+- **minTotalScore**: Must be a number
+	- **Optional**: Defaults to 0.
 
 ##### Note
 The fellows rule will never request reviewers, even if `request-reviewers` rule is enabled. 

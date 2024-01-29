@@ -1,22 +1,25 @@
+import { validate } from "@eng-automation/js";
 import { mock, MockProxy } from "jest-mock-extended";
 
-import { FellowMissingRankFailure } from "../../../failures";
+import { FellowMissingRankFailure, FellowMissingScoreFailure } from "../../../failures";
 import { GitHubChecksApi } from "../../../github/check";
 import { PullRequestApi } from "../../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../../github/types";
-import { ConfigurationFile, RuleTypes } from "../../../rules/types";
+import { PolkadotFellows } from "../../../polkadot/fellows";
+import { ConfigurationFile, FellowsScore, RuleTypes } from "../../../rules/types";
+import { fellowScoreSchema } from "../../../rules/validator";
 import { ActionRunner } from "../../../runner";
 
 describe("'Fellows' rule validation", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
-  let fellowsApi: MockProxy<TeamApi>;
+  let fellowsApi: MockProxy<PolkadotFellows>;
   let runner: ActionRunner;
   const users = ["user-1", "user-2", "user-3"];
   beforeEach(() => {
     api = mock<PullRequestApi>();
     teamsApi = mock<TeamApi>();
-    fellowsApi = mock<TeamApi>();
+    fellowsApi = mock<PolkadotFellows>();
     teamsApi.getTeamMembers.calledWith("abc").mockResolvedValue(users);
     api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml"]);
     api.listApprovedReviewsAuthors.mockResolvedValue([]);
@@ -102,7 +105,6 @@ describe("'Fellows' rule validation", () => {
 
     test("should throw error if not enough fellows of a given rank are found to fulfill minApprovals requirement", async () => {
       fellowsApi.getTeamMembers.mockResolvedValue([users[2]]);
-      fellowsApi.getTeamMembers.calledWith("4").mockResolvedValue(users);
       const config: ConfigurationFile = {
         rules: [
           {
@@ -118,6 +120,102 @@ describe("'Fellows' rule validation", () => {
       await expect(runner.validatePullRequest(config)).rejects.toThrow(
         "The amount of required approvals is smaller than the amount of available users.",
       );
+    });
+  });
+
+  describe("Score Validation", () => {
+    beforeEach(() => {
+      fellowsApi.getTeamMembers.mockResolvedValue([users[2]]);
+      api.listApprovedReviewsAuthors.mockResolvedValue(users);
+    });
+
+    const generateSchemaWithScore = (minTotalScore: number): ConfigurationFile => {
+      return {
+        rules: [
+          {
+            name: "Score rule",
+            type: RuleTypes.Fellows,
+            condition: { include: ["review-bot.yml"] },
+            minRank: 1,
+            minApprovals: 1,
+            minTotalScore,
+          },
+        ],
+        score: {
+          dan1: 1,
+          dan2: 2,
+          dan3: 3,
+          dan4: 4,
+          dan5: 5,
+          dan6: 6,
+          dan7: 7,
+          dan8: 8,
+          dan9: 9,
+        },
+      };
+    };
+
+    describe("Schema test", () => {
+      test("should not report errors with a valid schema", () => {
+        const score = {};
+        validate<FellowsScore>(score, fellowScoreSchema);
+      });
+
+      test("should assign correct values", () => {
+        const score = { dan1: 3, dan3: 5 };
+        const validation: FellowsScore = validate(score, fellowScoreSchema);
+        expect(validation.dan1).toBe(3);
+        expect(validation.dan3).toBe(5);
+      });
+
+      test("should default unassigned values as 0", () => {
+        const score = { dan1: 3 };
+        const validation: FellowsScore = validate(score, fellowScoreSchema);
+        expect(validation.dan2).toBe(0);
+        expect(validation.dan5).toBe(0);
+      });
+
+      test("should fail when a score is not a number", () => {
+        const score = { dan1: "one" };
+        expect(() => validate(score, fellowScoreSchema)).toThrowError('"dan1" must be a number');
+      });
+    });
+
+    test("should work with enough score", async () => {
+      fellowsApi.listFellows.mockResolvedValue([[users[2], 4]]);
+
+      const { reports } = await runner.validatePullRequest(generateSchemaWithScore(1));
+      expect(reports).toHaveLength(0);
+    });
+
+    test("should fail without enough score", async () => {
+      fellowsApi.listFellows.mockResolvedValue([
+        [users[2], 4],
+        ["example", 3],
+        ["user", 2],
+      ]);
+
+      const { reports } = await runner.validatePullRequest(generateSchemaWithScore(5));
+      const error = reports[0] as FellowMissingScoreFailure;
+      expect(error.currentScore).toBeLessThan(5);
+    });
+
+    test("should throw when score is impossible", async () => {
+      fellowsApi.listFellows.mockResolvedValue([[users[2], 4]]);
+
+      await expect(runner.validatePullRequest(generateSchemaWithScore(10))).rejects.toThrow(
+        "Minimum score of 10 is higher that the obtainable score of 4!",
+      );
+    });
+
+    test("should allow a combination of scores", async () => {
+      fellowsApi.listFellows.mockResolvedValue([
+        [users[0], 4],
+        [users[1], 1],
+      ]);
+
+      const { reports } = await runner.validatePullRequest(generateSchemaWithScore(1));
+      expect(reports).toHaveLength(0);
     });
   });
 });

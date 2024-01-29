@@ -10,7 +10,7 @@ export class PolkadotFellows implements TeamApi {
 
   constructor(private readonly logger: ActionLogger) {}
 
-  async fetchAllFellows(): Promise<Map<string, number>> {
+  private async fetchAllFellows(): Promise<Map<string, number>> {
     let api: ApiPromise;
     this.logger.debug("Connecting to collective parachain");
     // we connect to the collective rpc node
@@ -89,6 +89,18 @@ export class PolkadotFellows implements TeamApi {
     } finally {
       await api.disconnect();
     }
+  }
+
+  /** Returns all the fellows with their rankings */
+  async listFellows(): Promise<[string, number][]> {
+    this.logger.info("Fetching all fellows with their ranks");
+
+    if (this.fellowsCache.size < 1) {
+      this.logger.debug("Cache not found. Fetching fellows.");
+      this.fellowsCache = await this.fetchAllFellows();
+    }
+
+    return Array.from(this.fellowsCache.entries());
   }
 
   async getTeamMembers(ranking: string): Promise<string[]> {

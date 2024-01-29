@@ -3,18 +3,19 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
+import { PolkadotFellows } from "../../polkadot/fellows";
 import { ActionRunner } from "../../runner";
 
 describe("evaluateCondition tests", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
-  let fellowsApi: MockProxy<TeamApi>;
+  let fellowsApi: MockProxy<PolkadotFellows>;
 
   let runner: ActionRunner;
   beforeEach(() => {
     api = mock<PullRequestApi>();
     teamsApi = mock<TeamApi>();
-    fellowsApi = mock<TeamApi>();
+    fellowsApi = mock<PolkadotFellows>();
     runner = new ActionRunner(api, teamsApi, fellowsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
 

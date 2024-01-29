@@ -5,6 +5,7 @@ import { Inputs } from ".";
 import {
   CommonRuleFailure,
   FellowMissingRankFailure,
+  FellowMissingScoreFailure,
   RequiredReviewersData,
   ReviewFailure,
   RuleFailedReport,
@@ -13,9 +14,18 @@ import {
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger, CheckData, TeamApi } from "./github/types";
-import { AndDistinctRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleTypes } from "./rules/types";
+import { PolkadotFellows } from "./polkadot/fellows";
+import {
+  AndDistinctRule,
+  ConfigurationFile,
+  FellowsRule,
+  FellowsScore,
+  Reviewers,
+  Rule,
+  RuleTypes,
+} from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
-import { concatArraysUniquely } from "./util";
+import { concatArraysUniquely, rankToScore } from "./util";
 
 type BaseRuleReport = RuleFailedReport & RequiredReviewersData;
 
@@ -31,7 +41,7 @@ export class ActionRunner {
   constructor(
     private readonly prApi: PullRequestApi,
     private readonly teamApi: TeamApi,
-    private readonly polkadotApi: TeamApi,
+    private readonly polkadotApi: PolkadotFellows,
     private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
   ) {}
@@ -61,7 +71,7 @@ export class ActionRunner {
    * The action evaluates if the rules requirements are meet for a PR
    * @returns an array of error reports for each failed rule. An empty array means no errors
    */
-  async validatePullRequest({ rules }: ConfigurationFile): Promise<PullRequestReport> {
+  async validatePullRequest({ rules, score }: ConfigurationFile): Promise<PullRequestReport> {
     const modifiedFiles = await this.prApi.listModifiedFiles();
 
     const errorReports: ReviewFailure[] = [];
@@ -150,7 +160,7 @@ export class ActionRunner {
             break;
           }
           case RuleTypes.Fellows: {
-            const fellowReviewError = await this.fellowsEvaluation(rule);
+            const fellowReviewError = await this.fellowsEvaluation(rule, score);
             if (fellowReviewError) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(fellowReviewError.missingReviews)}`);
               // errorReports.push({ ...missingData, name: rule.name, type: rule.type });
@@ -440,7 +450,7 @@ export class ActionRunner {
     }
   }
 
-  async fellowsEvaluation(rule: FellowsRule): Promise<ReviewFailure | null> {
+  async fellowsEvaluation(rule: FellowsRule, scores?: FellowsScore): Promise<ReviewFailure | null> {
     // This is a list of all the users that need to approve a PR
     const requiredUsers: string[] = await this.polkadotApi.getTeamMembers(rule.minRank.toString());
 
@@ -472,9 +482,10 @@ export class ActionRunner {
       }
     }
 
+    const author = this.prApi.getAuthor();
+
     // Now we verify if we have any remaining missing review.
     if (missingReviews > 0) {
-      const author = this.prApi.getAuthor();
       this.logger.warn(`${missingReviews} reviews are missing.`);
       // If we have at least one missing review, we return an object with the list of missing reviewers, and
       // which users/teams we should request to review
@@ -487,11 +498,54 @@ export class ActionRunner {
         },
         rule.minRank,
       );
-    } else {
-      this.logger.info("Rule requirements fulfilled");
-      // If we don't have any missing reviews, we return no error
-      return null;
+      // Then we verify if we need to have a minimum score
+    } else if (rule.minTotalScore && scores) {
+      this.logger.debug("Validating required minimum score");
+      // We get all the fellows with their ranks and convert them to their score
+      const fellows: [string, number][] = (await this.polkadotApi.listFellows()).map(([handle, rank]) => [
+        handle,
+        rankToScore(rank, scores),
+      ]);
+
+      const maximumScore = fellows.reduce((a, [_, score]) => a + score, 0);
+      if (rule.minTotalScore > maximumScore) {
+        throw new Error(
+          `Minimum score of ${rule.minTotalScore} is higher that the obtainable score of ${maximumScore}!`,
+        );
+      }
+
+      let score = 0;
+
+      const countingFellows: [string, number][] = [];
+
+      // We iterate over all the approvals and convert their rank to their score
+      for (const [handle, fellowScore] of fellows) {
+        // We filter fellows whose score is 0
+        if (approvals.indexOf(handle) > -1 && fellowScore > 0) {
+          score += fellowScore;
+          countingFellows.push([handle, fellowScore]);
+        }
+      }
+
+      this.logger.debug(`Current score is ${score} and the minimum required score is ${rule.minTotalScore}`);
+
+      if (rule.minTotalScore > score) {
+        const missingUsers = fellows
+          // Remove all the fellows who score is worth 0
+          .filter(([_, fellowScore]) => fellowScore > 0)
+          // Remove the author
+          .filter(([handle]) => handle != author)
+          // Remove the approvals
+          .filter(([handle]) => approvals.indexOf(handle) < 0);
+
+        this.logger.warn(`Missing score of ${rule.minTotalScore} by ${score - rule.minTotalScore}`);
+
+        return new FellowMissingScoreFailure(rule, rule.minTotalScore, countingFellows, missingUsers);
+      }
     }
+    this.logger.info("Rule requirements fulfilled");
+    // If we don't have any missing reviews, we return no error
+    return null;
   }
 
   /** Using the include and exclude condition, it returns a list of all the files in a PR that matches the criteria */

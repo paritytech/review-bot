@@ -38,6 +38,19 @@ export interface FellowsRule extends Rule {
   type: RuleTypes.Fellows;
   minRank: number;
   minApprovals: number;
+  minTotalScore?: number;
+}
+
+export interface FellowsScore {
+  dan1: number;
+  dan2: number;
+  dan3: number;
+  dan4: number;
+  dan5: number;
+  dan6: number;
+  dan7: number;
+  dan8: number;
+  dan9: number;
 }
 
 export interface ConfigurationFile {
@@ -49,4 +62,5 @@ export interface ConfigurationFile {
     teams?: string[];
     users?: string[];
   };
+  score?: FellowsScore;
 }

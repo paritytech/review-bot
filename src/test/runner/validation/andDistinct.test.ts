@@ -4,13 +4,14 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { GitHubChecksApi } from "../../../github/check";
 import { PullRequestApi } from "../../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../../github/types";
+import { PolkadotFellows } from "../../../polkadot/fellows";
 import { AndDistinctRule, RuleTypes } from "../../../rules/types";
 import { ActionRunner } from "../../../runner";
 
 describe("'And distinct' rule validation", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
-  let fellowsApi: MockProxy<TeamApi>;
+  let fellowsApi: MockProxy<PolkadotFellows>;
   let runner: ActionRunner;
   let logger: MockProxy<ActionLogger>;
   const users = ["user-1", "user-2", "user-3"];
@@ -18,7 +19,7 @@ describe("'And distinct' rule validation", () => {
     logger = mock<ActionLogger>();
     api = mock<PullRequestApi>();
     teamsApi = mock<TeamApi>();
-    fellowsApi = mock<TeamApi>();
+    fellowsApi = mock<PolkadotFellows>();
     teamsApi.getTeamMembers.calledWith("team-abc").mockResolvedValue(users);
     api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml"]);
     api.listApprovedReviewsAuthors.mockResolvedValue([]);

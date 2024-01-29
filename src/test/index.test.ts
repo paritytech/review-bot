@@ -9,6 +9,7 @@ import { GitHubChecksApi } from "../github/check";
 import { PullRequestApi } from "../github/pullRequest";
 import { GitHubTeamsApi } from "../github/teams";
 import { ActionLogger, GitHubClient, TeamApi } from "../github/types";
+import { PolkadotFellows } from "../polkadot/fellows";
 import { ActionRunner } from "../runner";
 
 type ReportName =
@@ -83,7 +84,7 @@ describe("Integration testing", () => {
     api = new PullRequestApi(client, pr, logger);
     teams = new GitHubTeamsApi(client, "org", logger);
     checks = new GitHubChecksApi(client, pr, logger, "example");
-    runner = new ActionRunner(api, teams, mock<TeamApi>(), checks, logger);
+    runner = new ActionRunner(api, teams, mock<PolkadotFellows>(), checks, logger);
 
     // @ts-ignore problem with the type being mocked
     client.rest.repos.getContent.mockResolvedValue({ data: { content: Buffer.from(config, "utf-8") } });

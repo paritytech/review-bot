@@ -1,6 +1,7 @@
 import { debug, error, info, warning } from "@actions/core";
 
 import { ActionLogger } from "./github/types";
+import { FellowsScore } from "./rules/types";
 
 export function generateCoreLogger(): ActionLogger {
   return { info, debug, warn: warning, error };
@@ -26,3 +27,29 @@ export function caseInsensitiveEqual<T extends string>(a: T, b: T): boolean {
  * @param handle The username
  */
 export const toHandle = (handle: string): string => `@${handle}`;
+
+/** Converts a rank into its value inside the score configuration */
+export function rankToScore(rank: number, scores: FellowsScore): number {
+  switch (rank) {
+    case 1:
+      return scores.dan1;
+    case 2:
+      return scores.dan2;
+    case 3:
+      return scores.dan3;
+    case 4:
+      return scores.dan4;
+    case 5:
+      return scores.dan5;
+    case 6:
+      return scores.dan6;
+    case 7:
+      return scores.dan7;
+    case 8:
+      return scores.dan8;
+    case 9:
+      return scores.dan9;
+    default:
+      throw new Error(`Rank ${rank} is out of bounds. Ranks are between I and IX`);
+  }
+}

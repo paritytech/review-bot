@@ -2,7 +2,7 @@ import { validate } from "@eng-automation/js";
 import Joi from "joi";
 
 import { ActionLogger } from "../github/types";
-import { AndRule, BasicRule, ConfigurationFile, FellowsRule, Reviewers, Rule, RuleTypes } from "./types";
+import { AndRule, BasicRule, ConfigurationFile, FellowsRule, FellowsScore, Reviewers, Rule, RuleTypes } from "./types";
 
 /** For the users or team schema. Will be recycled A LOT
  * Remember to add `.or("users", "teams")` to force at least one of the two to be defined
@@ -30,6 +30,19 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
     .required(),
 });
 
+/** Schema for ensuring that all the dan ranks are set properly */
+export const fellowScoreSchema = Joi.object<FellowsScore>().keys({
+  dan1: Joi.number().default(0),
+  dan2: Joi.number().default(0),
+  dan3: Joi.number().default(0),
+  dan4: Joi.number().default(0),
+  dan5: Joi.number().default(0),
+  dan6: Joi.number().default(0),
+  dan7: Joi.number().default(0),
+  dan8: Joi.number().default(0),
+  dan9: Joi.number().default(0),
+});
+
 /** General Configuration schema.
  * Evaluates all the upper level field plus the generic rules fields.
  * Remember to evaluate the rules with their custom rules
@@ -37,6 +50,7 @@ const ruleSchema = Joi.object<Rule & { type: string }>().keys({
 export const generalSchema = Joi.object<ConfigurationFile>().keys({
   rules: Joi.array<ConfigurationFile["rules"]>().items(ruleSchema).unique("name").required(),
   preventReviewRequests: Joi.object().keys(reviewersObj).optional().or("users", "teams"),
+  score: fellowScoreSchema,
 });
 
 /** Basic rule schema
@@ -59,6 +73,7 @@ export const fellowsRuleSchema = Joi.object<FellowsRule>().keys({
   countAuthor: Joi.boolean().default(false),
   minRank: Joi.number().required().min(1).empty(null),
   minApprovals: Joi.number().min(1).default(1),
+  minTotalScore: Joi.number().min(1).optional(),
 });
 
 /**
