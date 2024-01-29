@@ -8,6 +8,7 @@ import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
 import { RuleTypes } from "../../rules/types";
 import { ActionRunner } from "../../runner";
+import { PolkadotFellows } from "../../polkadot/fellows";
 
 describe("Config Parsing", () => {
   let api: MockProxy<PullRequestApi>;
@@ -17,7 +18,7 @@ describe("Config Parsing", () => {
   beforeEach(() => {
     logger = mock<ActionLogger>();
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), logger);
+    runner = new ActionRunner(api, teamsApi, mock<PolkadotFellows>(), mock<GitHubChecksApi>(), logger);
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`

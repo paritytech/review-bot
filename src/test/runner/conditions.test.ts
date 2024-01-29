@@ -4,17 +4,18 @@ import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
 import { ActionRunner } from "../../runner";
+import { PolkadotFellows } from "../../polkadot/fellows";
 
 describe("evaluateCondition tests", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
-  let fellowsApi: MockProxy<TeamApi>;
+  let fellowsApi: MockProxy<PolkadotFellows>;
 
   let runner: ActionRunner;
   beforeEach(() => {
     api = mock<PullRequestApi>();
     teamsApi = mock<TeamApi>();
-    fellowsApi = mock<TeamApi>();
+    fellowsApi = mock<PolkadotFellows>();
     runner = new ActionRunner(api, teamsApi, fellowsApi, mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
 

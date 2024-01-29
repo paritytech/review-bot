@@ -8,6 +8,7 @@ import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
 import { OrRule } from "../../rules/types";
 import { ActionRunner } from "../../runner";
+import { PolkadotFellows } from "../../polkadot/fellows";
 
 describe("'Or' rule parsing", () => {
   let api: MockProxy<PullRequestApi>;
@@ -15,7 +16,7 @@ describe("'Or' rule parsing", () => {
   let teamsApi: MockProxy<TeamApi>;
   beforeEach(() => {
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, teamsApi, mock<TeamApi>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
+    runner = new ActionRunner(api, teamsApi, mock<PolkadotFellows>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`

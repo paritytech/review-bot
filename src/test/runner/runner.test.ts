@@ -7,18 +7,19 @@ import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
 import { ConfigurationFile, Rule, RuleTypes } from "../../rules/types";
 import { ActionRunner } from "../../runner";
+import { PolkadotFellows } from "../../polkadot/fellows";
 
 describe("Shared validations", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
-  let fellowsApi: MockProxy<TeamApi>;
+  let fellowsApi: MockProxy<PolkadotFellows>;
   let logger: MockProxy<ActionLogger>;
   let runner: ActionRunner;
   beforeEach(() => {
     api = mock<PullRequestApi>();
     logger = mock<ActionLogger>();
     teamsApi = mock<TeamApi>();
-    fellowsApi = mock<TeamApi>();
+    fellowsApi = mock<PolkadotFellows>();
     runner = new ActionRunner(api, teamsApi, fellowsApi, mock<GitHubChecksApi>(), logger);
   });
 

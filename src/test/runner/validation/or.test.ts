@@ -5,17 +5,18 @@ import { PullRequestApi } from "../../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../../github/types";
 import { ConfigurationFile, RuleTypes } from "../../../rules/types";
 import { ActionRunner } from "../../../runner";
+import { PolkadotFellows } from "../../../polkadot/fellows";
 
 describe("'Or' rule validation", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
-  let fellowsApi: MockProxy<TeamApi>;
+  let fellowsApi: MockProxy<PolkadotFellows>;
   let runner: ActionRunner;
   const users = ["user-1", "user-2", "user-3"];
   beforeEach(() => {
     api = mock<PullRequestApi>();
     teamsApi = mock<TeamApi>();
-    fellowsApi = mock<TeamApi>();
+    fellowsApi = mock<PolkadotFellows>();
     teamsApi.getTeamMembers.calledWith("abc").mockResolvedValue(users);
     api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml"]);
     api.listApprovedReviewsAuthors.mockResolvedValue([]);

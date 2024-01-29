@@ -7,8 +7,6 @@ import type { GitHub } from "@actions/github/lib/utils";
 export interface TeamApi {
   /** Returns all the GitHub account's logins which belong to a given team. */
   getTeamMembers(teamName: string): Promise<string[]>;
-  /** Returns all fellows' GitHub handles with their given rank */
-  listFellows(): Promise<Map<string, number>>;
 }
 
 export interface ActionLogger {

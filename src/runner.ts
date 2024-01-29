@@ -25,6 +25,7 @@ import {
 } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { concatArraysUniquely, rankToScore } from "./util";
+import { PolkadotFellows } from "./polkadot/fellows";
 
 type BaseRuleReport = RuleFailedReport & RequiredReviewersData;
 
@@ -40,7 +41,7 @@ export class ActionRunner {
   constructor(
     private readonly prApi: PullRequestApi,
     private readonly teamApi: TeamApi,
-    private readonly polkadotApi: TeamApi,
+    private readonly polkadotApi: PolkadotFellows,
     private readonly checks: GitHubChecksApi,
     private readonly logger: ActionLogger,
   ) {}

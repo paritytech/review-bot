@@ -8,17 +8,18 @@ import { ActionLogger, TeamApi } from "../../../github/types";
 import { ConfigurationFile, FellowsScore, RuleTypes } from "../../../rules/types";
 import { fellowScoreSchema } from "../../../rules/validator";
 import { ActionRunner } from "../../../runner";
+import { PolkadotFellows } from "../../../polkadot/fellows";
 
 describe("'Fellows' rule validation", () => {
   let api: MockProxy<PullRequestApi>;
   let teamsApi: MockProxy<TeamApi>;
-  let fellowsApi: MockProxy<TeamApi>;
+  let fellowsApi: MockProxy<PolkadotFellows>;
   let runner: ActionRunner;
   const users = ["user-1", "user-2", "user-3"];
   beforeEach(() => {
     api = mock<PullRequestApi>();
     teamsApi = mock<TeamApi>();
-    fellowsApi = mock<TeamApi>();
+    fellowsApi = mock<PolkadotFellows>();
     teamsApi.getTeamMembers.calledWith("abc").mockResolvedValue(users);
     api.listModifiedFiles.mockResolvedValue([".github/workflows/review-bot.yml"]);
     api.listApprovedReviewsAuthors.mockResolvedValue([]);
@@ -127,7 +128,7 @@ describe("'Fellows' rule validation", () => {
   describe("Score Validation", () => {
     test("should not report errors with a valid schema", () => {
       const score = {};
-      validate(score, fellowScoreSchema);
+      validate<FellowsScore>(score, fellowScoreSchema);
     });
 
     test("should assign correct values", () => {
