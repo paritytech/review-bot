@@ -14,6 +14,7 @@ import {
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
 import { ActionLogger, CheckData, TeamApi } from "./github/types";
+import { PolkadotFellows } from "./polkadot/fellows";
 import {
   AndDistinctRule,
   ConfigurationFile,
@@ -25,7 +26,6 @@ import {
 } from "./rules/types";
 import { validateConfig, validateRegularExpressions } from "./rules/validator";
 import { concatArraysUniquely, rankToScore } from "./util";
-import { PolkadotFellows } from "./polkadot/fellows";
 
 type BaseRuleReport = RuleFailedReport & RequiredReviewersData;
 
@@ -71,7 +71,7 @@ export class ActionRunner {
    * The action evaluates if the rules requirements are meet for a PR
    * @returns an array of error reports for each failed rule. An empty array means no errors
    */
-  async validatePullRequest({ rules }: ConfigurationFile): Promise<PullRequestReport> {
+  async validatePullRequest({ rules, score }: ConfigurationFile): Promise<PullRequestReport> {
     const modifiedFiles = await this.prApi.listModifiedFiles();
 
     const errorReports: ReviewFailure[] = [];
@@ -160,7 +160,7 @@ export class ActionRunner {
             break;
           }
           case RuleTypes.Fellows: {
-            const fellowReviewError = await this.fellowsEvaluation(rule);
+            const fellowReviewError = await this.fellowsEvaluation(rule, score);
             if (fellowReviewError) {
               this.logger.error(`Missing the reviews from ${JSON.stringify(fellowReviewError.missingReviews)}`);
               // errorReports.push({ ...missingData, name: rule.name, type: rule.type });
@@ -501,7 +501,7 @@ export class ActionRunner {
       // Then we verify if we need to have a minimum score
     } else if (rule.minScore && scores) {
       // We get all the fellows with their ranks and convert them to their score
-      const fellows: [string, number][] = Array.from(await this.polkadotApi.listFellows(), ([handle, rank]) => [
+      const fellows: [string, number][] = (await this.polkadotApi.listFellows()).map(([handle, rank]) => [
         handle,
         rankToScore(rank, scores),
       ]);
@@ -518,6 +518,8 @@ export class ActionRunner {
         }
       }
 
+      this.logger.debug(`Current score is ${score} and the minimum required score is ${rule.minScore}`);
+
       if (rule.minScore > score) {
         const missingUsers = fellows
           // Remove all the fellows who score is worth 0
@@ -526,6 +528,8 @@ export class ActionRunner {
           .filter(([handle]) => handle != author)
           // Remove the approvals
           .filter(([handle]) => approvals.indexOf(handle) < 0);
+
+        this.logger.warn(`Missing score of ${rule.minScore} by ${score - rule.minScore}`);
 
         return new FellowMissingScoreFailure(rule, rule.minScore, countingFellows, missingUsers);
       }
