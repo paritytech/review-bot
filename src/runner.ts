@@ -509,7 +509,9 @@ export class ActionRunner {
 
       const maximumScore = fellows.reduce((a, [_, score]) => a + score, 0);
       if (rule.minTotalScore > maximumScore) {
-        throw new Error(`Minimum score of ${rule.minTotalScore} is higher that the obtainable score of ${maximumScore}!`);
+        throw new Error(
+          `Minimum score of ${rule.minTotalScore} is higher that the obtainable score of ${maximumScore}!`,
+        );
       }
 
       let score = 0;
