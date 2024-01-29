@@ -6,16 +6,22 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
+import { PolkadotFellows } from "../../polkadot/fellows";
 import { FellowsRule } from "../../rules/types";
 import { ActionRunner } from "../../runner";
-import { PolkadotFellows } from "../../polkadot/fellows";
 
 describe("Fellows rule parsing", () => {
   let api: MockProxy<PullRequestApi>;
   let runner: ActionRunner;
   beforeEach(() => {
     api = mock<PullRequestApi>();
-    runner = new ActionRunner(api, mock<TeamApi>(), mock<PolkadotFellows>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
+    runner = new ActionRunner(
+      api,
+      mock<TeamApi>(),
+      mock<PolkadotFellows>(),
+      mock<GitHubChecksApi>(),
+      mock<ActionLogger>(),
+    );
   });
   test("should get minimal config", async () => {
     api.getConfigFile.mockResolvedValue(`

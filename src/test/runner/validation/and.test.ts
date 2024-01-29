@@ -3,9 +3,9 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { GitHubChecksApi } from "../../../github/check";
 import { PullRequestApi } from "../../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../../github/types";
+import { PolkadotFellows } from "../../../polkadot/fellows";
 import { ConfigurationFile, RuleTypes } from "../../../rules/types";
 import { ActionRunner } from "../../../runner";
-import { PolkadotFellows } from "../../../polkadot/fellows";
 
 describe("'And' rule validation", () => {
   let api: MockProxy<PullRequestApi>;

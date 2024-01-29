@@ -9,8 +9,8 @@ import { GitHubChecksApi } from "../github/check";
 import { PullRequestApi } from "../github/pullRequest";
 import { GitHubTeamsApi } from "../github/teams";
 import { ActionLogger, GitHubClient, TeamApi } from "../github/types";
-import { ActionRunner } from "../runner";
 import { PolkadotFellows } from "../polkadot/fellows";
+import { ActionRunner } from "../runner";
 
 type ReportName =
   | "CI files"

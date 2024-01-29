@@ -5,9 +5,9 @@ import { ReviewFailure } from "../../failures";
 import { GitHubChecksApi } from "../../github/check";
 import { PullRequestApi } from "../../github/pullRequest";
 import { ActionLogger, TeamApi } from "../../github/types";
+import { PolkadotFellows } from "../../polkadot/fellows";
 import { ConfigurationFile, Rule, RuleTypes } from "../../rules/types";
 import { ActionRunner } from "../../runner";
-import { PolkadotFellows } from "../../polkadot/fellows";
 
 describe("Shared validations", () => {
   let api: MockProxy<PullRequestApi>;
