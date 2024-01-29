@@ -189,11 +189,16 @@ describe("'Fellows' rule validation", () => {
     });
 
     test("should fail without enough score", async () => {
-      fellowsApi.listFellows.mockResolvedValue([[users[2], 4]]);
+      fellowsApi.listFellows.mockResolvedValue([
+        [users[2], 4],
+        ["example", 3],
+        ["user", 2],
+      ]);
 
       const { reports } = await runner.validatePullRequest(generateSchemaWithScore(5));
       const error = reports[0] as FellowMissingScoreFailure;
       expect(error.currentScore).toBeLessThan(5);
+      console.log(error.generateSummary().stringify());
     });
 
     test("should allow a combination of scores", async () => {

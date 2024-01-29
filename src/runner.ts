@@ -500,6 +500,7 @@ export class ActionRunner {
       );
       // Then we verify if we need to have a minimum score
     } else if (rule.minScore && scores) {
+      this.logger.debug("Validating required minimum score");
       // We get all the fellows with their ranks and convert them to their score
       const fellows: [string, number][] = (await this.polkadotApi.listFellows()).map(([handle, rank]) => [
         handle,
