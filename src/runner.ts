@@ -499,7 +499,7 @@ export class ActionRunner {
         rule.minRank,
       );
       // Then we verify if we need to have a minimum score
-    } else if (rule.minScore && scores) {
+    } else if (rule.minTotalScore && scores) {
       this.logger.debug("Validating required minimum score");
       // We get all the fellows with their ranks and convert them to their score
       const fellows: [string, number][] = (await this.polkadotApi.listFellows()).map(([handle, rank]) => [
@@ -508,8 +508,8 @@ export class ActionRunner {
       ]);
 
       const maximumScore = fellows.reduce((a, [_, score]) => a + score, 0);
-      if (rule.minScore > maximumScore) {
-        throw new Error(`Minimum score of ${rule.minScore} is higher that the obtainable score of ${maximumScore}!`);
+      if (rule.minTotalScore > maximumScore) {
+        throw new Error(`Minimum score of ${rule.minTotalScore} is higher that the obtainable score of ${maximumScore}!`);
       }
 
       let score = 0;
@@ -525,9 +525,9 @@ export class ActionRunner {
         }
       }
 
-      this.logger.debug(`Current score is ${score} and the minimum required score is ${rule.minScore}`);
+      this.logger.debug(`Current score is ${score} and the minimum required score is ${rule.minTotalScore}`);
 
-      if (rule.minScore > score) {
+      if (rule.minTotalScore > score) {
         const missingUsers = fellows
           // Remove all the fellows who score is worth 0
           .filter(([_, fellowScore]) => fellowScore > 0)
@@ -536,9 +536,9 @@ export class ActionRunner {
           // Remove the approvals
           .filter(([handle]) => approvals.indexOf(handle) < 0);
 
-        this.logger.warn(`Missing score of ${rule.minScore} by ${score - rule.minScore}`);
+        this.logger.warn(`Missing score of ${rule.minTotalScore} by ${score - rule.minTotalScore}`);
 
-        return new FellowMissingScoreFailure(rule, rule.minScore, countingFellows, missingUsers);
+        return new FellowMissingScoreFailure(rule, rule.minTotalScore, countingFellows, missingUsers);
       }
     }
     this.logger.info("Rule requirements fulfilled");

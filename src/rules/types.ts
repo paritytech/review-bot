@@ -38,7 +38,7 @@ export interface FellowsRule extends Rule {
   type: RuleTypes.Fellows;
   minRank: number;
   minApprovals: number;
-  minScore?: number;
+  minTotalScore?: number;
 }
 
 export interface FellowsScore {

@@ -73,7 +73,7 @@ export const fellowsRuleSchema = Joi.object<FellowsRule>().keys({
   countAuthor: Joi.boolean().default(false),
   minRank: Joi.number().required().min(1).empty(null),
   minApprovals: Joi.number().min(1).default(1),
-  minScore: Joi.number().min(1).optional(),
+  minTotalScore: Joi.number().min(1).optional(),
 });
 
 /**

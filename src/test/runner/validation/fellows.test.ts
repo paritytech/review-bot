@@ -129,7 +129,7 @@ describe("'Fellows' rule validation", () => {
       api.listApprovedReviewsAuthors.mockResolvedValue(users);
     });
 
-    const generateSchemaWithScore = (minScore: number): ConfigurationFile => {
+    const generateSchemaWithScore = (minTotalScore: number): ConfigurationFile => {
       return {
         rules: [
           {
@@ -138,7 +138,7 @@ describe("'Fellows' rule validation", () => {
             condition: { include: ["review-bot.yml"] },
             minRank: 1,
             minApprovals: 1,
-            minScore,
+            minTotalScore,
           },
         ],
         score: {
