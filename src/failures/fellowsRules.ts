@@ -51,7 +51,7 @@ export class FellowMissingScoreFailure extends ReviewFailure {
     approvalsWithScores: [string, number][],
     missingFellowsWithScore: [string, number][],
   ) {
-    const unifyFellowWithScore = ([handle, score]: [string, number]) => `${handle} => **${score}**`;
+    const unifyFellowWithScore = ([handle, score]: [string, number]) => `${handle} -> <b>${score}</b>`;
     super({
       ...ruleInfo,
       countingReviews: approvalsWithScores.map(unifyFellowWithScore),
