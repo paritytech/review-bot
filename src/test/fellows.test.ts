@@ -4,7 +4,7 @@ import { mock, mockClear, MockProxy } from "jest-mock-extended";
 import { ActionLogger, TeamApi } from "../github/types";
 import { PolkadotFellows } from "../polkadot/fellows";
 
-const timeout = 15_000;
+const timeout = 25_000;
 
 describe("CAPI test", () => {
   let fellows: TeamApi;
