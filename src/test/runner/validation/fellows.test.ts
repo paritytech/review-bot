@@ -198,7 +198,6 @@ describe("'Fellows' rule validation", () => {
       const { reports } = await runner.validatePullRequest(generateSchemaWithScore(5));
       const error = reports[0] as FellowMissingScoreFailure;
       expect(error.currentScore).toBeLessThan(5);
-      console.log(error.generateSummary().stringify());
     });
 
     test("should allow a combination of scores", async () => {

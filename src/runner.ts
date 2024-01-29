@@ -506,6 +506,12 @@ export class ActionRunner {
         handle,
         rankToScore(rank, scores),
       ]);
+
+      const maximumScore = fellows.reduce((a, [_, score]) => a + score, 0);
+      if (rule.minScore > maximumScore) {
+        throw new Error(`Minimum score of ${rule.minScore} is higher that the obtainable score of ${maximumScore}!`);
+      }
+
       let score = 0;
 
       const countingFellows: [string, number][] = [];
