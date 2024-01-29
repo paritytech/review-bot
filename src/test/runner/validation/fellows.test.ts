@@ -200,6 +200,14 @@ describe("'Fellows' rule validation", () => {
       expect(error.currentScore).toBeLessThan(5);
     });
 
+    test("should throw when score is impossible", async () => {
+      fellowsApi.listFellows.mockResolvedValue([[users[2], 4]]);
+
+      await expect(runner.validatePullRequest(generateSchemaWithScore(10))).rejects.toThrow(
+        "Minimum score of 10 is higher that the obtainable score of 4!",
+      );
+    });
+
     test("should allow a combination of scores", async () => {
       fellowsApi.listFellows.mockResolvedValue([
         [users[0], 4],
