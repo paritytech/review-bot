@@ -71,7 +71,7 @@ export class FellowMissingScoreFailure extends ReviewFailure {
         "Rule explanation",
         "Rule 'Fellows' gives every fellow a score based on their rank, and required that the sum of all the scores is greater than the required score." +
           "\n\n" +
-          "For more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)",
+          "For more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types).",
       );
 
     text = text

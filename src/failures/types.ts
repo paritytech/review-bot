@@ -77,7 +77,7 @@ export abstract class ReviewFailure {
         "Rule explanation",
         this.ruleExplanation(this.type) +
           "\n\n" +
-          "For more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types)",
+          "For more info found out how the rules work in [Review-bot types](https://github.com/paritytech/review-bot#types).",
       );
   }
 
