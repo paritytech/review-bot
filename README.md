@@ -178,10 +178,10 @@ Because this project is intended to be used with a token, we need to do an extra
     steps:
       - name: Generate token
         id: generate_token
-        uses: tibdex/github-app-token@v1
+        uses: actions/create-github-app-token@v1.9.3
         with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.PRIVATE_KEY }}
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
       - name: "Evaluates PR reviews"
         uses: paritytech/review-bot@main
         with:

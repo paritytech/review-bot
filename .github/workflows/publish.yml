@@ -13,14 +13,14 @@ jobs:
   test-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v4.1.3
       - name: Check that the image builds
         run: docker build . --file Dockerfile
   validate-action:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v4.1.3
       # This checks that .github/workflows/review-bot.yml is pointing towards the main branch
       # as, during development, we change this to use the code from the test branch and
       # we may forget to set it back to main
@@ -43,7 +43,7 @@ jobs:
       version: ${{ steps.verification.outputs.VERSION }}
       exists: ${{ steps.checkTag.outputs.exists }}
     steps:
-      - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v4.1.3
       - name: Extract package.json version
         id: package_version
         run: echo "VERSION=$(jq '.version' -r package.json)" >> $GITHUB_OUTPUT
@@ -54,7 +54,7 @@ jobs:
         with:
           version: ${{ steps.package_version.outputs.VERSION }}
         # Verifies if there is a tag with that version number
-      - uses: mukunku/tag-exists-action@v1.4.0
+      - uses: mukunku/tag-exists-action@v1.6.0
         if: steps.verification.outputs.VERSION
         id: checkTag
         with: 
@@ -68,14 +68,14 @@ jobs:
       contents: write
       packages: write
     steps:
-      - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v4.1.3
       - name: Tag version and create release
         run: gh release create $VERSION --generate-notes
         env:
           VERSION: v${{ needs.compare-versions.outputs.version }}
           GH_TOKEN: ${{ github.token }}
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3.1.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -86,9 +86,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
           tags: ${{ needs.compare-versions.outputs.version }}
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.1.3
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5.3.0
         with:
           context: .
           push: true
