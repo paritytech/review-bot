@@ -40,12 +40,9 @@ export class PolkadotFellows implements TeamApi {
       const users: Map<string, number> = new Map<string, number>();
       for (const fellow of fellows) {
         this.logger.debug(`Fetching identity of '${fellow.address}', rank: ${fellow.rank}`);
-        const fellowData = (await api.query.identity.identityOf(fellow.address)).toHuman() as
-          | Record<string, unknown>
-          | undefined;
-
+        const identityQuery = await api.query.identity.identityOf(fellow.address);
         // If the identity is null, we check if there is a super identity.
-        if (!fellowData) {
+        if (identityQuery.toHuman() == null) {
           this.logger.debug("Identity is null. Checking for super identity");
           const superIdentity = (await api.query.identity.superOf(fellow.address)).toHuman() as
             | [string, { Raw: string }]
@@ -58,6 +55,8 @@ export class PolkadotFellows implements TeamApi {
           }
           continue;
         }
+
+        const [fellowData] = identityQuery.toHuman() as [Record<string, unknown>, unknown];
 
         // @ts-ignore
         const additional = fellowData.info?.additional as [{ Raw: string }, { Raw: string }][] | undefined;
