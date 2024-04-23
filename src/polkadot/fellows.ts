@@ -42,7 +42,7 @@ export class PolkadotFellows implements TeamApi {
         this.logger.debug(`Fetching identity of '${fellow.address}', rank: ${fellow.rank}`);
         const identityQuery = await api.query.identity.identityOf(fellow.address);
         // If the identity is null, we check if there is a super identity.
-        if (identityQuery.toHuman() == null) {
+        if (identityQuery.isEmpty) {
           this.logger.debug("Identity is null. Checking for super identity");
           const superIdentity = (await api.query.identity.superOf(fellow.address)).toHuman() as
             | [string, { Raw: string }]
