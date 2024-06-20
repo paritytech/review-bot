@@ -1,6 +1,7 @@
 /node_modules
 /dist*
 .env
+.yarn/install-state.gz
 
 # Editor directories and files
 .vscode/*

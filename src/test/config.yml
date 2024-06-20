@@ -1,14 +1,14 @@
 rules:
   - name: CI files
     condition:
-      include: 
+      include:
         - ^\.gitlab-ci\.yml
         - ^docker/.*
         - ^\.github/.*
         - ^\.gitlab/.*
         - ^\.config/nextest.toml
         - ^\.cargo/.*
-      exclude: 
+      exclude:
         - ^./gitlab/pipeline/zombienet.yml$
     minApprovals: 2
     type: basic
@@ -19,12 +19,12 @@ rules:
   - name: Audit rules
     type: basic
     condition:
-      include: 
+      include:
         - ^polkadot/runtime\/(kusama|polkadot|common)\/.*
         - ^polkadot/primitives/src\/.+\.rs$
         - ^substrate/primitives/.*
         - ^substrate/frame/.*
-      exclude: 
+      exclude:
         - ^polkadot/runtime\/(kusama|polkadot)\/src\/weights\/.+\.rs$
         - ^substrate\/frame\/.+\.md$
     minApprovals: 2
@@ -77,7 +77,7 @@ rules:
   # if there are any changes in the bridges subtree (in case of backport changes back to bridges repo)
   - name: Bridges subtree files
     type: basic
-    condition: 
+    condition:
       include:
         - ^cumulus/bridges/.*
     minApprovals: 1
@@ -88,7 +88,7 @@ rules:
 
   - name: FRAME coders substrate
     condition:
-      include: 
+      include:
         - ^substrate/frame/(?!.*(nfts/.*|uniques/.*|babe/.*|grandpa/.*|beefy|merkle-mountain-range/.*|contracts/.*|election|nomination-pools/.*|staking/.*|aura/.*))
     type: "and"
     reviewers:
