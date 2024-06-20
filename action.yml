@@ -32,4 +32,4 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/paritytech/review-bot/action:2.4.1'
+  image: 'docker://ghcr.io/paritytech/review-bot/action:2.5.0'
