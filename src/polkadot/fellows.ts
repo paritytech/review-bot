@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { ApiPromise, WsProvider } from "@polkadot/api";
+import { collectives, people } from "@polkadot-api/descriptors";
+import { createClient, SS58String } from "polkadot-api";
+import { chainSpec as polkadotChainSpec } from "polkadot-api/chains/polkadot";
+import { chainSpec as collectivesChainSpec } from "polkadot-api/chains/polkadot_collectives";
+import { chainSpec as peopleChainSpec } from "polkadot-api/chains/polkadot_people";
+import { getSmProvider } from "polkadot-api/sm-provider";
+import { start } from "smoldot";
 
 import { ActionLogger, TeamApi } from "../github/types";
 
@@ -10,83 +17,121 @@ export class PolkadotFellows implements TeamApi {
 
   constructor(private readonly logger: ActionLogger) {}
 
-  private async fetchAllFellows(): Promise<Map<string, number>> {
-    let api: ApiPromise;
-    this.logger.debug("Connecting to collective parachain");
-    // we connect to the collective rpc node
-    const wsProvider = new WsProvider("wss://polkadot-collectives-rpc.polkadot.io");
-    api = await ApiPromise.create({ provider: wsProvider });
+  private async fetchAllFellows(logger: ActionLogger): Promise<Map<string, number>> {
+    logger.info("Initializing smoldot");
+    const smoldot = start();
+
     try {
-      // We fetch all the members
-      const membersObj = await api.query.fellowshipCollective.members.entries();
+      // Create smoldot chain with Polkadot Relay Chain
+      const smoldotRelayChain = await smoldot.addChain({
+        chainSpec: polkadotChainSpec,
+      });
 
-      // We iterate over the fellow data and convert them into usable values
-      const fellows: FellowData[] = [];
-      for (const [key, rank] of membersObj) {
-        // @ts-ignore
-        const [address]: [string] = key.toHuman();
-        fellows.push({ address, ...(rank.toHuman() as object) } as FellowData);
-      }
-      this.logger.debug(JSON.stringify(fellows));
+      // Add the people chain to smoldot
+      const peopleRelayChain = await smoldot.addChain({
+        chainSpec: peopleChainSpec,
+        potentialRelayChains: [smoldotRelayChain],
+      });
 
-      // Once we obtained this information, we disconnect this api.
-      await api.disconnect();
+      // Initialize the smoldot provider
+      const jsonRpcProvider = getSmProvider(peopleRelayChain);
+      logger.info("Initializing the people client");
+      const peopleClient = createClient(jsonRpcProvider);
 
-      this.logger.debug("Connecting to relay parachain.");
-      // We connect to the relay chain
-      api = await ApiPromise.create({ provider: new WsProvider("wss://rpc.polkadot.io") });
+      // Get the types for the people client
+      const peopleApi = peopleClient.getTypedApi(people);
 
-      // We iterate over the different members and extract their data
-      const users: Map<string, number> = new Map<string, number>();
-      for (const fellow of fellows) {
-        this.logger.debug(`Fetching identity of '${fellow.address}', rank: ${fellow.rank}`);
-        const identityQuery = await api.query.identity.identityOf(fellow.address);
-        // If the identity is null, we check if there is a super identity.
-        if (identityQuery.isEmpty) {
-          this.logger.debug("Identity is null. Checking for super identity");
-          const superIdentity = (await api.query.identity.superOf(fellow.address)).toHuman() as
-            | [string, { Raw: string }]
-            | undefined;
-          if (superIdentity && superIdentity[0]) {
-            this.logger.debug(`${fellow.address} has a super identity: ${superIdentity[0]}. Adding it to the array`);
-            fellows.push({ address: superIdentity[0], rank: fellow.rank });
+      const getGhHandle = async (address: SS58String): Promise<string | undefined> => {
+        logger.debug(`Fetching identity of '${address}'`);
+        const identityOf = await peopleApi.query.Identity.IdentityOf.getValue(address);
+
+        if (identityOf) {
+          const [identity] = identityOf;
+          const github = identity.info.github.value;
+
+          if (!github) {
+            logger.debug(`'${address}' does not have an additional field named 'github'`);
+            return;
+          }
+
+          const handle = github.asText().replace("@", "") as string;
+
+          if (handle) {
+            logger.info(`Found github handle for '${address}': '${handle}'`);
           } else {
-            this.logger.debug("No super identity found. Skipping");
+            logger.debug(`'${address}' does not have a GitHub handle`);
+            return;
           }
-          continue;
+          return handle;
         }
 
-        const [fellowData] = identityQuery.toHuman() as [Record<string, unknown>, unknown];
+        logger.debug(`Identity of '${address}' is null. Checking for super identity`);
 
-        // @ts-ignore
-        const additional = fellowData.info?.additional as [{ Raw: string }, { Raw: string }][] | undefined;
+        const superIdentityAddress = (await peopleApi.query.Identity.SuperOf.getValue(address))?.[0];
 
-        // If it does not have additional data (GitHub handle goes here) we ignore it
-        if (!additional || additional.length < 1) {
-          this.logger.debug("Additional data is null. Skipping");
-          continue;
+        if (superIdentityAddress) {
+          logger.debug(`'${address}' has a super identity: '${superIdentityAddress}'. Fetching that identity`);
+          return await getGhHandle(superIdentityAddress);
+        } else {
+          logger.debug(`No superidentity for ${address} found.`);
+          return undefined;
         }
+      };
 
-        for (const additionalData of additional) {
-          const [key, value] = additionalData;
-          // We verify that they have an additional data of the key "github"
-          // If it has a handle defined, we push it into the array
-          if (key?.Raw && key?.Raw === "github" && value?.Raw && value?.Raw.length > 0) {
-            this.logger.debug(`Found handles: '${value.Raw}'`);
-            // We add it to the array and remove the @ if they add it to the handle
-            users.set(value.Raw.replace("@", ""), fellow.rank);
-          }
+      logger.info("Initializing the collectives client");
+
+      const collectiveRelayChain = await smoldot.addChain({
+        chainSpec: collectivesChainSpec,
+        potentialRelayChains: [smoldotRelayChain],
+      });
+      const collectiveJsonRpcProvider = getSmProvider(collectiveRelayChain);
+      logger.info("Initializing the relay client");
+      const collectivesClient = createClient(collectiveJsonRpcProvider);
+      const collectivesApi = collectivesClient.getTypedApi(collectives);
+
+      // Pull the members of the FellowshipCollective
+      const memberEntries = await collectivesApi.query.FellowshipCollective.Members.getEntries();
+
+      // We no longer need the collective client, so let's destroy it
+      collectivesClient.destroy();
+
+      // Build the Array of FellowData and filter out candidates (zero rank members)
+      const fellows: FellowData[] = memberEntries
+        .map(({ keyArgs: [address], value: rank }) => {
+          return { address, rank };
+        })
+        .filter(({ rank }) => rank > 0);
+      logger.debug(JSON.stringify(fellows));
+
+      // Let's now pull the GH handles of the fellows
+      const users = await Promise.all(
+        fellows.map(async ({ address, rank }) => {
+          return {
+            address,
+            rank,
+            githubHandle: await getGhHandle(address),
+          };
+        }),
+      );
+      logger.info(`Found users: ${JSON.stringify(Array.from(users.entries()))}`);
+
+      const userMap: Map<string, number> = new Map<string, number>();
+
+      for (const { githubHandle, rank } of users) {
+        if (githubHandle) {
+          userMap.set(githubHandle, rank);
         }
       }
 
-      this.logger.info(`Found users: ${JSON.stringify(Array.from(users.entries()))}`);
+      // We are now done with the relay client
+      peopleClient.destroy();
 
-      return users;
+      return userMap;
     } catch (error) {
-      this.logger.error(error as Error);
+      logger.error(error as Error);
       throw error;
     } finally {
-      await api.disconnect();
+      await smoldot.terminate();
     }
   }
 
@@ -96,7 +141,7 @@ export class PolkadotFellows implements TeamApi {
 
     if (this.fellowsCache.size < 1) {
       this.logger.debug("Cache not found. Fetching fellows.");
-      this.fellowsCache = await this.fetchAllFellows();
+      this.fellowsCache = await this.fetchAllFellows(this.logger);
     }
 
     return Array.from(this.fellowsCache.entries());
@@ -108,7 +153,7 @@ export class PolkadotFellows implements TeamApi {
 
     if (this.fellowsCache.size < 1) {
       this.logger.debug("Cache not found. Fetching fellows.");
-      this.fellowsCache = await this.fetchAllFellows();
+      this.fellowsCache = await this.fetchAllFellows(this.logger);
     }
     const users: string[] = [];
     for (const [user, rank] of this.fellowsCache) {
