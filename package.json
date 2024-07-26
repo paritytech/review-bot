@@ -40,7 +40,6 @@
     "@actions/github": "^6.0.0",
     "@eng-automation/js": "^2.2.0",
     "@polkadot-api/descriptors": "file:.papi/descriptors",
-    "@polkadot/api": "^11.3.1",
     "joi": "^17.13.1",
     "polkadot-api": "^0.12.0",
     "smoldot": "^2.0.29",
