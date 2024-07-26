@@ -4,7 +4,7 @@ import { mock, mockClear, MockProxy } from "jest-mock-extended";
 import { ActionLogger, TeamApi } from "../github/types";
 import { PolkadotFellows } from "../polkadot/fellows";
 
-const timeout = 25_000;
+const timeout = 60_000;
 
 describe("CAPI test", () => {
   let fellows: TeamApi;
@@ -29,11 +29,13 @@ describe("CAPI test", () => {
     async () => {
       const members = await fellows.getTeamMembers("2");
       expect(members.length).toBeGreaterThan(0);
-      expect(logger.debug).toHaveBeenCalledWith("Connecting to collective parachain");
+      expect(logger.info).toHaveBeenCalledWith("Initializing the people client");
+      expect(logger.info).toHaveBeenCalledWith("Initializing the collectives client");
       mockClear(logger);
       const members2 = await fellows.getTeamMembers("2");
       expect(members2.length).toBeGreaterThan(0);
-      expect(logger.debug).not.toHaveBeenCalledWith("Connecting to collective parachain");
+      expect(logger.info).not.toHaveBeenCalledWith("Initializing the people client");
+      expect(logger.info).not.toHaveBeenCalledWith("Initializing the collectives client");
     },
     timeout,
   );
