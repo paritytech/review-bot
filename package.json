@@ -9,7 +9,8 @@
     "cli": "ncc build src/cli.ts -o dist-cli && node dist-cli",
     "test": "jest",
     "fix": "npx eslint --fix 'src/**/*.ts' && npx prettier --write 'src/**/*.{ts,yml}'",
-    "lint": "npx eslint 'src/**/*.ts' && npx prettier --check 'src/**/*.{ts,yml}'"
+    "lint": "npx eslint 'src/**/*.ts' && npx prettier --check 'src/**/*.{ts,yml}'",
+    "postinstall": "papi"
   },
   "engines": {
     "node": ">=22.0.0"

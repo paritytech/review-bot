@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { ApiPromise, WsProvider } from "@polkadot/api";
 import { collectives, people } from "@polkadot-api/descriptors";
 import { createClient, SS58String } from "polkadot-api";
 import { chainSpec as polkadotChainSpec } from "polkadot-api/chains/polkadot";
