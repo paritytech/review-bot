@@ -45,5 +45,8 @@
     "smoldot": "^2.0.29",
     "yaml": "^2.3.4"
   },
-  "packageManager": "yarn@4.3.0"
+  "packageManager": "yarn@4.3.0",
+  "resolutions": {
+    "@polkadot-api/descriptors": "portal:./.papi/descriptors"
+  }
 }
