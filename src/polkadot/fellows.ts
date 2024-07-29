@@ -1,5 +1,5 @@
 import { collectives, people } from "@polkadot-api/descriptors";
-import { createClient, SS58String } from "polkadot-api";
+import { createClient, SS58String, TypedApi } from "polkadot-api";
 import { chainSpec as polkadotChainSpec } from "polkadot-api/chains/polkadot";
 import { chainSpec as collectivesChainSpec } from "polkadot-api/chains/polkadot_collectives";
 import { chainSpec as peopleChainSpec } from "polkadot-api/chains/polkadot_people";
@@ -15,6 +15,48 @@ export class PolkadotFellows implements TeamApi {
 
   constructor(private readonly logger: ActionLogger) {}
 
+  private async getGhHandle(
+    address: SS58String,
+    peopleApi: TypedApi<typeof people>,
+    logger: ActionLogger,
+  ): Promise<string | undefined> {
+    logger.debug(`Fetching identity of '${address}'`);
+
+    const identityOf = await peopleApi.query.Identity.IdentityOf.getValue(address);
+
+    if (identityOf) {
+      const [identity] = identityOf;
+      const github = identity.info.github.value;
+
+      if (!github) {
+        logger.debug(`'${address}' does not have an additional field named 'github'`);
+        return;
+      }
+
+      const handle = github.asText().replace("@", "") as string;
+
+      if (handle) {
+        logger.info(`Found github handle for '${address}': '${handle}'`);
+      } else {
+        logger.debug(`'${address}' does not have a GitHub handle`);
+        return;
+      }
+      return handle;
+    }
+
+    logger.debug(`Identity of '${address}' is null. Checking for super identity`);
+
+    const superIdentityAddress = (await peopleApi.query.Identity.SuperOf.getValue(address))?.[0];
+
+    if (superIdentityAddress) {
+      logger.debug(`'${address}' has a super identity: '${superIdentityAddress}'. Fetching that identity`);
+      return await this.getGhHandle(superIdentityAddress, peopleApi, logger);
+    } else {
+      logger.debug(`No superidentity for ${address} found.`);
+      return undefined;
+    }
+  }
+
   private async fetchAllFellows(logger: ActionLogger): Promise<Map<string, number>> {
     logger.info("Initializing smoldot");
     const smoldot = start();
@@ -26,55 +68,18 @@ export class PolkadotFellows implements TeamApi {
       });
 
       // Add the people chain to smoldot
-      const peopleRelayChain = await smoldot.addChain({
+      const peopleParachain = await smoldot.addChain({
         chainSpec: peopleChainSpec,
         potentialRelayChains: [smoldotRelayChain],
       });
 
       // Initialize the smoldot provider
-      const jsonRpcProvider = getSmProvider(peopleRelayChain);
+      const jsonRpcProvider = getSmProvider(peopleParachain);
       logger.info("Initializing the people client");
       const peopleClient = createClient(jsonRpcProvider);
 
       // Get the types for the people client
       const peopleApi = peopleClient.getTypedApi(people);
-
-      const getGhHandle = async (address: SS58String): Promise<string | undefined> => {
-        logger.debug(`Fetching identity of '${address}'`);
-        const identityOf = await peopleApi.query.Identity.IdentityOf.getValue(address);
-
-        if (identityOf) {
-          const [identity] = identityOf;
-          const github = identity.info.github.value;
-
-          if (!github) {
-            logger.debug(`'${address}' does not have an additional field named 'github'`);
-            return;
-          }
-
-          const handle = github.asText().replace("@", "") as string;
-
-          if (handle) {
-            logger.info(`Found github handle for '${address}': '${handle}'`);
-          } else {
-            logger.debug(`'${address}' does not have a GitHub handle`);
-            return;
-          }
-          return handle;
-        }
-
-        logger.debug(`Identity of '${address}' is null. Checking for super identity`);
-
-        const superIdentityAddress = (await peopleApi.query.Identity.SuperOf.getValue(address))?.[0];
-
-        if (superIdentityAddress) {
-          logger.debug(`'${address}' has a super identity: '${superIdentityAddress}'. Fetching that identity`);
-          return await getGhHandle(superIdentityAddress);
-        } else {
-          logger.debug(`No superidentity for ${address} found.`);
-          return undefined;
-        }
-      };
 
       logger.info("Initializing the collectives client");
 
@@ -107,7 +112,7 @@ export class PolkadotFellows implements TeamApi {
           return {
             address,
             rank,
-            githubHandle: await getGhHandle(address),
+            githubHandle: await this.getGhHandle(address, peopleApi, logger),
           };
         }),
       );
