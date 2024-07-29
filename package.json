@@ -1,6 +1,6 @@
 {
   "name": "review-bot",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Have custom review rules for PRs with auto assignment",
   "main": "src/index.ts",
   "scripts": {
@@ -9,7 +9,8 @@
     "cli": "ncc build src/cli.ts -o dist-cli && node dist-cli",
     "test": "jest",
     "fix": "npx eslint --fix 'src/**/*.ts' && npx prettier --write 'src/**/*.{ts,yml}'",
-    "lint": "npx eslint 'src/**/*.ts' && npx prettier --check 'src/**/*.{ts,yml}'"
+    "lint": "npx eslint 'src/**/*.ts' && npx prettier --check 'src/**/*.{ts,yml}'",
+    "postinstall": "papi"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -38,9 +39,14 @@
     "@actions/core": "^1.10.1",
     "@actions/github": "^6.0.0",
     "@eng-automation/js": "^2.2.0",
-    "@polkadot/api": "^11.3.1",
+    "@polkadot-api/descriptors": "file:.papi/descriptors",
     "joi": "^17.13.1",
+    "polkadot-api": "^0.12.0",
+    "smoldot": "^2.0.29",
     "yaml": "^2.3.4"
   },
-  "packageManager": "yarn@4.3.0"
+  "packageManager": "yarn@4.3.0",
+  "resolutions": {
+    "@polkadot-api/descriptors": "portal:./.papi/descriptors"
+  }
 }
