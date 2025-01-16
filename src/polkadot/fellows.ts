@@ -1,5 +1,5 @@
-import { collectives, people } from "@polkadot-api/descriptors";
-import { createClient, SS58String, TypedApi } from "polkadot-api";
+import { collectives, IdentityData, people } from "@polkadot-api/descriptors";
+import { Binary, createClient, SS58String, TypedApi } from "polkadot-api";
 import { chainSpec as polkadotChainSpec } from "polkadot-api/chains/polkadot";
 import { chainSpec as collectivesChainSpec } from "polkadot-api/chains/polkadot_collectives";
 import { chainSpec as peopleChainSpec } from "polkadot-api/chains/polkadot_people";
@@ -26,7 +26,7 @@ export class PolkadotFellows implements TeamApi {
 
     if (identityOf) {
       const [identity] = identityOf;
-      const github = identity.info.github.value;
+      const github = readIdentityData(identity.info.github);
 
       if (!github) {
         logger.debug(`'${address}' does not have an additional field named 'github'`);
@@ -173,4 +173,10 @@ export class PolkadotFellows implements TeamApi {
 
     return users;
   }
+}
+
+function readIdentityData(identityData: IdentityData): Binary | null {
+  if (identityData.type === "None" || identityData.type === "Raw0") return null;
+  if (identityData.type === "Raw1") return Binary.fromBytes(new Uint8Array(identityData.value));
+  return identityData.value;
 }
