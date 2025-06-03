@@ -1,6 +1,6 @@
 {
   "name": "review-bot",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "description": "Have custom review rules for PRs with auto assignment",
   "main": "src/index.ts",
   "scripts": {
@@ -41,8 +41,8 @@
     "@eng-automation/js": "^2.2.0",
     "@polkadot-api/descriptors": "portal:.papi/descriptors",
     "joi": "^17.13.1",
-    "polkadot-api": "^1.8.2",
-    "smoldot": "^2.0.34",
+    "polkadot-api": "^1.13.0",
+    "smoldot": "^2.0.35",
     "yaml": "^2.3.4"
   },
   "packageManager": "yarn@4.3.0",
