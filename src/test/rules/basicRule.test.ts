@@ -16,6 +16,7 @@ describe("Basic rule parsing", () => {
   let teamsApi: MockProxy<PolkadotFellows>;
   beforeEach(() => {
     api = mock<PullRequestApi>();
+    teamsApi = mock<PolkadotFellows>();
     runner = new ActionRunner(api, teamsApi, mock<PolkadotFellows>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
   test("should get minimal config", async () => {
