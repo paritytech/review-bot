@@ -18,6 +18,7 @@ describe("Config Parsing", () => {
   beforeEach(() => {
     logger = mock<ActionLogger>();
     api = mock<PullRequestApi>();
+    teamsApi = mock<TeamApi>();
     runner = new ActionRunner(api, teamsApi, mock<PolkadotFellows>(), mock<GitHubChecksApi>(), logger);
   });
   test("should get minimal config", async () => {

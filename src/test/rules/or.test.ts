@@ -16,6 +16,7 @@ describe("'Or' rule parsing", () => {
   let teamsApi: MockProxy<TeamApi>;
   beforeEach(() => {
     api = mock<PullRequestApi>();
+    teamsApi = mock<TeamApi>();
     runner = new ActionRunner(api, teamsApi, mock<PolkadotFellows>(), mock<GitHubChecksApi>(), mock<ActionLogger>());
   });
   test("should get minimal config", async () => {
