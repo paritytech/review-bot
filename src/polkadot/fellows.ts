@@ -1,12 +1,12 @@
 import { collectives, IdentityData, people } from "@polkadot-api/descriptors";
 import { Binary, createClient, PolkadotClient, SS58String, TypedApi } from "polkadot-api";
-import { chainSpec as polkadotChainSpec } from "polkadot-api/chains/polkadot";
 import { chainSpec as collectivesChainSpec } from "polkadot-api/chains/polkadot_collectives";
 import { chainSpec as peopleChainSpec } from "polkadot-api/chains/polkadot_people";
 import { getSmProvider } from "polkadot-api/sm-provider";
 import { start } from "smoldot";
 
 import { ActionLogger, TeamApi } from "../github/types";
+import { chainSpec as polkadotChainSpec } from "./polkadotChainSpec";
 import { waitForRecentFinalizedBlock } from "./sync";
 
 type FellowData = { address: string; rank: number };
