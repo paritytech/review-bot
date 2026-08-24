@@ -1,12 +1,13 @@
 import { collectives, IdentityData, people } from "@polkadot-api/descriptors";
-import { Binary, createClient, SS58String, TypedApi } from "polkadot-api";
-import { chainSpec as polkadotChainSpec } from "polkadot-api/chains/polkadot";
+import { Binary, createClient, PolkadotClient, SS58String, TypedApi } from "polkadot-api";
 import { chainSpec as collectivesChainSpec } from "polkadot-api/chains/polkadot_collectives";
 import { chainSpec as peopleChainSpec } from "polkadot-api/chains/polkadot_people";
 import { getSmProvider } from "polkadot-api/sm-provider";
 import { start } from "smoldot";
 
 import { ActionLogger, TeamApi } from "../github/types";
+import { chainSpec as polkadotChainSpec } from "./polkadotChainSpec";
+import { waitForRecentFinalizedBlock } from "./sync";
 
 type FellowData = { address: string; rank: number };
 
@@ -59,6 +60,8 @@ export class PolkadotFellows implements TeamApi {
   private async fetchAllFellows(logger: ActionLogger): Promise<Map<string, number>> {
     logger.info("Initializing smoldot");
     const smoldot = start();
+    let collectivesClient: PolkadotClient | undefined;
+    let peopleClient: PolkadotClient | undefined;
 
     try {
       // Create smoldot chain with Polkadot Relay Chain
@@ -75,7 +78,7 @@ export class PolkadotFellows implements TeamApi {
       // Initialize the smoldot provider
       const jsonRpcProvider = getSmProvider(peopleParachain);
       logger.info("Initializing the people client");
-      const peopleClient = createClient(jsonRpcProvider);
+      peopleClient = createClient(jsonRpcProvider);
 
       // Get the types for the people client
       const peopleApi = peopleClient.getTypedApi(people);
@@ -88,14 +91,34 @@ export class PolkadotFellows implements TeamApi {
       });
       const collectiveJsonRpcProvider = getSmProvider(collectiveRelayChain);
       logger.info("Initializing the relay client");
-      const collectivesClient = createClient(collectiveJsonRpcProvider);
+      collectivesClient = createClient(collectiveJsonRpcProvider);
       const collectivesApi = collectivesClient.getTypedApi(collectives);
+
+      const syncController = new AbortController();
+      try {
+        await Promise.all([
+          waitForRecentFinalizedBlock(
+            "Collectives Polkadot",
+            (signal) => collectivesApi.query.Timestamp.Now.getValue({ at: "finalized", signal }),
+            logger,
+            { signal: syncController.signal },
+          ),
+          waitForRecentFinalizedBlock(
+            "People Polkadot",
+            (signal) => peopleApi.query.Timestamp.Now.getValue({ at: "finalized", signal }),
+            logger,
+            { signal: syncController.signal },
+          ),
+        ]);
+      } catch (error) {
+        syncController.abort(error);
+        throw error;
+      } finally {
+        syncController.abort();
+      }
 
       // Pull the members of the FellowshipCollective
       const memberEntries = await collectivesApi.query.FellowshipCollective.Members.getEntries();
-
-      // We no longer need the collective client, so let's destroy it
-      collectivesClient.destroy();
 
       // Build the Array of FellowData and filter out candidates (zero rank members)
       const fellows: FellowData[] = memberEntries
@@ -125,14 +148,13 @@ export class PolkadotFellows implements TeamApi {
         }
       }
 
-      // We are now done with the relay client
-      peopleClient.destroy();
-
       return userMap;
     } catch (error) {
       logger.error(error as Error);
       throw error;
     } finally {
+      collectivesClient?.destroy();
+      peopleClient?.destroy();
       await smoldot.terminate();
     }
   }
