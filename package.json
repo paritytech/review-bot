@@ -1,6 +1,6 @@
 {
   "name": "review-bot",
-  "version": "2.7.2",
+  "version": "2.7.3",
   "description": "Have custom review rules for PRs with auto assignment",
   "main": "src/index.ts",
   "scripts": {
