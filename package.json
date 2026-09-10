@@ -40,7 +40,7 @@
     "@actions/github": "^6.0.1",
     "@eng-automation/js": "^2.2.0",
     "@polkadot-api/descriptors": "portal:.papi/descriptors",
-    "joi": "^17.13.3",
+    "joi": "^17.13.6",
     "polkadot-api": "^1.20.0",
     "smoldot": "^2.0.39",
     "yaml": "^2.8.1"
@@ -48,6 +48,6 @@
   "packageManager": "yarn@4.3.0",
   "resolutions": {
     "@polkadot-api/descriptors": "portal:./.papi/descriptors",
-    "joi": "^17.13.3"
+    "joi": "^17.13.6"
   }
 }
