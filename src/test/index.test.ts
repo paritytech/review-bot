@@ -80,6 +80,9 @@ describe("Integration testing", () => {
     pr = mockDeep<PullRequest>();
     pr.number = 99;
     pr.base.repo.owner.login = "org";
+    // Unless a test says otherwise, the PR targets the default branch so every rule is enforced
+    pr.base.ref = "main";
+    pr.base.repo.default_branch = "main";
 
     api = new PullRequestApi(client, pr, logger);
     teams = new GitHubTeamsApi(client, "org", logger);
@@ -237,6 +240,51 @@ describe("Integration testing", () => {
     const newResult = await runner.runAction({ configLocation: "abc" });
     expect(newResult.reports).toHaveLength(1);
     expect(newResult.reports.map((r) => r.name)).not.toContainEqual("Audit rules");
+  });
+
+  describe("Unprotected target branch", () => {
+    beforeEach(() => {
+      pr.base.ref = "feature-branch";
+      // @ts-ignore because we don't need the full type
+      client.rest.repos.getBranch.mockResolvedValue({ data: { protected: false } });
+      // @ts-ignore because we don't need the full type
+      client.rest.repos.getBranchRules.mockResolvedValue({ data: [] });
+      client.rest.pulls.listFiles.mockResolvedValue({
+        // @ts-ignore
+        data: [{ filename: "cumulus/parachains/common/src/example.rs" }, { filename: "README.md" }],
+      });
+    });
+
+    test("should require only one approval for every matching rule", async () => {
+      const result = await runner.runAction({ configLocation: "abc" });
+      expect(result.conclusion).toBe("failure");
+      expect(result.reports).toHaveLength(1);
+      expect(result.reports[0].missingReviews).toBe(1);
+      expect(result.reports[0].type).toBe("single-approval");
+    });
+
+    test("should approve with one review where a protected branch needs four", async () => {
+      mockReviews([{ state: "approved", id: 123, login: "core-1" }]);
+      const result = await runner.runAction({ configLocation: "abc" });
+      expect(result.conclusion).toBe("success");
+      expect(result.reports).toHaveLength(0);
+    });
+
+    test("should not approve with a review from a user that no rule qualifies", async () => {
+      mockReviews([{ state: "approved", id: 123, login: "random-user" }]);
+      const result = await runner.runAction({ configLocation: "abc" });
+      expect(result.conclusion).toBe("failure");
+    });
+
+    test("should enforce every rule if the config opted out", async () => {
+      const strictConfig = `${config}\nsingleApprovalOnUnprotectedBranches: false\n`;
+      // @ts-ignore problem with the type being mocked
+      client.rest.repos.getContent.mockResolvedValue({ data: { content: Buffer.from(strictConfig, "utf-8") } });
+      mockReviews([{ state: "approved", id: 123, login: "core-1" }]);
+      const result = await runner.runAction({ configLocation: "abc" });
+      expect(result.conclusion).toBe("failure");
+      expect(result.reports.map((r) => r.name)).toContainEqual("Runtime files cumulus");
+    });
   });
 
   describe("Combinations", () => {

@@ -12,8 +12,13 @@ export type RuleFailedReport = {
   countingReviews: string[];
 };
 
+/** Identifies what produced a failure.
+ * Aside from the rules of the configuration file, review-bot generates requirements of its own.
+ */
+export type FailureType = RuleTypes | "single-approval";
+
 export type RuleFailedSummary = {
-  type: RuleTypes;
+  type: FailureType;
   name: string;
 } & RuleFailedReport;
 
@@ -29,7 +34,7 @@ export type RequiredReviewersData = {
  */
 export abstract class ReviewFailure {
   public readonly name: string;
-  public readonly type: RuleTypes;
+  public readonly type: FailureType;
   /** The amount of missing reviews */
   public readonly missingReviews: number;
 
@@ -47,7 +52,7 @@ export abstract class ReviewFailure {
     this.missingUsers = ruleInfo.missingUsers;
   }
 
-  ruleExplanation(type: RuleTypes): string {
+  ruleExplanation(type: FailureType): string {
     switch (type) {
       case RuleTypes.Basic:
         return "Rule 'Basic' requires a given amount of reviews from users/teams";

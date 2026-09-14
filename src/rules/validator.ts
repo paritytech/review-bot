@@ -51,6 +51,7 @@ export const generalSchema = Joi.object<ConfigurationFile>().keys({
   rules: Joi.array<ConfigurationFile["rules"]>().items(ruleSchema).unique("name").required(),
   preventReviewRequests: Joi.object().keys(reviewersObj).optional().or("users", "teams"),
   score: fellowScoreSchema,
+  singleApprovalOnUnprotectedBranches: Joi.boolean().default(true),
 });
 
 /** Basic rule schema

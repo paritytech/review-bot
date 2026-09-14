@@ -63,4 +63,13 @@ export interface ConfigurationFile {
     users?: string[];
   };
   score?: FellowsScore;
+  /** Pull requests that target a branch which is neither the repository's default branch nor a
+   * protected branch are merged into a single requirement of one approval.
+   *
+   * Such branches do not gate anything, so requiring the full set of reviews only slows down
+   * work that still has to pass every rule once it targets a protected branch.
+   * Set it to `false` to enforce every rule on every branch.
+   * @default true
+   */
+  singleApprovalOnUnprotectedBranches?: boolean;
 }

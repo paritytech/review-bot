@@ -43,6 +43,39 @@ describe("Config Parsing", () => {
     expect(api.getConfigFile).toHaveBeenCalledWith("example-location");
   });
 
+  describe("singleApprovalOnUnprotectedBranches field", () => {
+    const configWithField = (value?: string) => `
+        rules:
+          - name: Default review
+            condition:
+              include:
+                - '.*'
+            type: basic
+            teams:
+              - team-example
+        ${value ? `singleApprovalOnUnprotectedBranches: ${value}` : ""}
+        `;
+
+    test("should be enabled by default", async () => {
+      api.getConfigFile.mockResolvedValue(configWithField());
+      const config = await runner.getConfigFile("");
+      expect(config.singleApprovalOnUnprotectedBranches).toBe(true);
+    });
+
+    test("should be able to be disabled", async () => {
+      api.getConfigFile.mockResolvedValue(configWithField("false"));
+      const config = await runner.getConfigFile("");
+      expect(config.singleApprovalOnUnprotectedBranches).toBe(false);
+    });
+
+    test("should fail if it is not a boolean", async () => {
+      api.getConfigFile.mockResolvedValue(configWithField("'example'"));
+      await expect(runner.getConfigFile("")).rejects.toThrowError(
+        '"singleApprovalOnUnprotectedBranches" must be a boolean',
+      );
+    });
+  });
+
   describe("rule type", () => {
     test("should fail with no rule type", async () => {
       api.getConfigFile.mockResolvedValue(`

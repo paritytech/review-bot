@@ -10,6 +10,7 @@ import {
   ReviewFailure,
   RuleFailedReport,
   RuleFailedSummary,
+  SingleApprovalFailure,
 } from "./failures";
 import { GitHubChecksApi } from "./github/check";
 import { PullRequestApi } from "./github/pullRequest";
@@ -79,20 +80,8 @@ export class ActionRunner {
     ruleCheck: for (const rule of rules) {
       try {
         this.logger.info(`Validating rule '${rule.name}' of type '${rule.type}'`);
-        // We get all the files that were modified and match the rules condition
-        const files = this.listFilesThatMatchRuleCondition(modifiedFiles, rule);
-        // We check if there are any matches
-        if (files.length === 0) {
-          this.logger.info(`Skipping rule ${rule.name} as no condition matched`);
-          // If there are no matches, we simply skip the check
+        if (!(await this.ruleApplies(rule, modifiedFiles))) {
           continue;
-        } else if (rule.allowedToSkipRule) {
-          const members = await this.fetchAllUsers(rule.allowedToSkipRule);
-          const author = this.prApi.getAuthor();
-          if (members.indexOf(author) > -1) {
-            this.logger.info(`Skipping rule ${rule.name} as author belong to greenlight rule.`);
-            continue;
-          }
         }
         switch (rule.type) {
           case RuleTypes.Basic: {
@@ -179,6 +168,134 @@ export class ActionRunner {
       this.logger.info(`Finish validating '${rule.name}'`);
     }
     return { files: modifiedFiles, reports: errorReports };
+  }
+
+  /** Evaluates if a rule has to be enforced on this pull request.
+   * A rule is skipped when none of the modified files match its condition, or when the author
+   * belongs to the group of users that are allowed to skip it.
+   */
+  async ruleApplies(rule: Rule, modifiedFiles: string[]): Promise<boolean> {
+    // We get all the files that were modified and match the rules condition
+    const files = this.listFilesThatMatchRuleCondition(modifiedFiles, rule);
+    // We check if there are any matches
+    if (files.length === 0) {
+      this.logger.info(`Skipping rule ${rule.name} as no condition matched`);
+      // If there are no matches, we simply skip the check
+      return false;
+    }
+    if (rule.allowedToSkipRule) {
+      const members = await this.fetchAllUsers(rule.allowedToSkipRule);
+      const author = this.prApi.getAuthor();
+      if (members.indexOf(author) > -1) {
+        this.logger.info(`Skipping rule ${rule.name} as author belong to greenlight rule.`);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Evaluates every rule that applies to the pull request as one single requirement of one approval.
+   *
+   * All the qualifying reviewers of all the matching rules are merged into a single group, so one
+   * approval from any of them fulfills every rule at once. This is used for pull requests that
+   * target a branch which does not need to be gated by reviews.
+   * @returns the same report shape as {@link validatePullRequest}, with at most one failure
+   */
+  async validateWithSingleApproval({ rules }: ConfigurationFile): Promise<PullRequestReport> {
+    const modifiedFiles = await this.prApi.listModifiedFiles();
+
+    /** Names of the rules that were merged into the single requirement */
+    const mergedRules: string[] = [];
+    let qualifyingUsers: string[] = [];
+    let usersToRequest: string[] = [];
+    let teamsToRequest: string[] = [];
+    /** The author's own approval only counts if every merged rule allows it */
+    let countAuthor = true;
+
+    for (const rule of rules) {
+      this.logger.info(`Validating rule '${rule.name}' of type '${rule.type}'`);
+      if (!(await this.ruleApplies(rule, modifiedFiles))) {
+        continue;
+      }
+      const reviewers = await this.listRuleReviewers(rule);
+      mergedRules.push(rule.name);
+      qualifyingUsers = concatArraysUniquely(qualifyingUsers, reviewers.qualifyingUsers);
+      usersToRequest = concatArraysUniquely(usersToRequest, reviewers.usersToRequest);
+      teamsToRequest = concatArraysUniquely(teamsToRequest, reviewers.teamsToRequest);
+      countAuthor = countAuthor && (rule.countAuthor ?? false);
+    }
+
+    if (mergedRules.length === 0) {
+      this.logger.info("No rule matched the pull request.");
+      return { files: modifiedFiles, reports: [] };
+    }
+
+    this.logger.info(`Merged the rules ${JSON.stringify(mergedRules)} into a requirement of one approval.`);
+
+    if (qualifyingUsers.length === 0) {
+      throw new Error("No users have been found in the required reviewers");
+    }
+
+    const approvals = await this.prApi.listApprovedReviewsAuthors(countAuthor);
+    this.logger.info(`Found ${approvals.length} approvals.`);
+
+    const countingReviews = qualifyingUsers.filter((user) => approvals.indexOf(user) > -1);
+
+    if (countingReviews.length > 0) {
+      this.logger.info("Rule requirements fulfilled");
+      return { files: modifiedFiles, reports: [] };
+    }
+
+    const author = this.prApi.getAuthor();
+    this.logger.warn("1 review is missing.");
+
+    return {
+      files: modifiedFiles,
+      reports: [
+        new SingleApprovalFailure(
+          {
+            name: "Single approval",
+            type: "single-approval",
+            countingReviews,
+            missingUsers: qualifyingUsers.filter((user) => user !== author),
+            usersToRequest: usersToRequest.filter((user) => user !== author),
+            teamsToRequest,
+          },
+          this.prApi.getTargetBranch(),
+          mergedRules,
+        ),
+      ],
+    };
+  }
+
+  /** Returns every user whose approval counts towards a rule, together with the users and the
+   * teams whose review should be requested for it
+   */
+  async listRuleReviewers(
+    rule: ConfigurationFile["rules"][number],
+  ): Promise<{ qualifyingUsers: string[]; usersToRequest: string[]; teamsToRequest: string[] }> {
+    if (rule.type === RuleTypes.Fellows) {
+      // Fellows are found on chain, so there is nobody whose review we could request
+      return {
+        qualifyingUsers: await this.polkadotApi.getTeamMembers(rule.minRank.toString()),
+        usersToRequest: [],
+        teamsToRequest: [],
+      };
+    }
+
+    const reviewers: Reviewers[] = rule.type === RuleTypes.Basic ? [rule] : rule.reviewers;
+
+    let qualifyingUsers: string[] = [];
+    for (const reviewer of reviewers) {
+      qualifyingUsers = concatArraysUniquely(qualifyingUsers, await this.fetchAllUsers(reviewer));
+    }
+
+    return {
+      qualifyingUsers,
+      usersToRequest: [...new Set(reviewers.flatMap((reviewer) => reviewer.users ?? []))],
+      teamsToRequest: [...new Set(reviewers.flatMap((reviewer) => reviewer.teams ?? []))],
+    };
   }
 
   async requestReviewers(
@@ -594,6 +711,29 @@ export class ActionRunner {
     return Array.from(users);
   }
 
+  /** Evaluates the pull request, relaxing all the rules into one single required approval when
+   * the pull request targets a branch that does not need to be gated by reviews.
+   * @see {@link ConfigurationFile.singleApprovalOnUnprotectedBranches}
+   */
+  async validate(config: ConfigurationFile): Promise<PullRequestReport> {
+    // The behaviour is enabled unless the config file opted out of it
+    if (config.singleApprovalOnUnprotectedBranches === false) {
+      this.logger.debug("'singleApprovalOnUnprotectedBranches' is disabled. Enforcing every rule.");
+      return await this.validatePullRequest(config);
+    }
+
+    if (await this.prApi.isTargetBranchProtected()) {
+      return await this.validatePullRequest(config);
+    }
+
+    this.logger.info(
+      `Pull request targets '${this.prApi.getTargetBranch()}', which is not a protected branch. ` +
+        "Only one approval will be required.",
+    );
+
+    return await this.validateWithSingleApproval(config);
+  }
+
   /** Core runner of the app.
    * 1. It fetches the config
    * 2. It validates all the pull request requirements based on the config file
@@ -605,7 +745,7 @@ export class ActionRunner {
   ): Promise<Pick<CheckData, "conclusion"> & PullRequestReport> {
     const config = await this.getConfigFile(inputs.configLocation);
 
-    const prValidation = await this.validatePullRequest(config);
+    const prValidation = await this.validate(config);
     const { reports } = prValidation;
 
     this.logger.info(reports.length > 0 ? "There was an error with the PR reviews." : "The PR has been successful");
