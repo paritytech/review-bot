@@ -186,7 +186,13 @@ describe("Pull Request API Tests", () => {
       await expect(api.isTargetBranchProtected()).resolves.toBe(true);
     });
 
-    test("Should not consider a branch protected because of rules that do not gate reviews", async () => {
+    test("Should consider a branch targeted by a required status checks ruleset protected", async () => {
+      // @ts-ignore because we don't need the full type
+      client.rest.repos.getBranchRules.mockResolvedValue({ data: [{ type: "required_status_checks" }] });
+      await expect(api.isTargetBranchProtected()).resolves.toBe(true);
+    });
+
+    test("Should not consider a branch protected because of rules that do not gate a merge", async () => {
       // @ts-ignore because we don't need the full type
       client.rest.repos.getBranchRules.mockResolvedValue({
         data: [{ type: "deletion" }, { type: "non_fast_forward" }],

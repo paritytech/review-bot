@@ -4,6 +4,12 @@ import { Reviewers } from "../rules/types";
 import { caseInsensitiveEqual } from "../util";
 import { ActionLogger, GitHubClient } from "./types";
 
+/** Ruleset rules that gate a merge, and so make a branch one that reviews must protect.
+ * Rules like forbidding deletions or force pushes are left out: rulesets commonly apply those to
+ * every branch of a repository, which would make every branch look protected.
+ */
+const GATING_RULES = ["pull_request", "required_status_checks"];
+
 /** API class that uses the default token to access the data from the pull request and the repository
  * If we are using the assign reviewers features with teams, it requires a GitHub app
  * (Action token doesn't have permission to assign teams)
@@ -178,11 +184,11 @@ export class PullRequestApi {
       const { data: rules } = await this.api.rest.repos.getBranchRules({ ...this.repoInfo, branch });
       this.logger.debug(`Rules applying to '${branch}': ${JSON.stringify(rules)}`);
       // Rulesets often target every branch with rules that have nothing to do with reviews,
-      // like forbidding deletions, so only a rule that gates pull requests counts here.
-      this.targetBranchProtected = rules.some((rule) => rule.type === "pull_request");
+      // like forbidding deletions, so only the rules that gate a merge count here.
+      this.targetBranchProtected = rules.some((rule) => GATING_RULES.indexOf(rule.type) > -1);
       this.logger.info(
         this.targetBranchProtected
-          ? `Branch '${branch}' is targeted by a ruleset that gates pull requests.`
+          ? `Branch '${branch}' is targeted by a ruleset that gates merges.`
           : `Branch '${branch}' is neither the default branch nor a protected branch.`,
       );
     } catch (error) {
