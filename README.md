@@ -52,6 +52,8 @@ on:
       - review_requested
       - review_request_removed
       - ready_for_review
+      # Fires when the base branch changes, which changes what the rules require
+      - edited
   pull_request_review:
 
 jobs:
@@ -281,9 +283,13 @@ When a Pull Request targets a branch that is *not* gated by reviews, all the rul
 A branch is considered gated when any of the following is true:
 - It is the repository’s default branch (usually `main` or `master`).
 - It has [classic branch protection](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches) enabled.
-- A [ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) with a `pull_request` rule applies to it. Rulesets that only forbid things like deletions or force pushes don’t count, as they don’t gate reviews.
+- A [ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) with a `pull_request` or `required_status_checks` rule applies to it. Rulesets that only forbid things like deletions or force pushes don’t count, as they don’t gate a merge.
 
 If the protection of the branch can not be evaluated (for example, because the token lacks permissions), the branch is treated as gated so the review requirements are never lowered by accident.
+
+A relaxed result is published as a **separate status check named `review-bot-relaxed`**, never as `review-bot`. Check runs belong to a commit rather than to a Pull Request, so two Pull Requests that share a head commit share their check run. Keeping the two names apart means a relaxed result can never satisfy the `review-bot` check that a protected branch requires, whether the Pull Request is later retargeted at a protected branch or another Pull Request is opened from the same commit. Only require `review-bot` in your branch protection, never `review-bot-relaxed`.
+
+Retargeting a Pull Request at a protected branch therefore leaves it without the required `review-bot` check until Review Bot evaluates it again. Make sure your trigger workflow includes the `edited` event, which is the one GitHub fires when the base branch changes.
 
 The reasoning is that a Pull Request targeting a long lived feature branch or a stacked branch still has to pass every rule in full once those changes target a protected branch, so collecting the whole set of approvals twice only slows the work down. A single approval is still required so that no change lands completely unreviewed.
 

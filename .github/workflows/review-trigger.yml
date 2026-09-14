@@ -9,6 +9,8 @@ on:
       - review_requested
       - review_request_removed
       - ready_for_review
+      # Fires when the base branch changes, which changes what the rules require
+      - edited
   pull_request_review:
 
 jobs:
