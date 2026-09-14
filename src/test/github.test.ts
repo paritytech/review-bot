@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/unbound-method */
 import { PullRequest, PullRequestReview } from "@octokit/webhooks-types";
 import { any, DeepMockProxy, mock, mockDeep, MockProxy } from "jest-mock-extended";
 
@@ -143,6 +145,73 @@ describe("Pull Request API Tests", () => {
         expect(modifiedFiles).toEqual(files);
       }
       expect(client.rest.pulls.listFiles).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("Target branch protection", () => {
+    beforeEach(() => {
+      pr.base.ref = "feature-branch";
+      pr.base.repo.default_branch = "main";
+      // @ts-ignore because we don't need the full type
+      client.rest.repos.getBranch.mockResolvedValue({ data: { protected: false } });
+      // @ts-ignore because we don't need the full type
+      client.rest.repos.getBranchRules.mockResolvedValue({ data: [] });
+    });
+
+    test("Should return the target branch", () => {
+      expect(api.getTargetBranch()).toEqual("feature-branch");
+    });
+
+    test("Should consider the default branch protected", async () => {
+      pr.base.ref = "main";
+      await expect(api.isTargetBranchProtected()).resolves.toBe(true);
+      // The default branch is known from the payload, so no request is needed
+      expect(client.rest.repos.getBranch).not.toHaveBeenCalled();
+    });
+
+    test("Should consider a branch with branch protection protected", async () => {
+      // @ts-ignore because we don't need the full type
+      client.rest.repos.getBranch.mockResolvedValue({ data: { protected: true } });
+      await expect(api.isTargetBranchProtected()).resolves.toBe(true);
+      expect(client.rest.repos.getBranch).toHaveBeenCalledWith({
+        owner: "org",
+        repo: pr.base.repo.name,
+        branch: "feature-branch",
+      });
+    });
+
+    test("Should consider a branch targeted by a pull request ruleset protected", async () => {
+      // @ts-ignore because we don't need the full type
+      client.rest.repos.getBranchRules.mockResolvedValue({ data: [{ type: "pull_request" }] });
+      await expect(api.isTargetBranchProtected()).resolves.toBe(true);
+    });
+
+    test("Should not consider a branch protected because of rules that do not gate reviews", async () => {
+      // @ts-ignore because we don't need the full type
+      client.rest.repos.getBranchRules.mockResolvedValue({
+        data: [{ type: "deletion" }, { type: "non_fast_forward" }],
+      });
+      await expect(api.isTargetBranchProtected()).resolves.toBe(false);
+    });
+
+    test("Should not consider an unprotected branch protected", async () => {
+      await expect(api.isTargetBranchProtected()).resolves.toBe(false);
+    });
+
+    test("Should consider the branch protected if the evaluation fails", async () => {
+      client.rest.repos.getBranch.mockRejectedValue(new Error("Branch not found"));
+      await expect(api.isTargetBranchProtected()).resolves.toBe(true);
+      expect(logger.warn).toHaveBeenCalledWith(
+        "Failed to evaluate the protection of branch 'feature-branch'. Considering it protected.",
+      );
+    });
+
+    test("Should cache the evaluation", async () => {
+      for (let i = 0; i < 10; i++) {
+        await expect(api.isTargetBranchProtected()).resolves.toBe(false);
+      }
+      expect(client.rest.repos.getBranch).toHaveBeenCalledTimes(1);
+      expect(client.rest.repos.getBranchRules).toHaveBeenCalledTimes(1);
     });
   });
 
