@@ -35,6 +35,10 @@ type PullRequestReport = {
   files: string[];
   /** List of all the failed review requirements */
   reports: ReviewFailure[];
+  /** Whether all the rules were merged into a single required approval because the target
+   * branch is not gated by reviews
+   */
+  relaxed: boolean;
 };
 
 /** Action in charge of running the GitHub action */
@@ -167,7 +171,7 @@ export class ActionRunner {
       }
       this.logger.info(`Finish validating '${rule.name}'`);
     }
-    return { files: modifiedFiles, reports: errorReports };
+    return { files: modifiedFiles, reports: errorReports, relaxed: false };
   }
 
   /** Evaluates if a rule has to be enforced on this pull request.
@@ -228,7 +232,7 @@ export class ActionRunner {
 
     if (mergedRules.length === 0) {
       this.logger.info("No rule matched the pull request.");
-      return { files: modifiedFiles, reports: [] };
+      return { files: modifiedFiles, reports: [], relaxed: true };
     }
 
     this.logger.info(`Merged the rules ${JSON.stringify(mergedRules)} into a requirement of one approval.`);
@@ -244,7 +248,7 @@ export class ActionRunner {
 
     if (countingReviews.length > 0) {
       this.logger.info("Rule requirements fulfilled");
-      return { files: modifiedFiles, reports: [] };
+      return { files: modifiedFiles, reports: [], relaxed: true };
     }
 
     const author = this.prApi.getAuthor();
@@ -266,6 +270,7 @@ export class ActionRunner {
           mergedRules,
         ),
       ],
+      relaxed: true,
     };
   }
 
@@ -353,7 +358,7 @@ export class ActionRunner {
   /** Aggregates all the reports and generate a status report
    * This also filters the author of the PR if he belongs to the group of users
    */
-  generateCheckRunData(reports: ReviewFailure[]): CheckData {
+  generateCheckRunData(reports: ReviewFailure[], relaxed: boolean = false): CheckData {
     // Count how many reviews are missing
     const missingReviews = reports.reduce((a, b) => a + b.missingReviews, 0);
     const failed = missingReviews > 0;
@@ -365,6 +370,15 @@ export class ActionRunner {
         text: failed ? "Details per rule:\n" : "",
       },
     };
+
+    if (relaxed) {
+      // A green check here only means that one approval was collected, so say against which
+      // branch it was evaluated. The rules are enforced in full on a protected branch.
+      check.output.summary =
+        `Only one approval was required as this pull request targets \`${this.prApi.getTargetBranch()}\`, ` +
+        "which is not a protected branch.\n\n" +
+        check.output.summary;
+    }
 
     if (!failed) {
       return check;
@@ -750,8 +764,8 @@ export class ActionRunner {
 
     this.logger.info(reports.length > 0 ? "There was an error with the PR reviews." : "The PR has been successful");
 
-    const checkRunData = this.generateCheckRunData(reports);
-    await this.checks.generateCheckRun(checkRunData);
+    const checkRunData = this.generateCheckRunData(reports, prValidation.relaxed);
+    await this.checks.generateCheckRun(checkRunData, prValidation.relaxed);
 
     if (inputs.requestReviewers) {
       await this.requestReviewers(reports, config.preventReviewRequests);

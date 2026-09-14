@@ -173,6 +173,16 @@ describe("Integration testing", () => {
     });
   });
 
+  test("should publish a strict result as the 'review-bot' check", async () => {
+    // @ts-ignore
+    client.rest.pulls.listFiles.mockResolvedValue({ data: [{ filename: "README.md" }] });
+    const result = await runner.runAction({ configLocation: "abc" });
+    expect(result.relaxed).toBe(false);
+    expect(client.rest.checks.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "review-bot", external_id: "review-bot" }),
+    );
+  });
+
   describe("Core developers", () => {
     test("should request reviews ", async () => {
       // @ts-ignore
@@ -261,6 +271,26 @@ describe("Integration testing", () => {
       expect(result.reports).toHaveLength(1);
       expect(result.reports[0].missingReviews).toBe(1);
       expect(result.reports[0].type).toBe("single-approval");
+      expect(result.relaxed).toBe(true);
+    });
+
+    test("should never publish a relaxed result as the 'review-bot' check", async () => {
+      // Check runs belong to a commit, so a relaxed result under this name would satisfy a
+      // protected branch after a retarget, or overwrite the strict result of another PR
+      mockReviews([{ state: "approved", id: 123, login: "core-1" }]);
+      await runner.runAction({ configLocation: "abc" });
+      expect(client.rest.checks.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "review-bot-relaxed", external_id: "review-bot-relaxed" }),
+      );
+      expect(client.rest.checks.create).not.toHaveBeenCalledWith(expect.objectContaining({ name: "review-bot" }));
+    });
+
+    test("should say which branch the relaxed evaluation was made against", async () => {
+      mockReviews([{ state: "approved", id: 123, login: "core-1" }]);
+      await runner.runAction({ configLocation: "abc" });
+      const [check] = client.rest.checks.create.mock.calls[0];
+      // @ts-ignore the mocked type does not carry the output
+      expect(check.output.summary).toContain("feature-branch");
     });
 
     test("should approve with one review where a protected branch needs four", async () => {
