@@ -220,13 +220,17 @@ interface Report {
   }[];
 }
 ```
+
+> [!NOTE]
+> When the requirements were relaxed because the Pull Request targets an unprotected branch, `report` contains one single entry named `Single approval` with a `type` of `single-approval`. See [singleApprovalOnUnprotectedBranches](#singleapprovalonunprotectedbranches).
+
 ## Rule configuration file
 This is the file where all the available rules are written. 
 
 **This file is only read from the main branch.** So if you modify the file, the changes won’t happen until it is merged into the main branch. 
 This is done to stop users from modifying the rules in their PRs.
 
-It contains an object called `rules` which has an array of rules. Every rule has a same base structure. There is also a second optional field called `preventReviewRequests`.
+It contains an object called `rules` which has an array of rules. Every rule has a same base structure. There are also two optional fields called `preventReviewRequests` and `singleApprovalOnUnprotectedBranches`.
 ```yaml
 rules:
   - name: Rule name
@@ -244,6 +248,8 @@ preventReviewRequests:
   teams:
     - team-a
     - team-b
+
+singleApprovalOnUnprotectedBranches: true
 ```
 
 #### Rules fields
@@ -266,6 +272,38 @@ preventReviewRequests:
 This is a special field that applies to all the rules.
 
 This field is **optional** and currently not used. Pending on https://github.com/paritytech/review-bot/issues/53
+
+#### singleApprovalOnUnprotectedBranches
+This is a special field that applies to all the rules. It is **optional** and it **defaults to `true`**.
+
+When a Pull Request targets a branch that is *not* gated by reviews, all the rules that match the Pull Request are merged into a single requirement of **one approval**. A single approval from anyone who qualifies under *any* of the matching rules turns the check green.
+
+A branch is considered gated when any of the following is true:
+- It is the repository’s default branch (usually `main` or `master`).
+- It has [classic branch protection](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches) enabled.
+- A [ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) with a `pull_request` rule applies to it. Rulesets that only forbid things like deletions or force pushes don’t count, as they don’t gate reviews.
+
+If the protection of the branch can not be evaluated (for example, because the token lacks permissions), the branch is treated as gated so the review requirements are never lowered by accident.
+
+The reasoning is that a Pull Request targeting a long lived feature branch or a stacked branch still has to pass every rule in full once those changes target a protected branch, so collecting the whole set of approvals twice only slows the work down. A single approval is still required so that no change lands completely unreviewed.
+
+Set it to `false` to enforce every rule on every branch:
+
+```yaml
+rules:
+  - name: Default review
+    condition:
+      include:
+        - '.*'
+    type: basic
+    teams:
+      - team-example
+
+singleApprovalOnUnprotectedBranches: false
+```
+
+> [!NOTE]
+> The `read` permission on `contents` is enough to evaluate branch protection and rulesets, so no extra token scope is needed.
 
 
 ### Types
